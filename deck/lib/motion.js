@@ -11,7 +11,7 @@
  * All times and durations are in SECONDS.
  *
  *   Clock      Motion.now()  useManualClock([t])  setTime(t)  useRealClock()
- *              Motion.timeScale (get/set)
+ *              Motion.timeScale (get/set)   Motion.onRebase(fn(delta))
  *   Easing     Motion.ease.linear | in/out/inOut + Quad|Cubic|Quart|Expo|Back
  *              Motion.ease.spring(stiffness, damping)   Motion.ease.steps(n)
  *              (also reachable as Motion.spring / Motion.steps)
@@ -144,9 +144,22 @@
     clock.scale = scale;
   }
 
+  /**
+   * Switch to the manual clock, starting at `startAt` seconds (default: the
+   * time it is now). No time passes when you call this: whatever is in flight
+   * (tweens, playing timelines, raf loops) is moved onto the new time base and
+   * carries on from exactly where it is. So it is safe to call after scenes
+   * have started, and the first frame never sees time run backwards.
+   *
+   * For a capture that must begin at the very start of an animation, switch
+   * before the animation is created (before Deck.start(), for a whole deck).
+   */
   function useManualClock(startAt) {
-    clock.manualTime = startAt != null ? Number(startAt) : now();
+    var before = now();
+    var t = startAt != null ? Number(startAt) : before;
+    clock.manualTime = isNaN(t) ? before : t;
     clock.manual = true;
+    rebase(clock.manualTime - before);
     return Motion;
   }
 
@@ -156,6 +169,41 @@
     clock.manualTime = Number(seconds) || 0;
     runFrame();
     return Motion;
+  }
+
+  /* ------------------------------------------------------------------ *
+   * Re-basing
+   *
+   * useManualClock(t) makes Motion.now() jump although no time has passed.
+   * Everything that remembers a Motion.now() value has to be moved by the
+   * same amount, or it would see a huge (or negative) time step. Tweens,
+   * timelines and raf loops are moved here. Code elsewhere that keeps its
+   * own timestamp (a countdown's start time, for one) registers with
+   * Motion.onRebase and shifts it itself.
+   * ------------------------------------------------------------------ */
+
+  var rebaseListeners = [];
+
+  function rebase(delta) {
+    if (!delta) { return; }
+    var i;
+    for (i = 0; i < tickables.length; i++) {
+      if (tickables[i]._shift) { tickables[i]._shift(delta); }
+    }
+    for (i = 0; i < loops.length; i++) { loops[i].last += delta; }
+    rebaseListeners.slice().forEach(function (fn) {
+      try { fn(delta); } catch (err) { rethrowLater(err); }
+    });
+  }
+
+  /**
+   * Motion.onRebase(fn(delta)): fn is called when the clock jumps by `delta`
+   * seconds without time passing. Add delta to any Motion.now() value you
+   * are holding. Returns a function that removes the listener.
+   */
+  function onRebase(fn) {
+    rebaseListeners.push(fn);
+    return function () { removeFrom(rebaseListeners, fn); };
   }
 
   function useRealClock() {
@@ -207,7 +255,8 @@
     for (i = 0; i < ls.length; i++) {
       item = ls[i];
       if (item.stopped) { continue; }
-      var dt = t - item.last;
+      // dt is never negative: if the manual clock is set back, loops see 0.
+      var dt = Math.max(0, t - item.last);
       item.last = t;
       try { item.fn(t, dt); }
       catch (err2) { item.stopped = true; removeFrom(loops, item); rethrowLater(err2); }
@@ -228,6 +277,9 @@
    * Motion.raf(fn) calls fn(now, dt) once per frame until you call the
    * function it returns. ALWAYS keep that stop function and call it in your
    * scene's destroy(), or the loop leaks.
+   *
+   * dt is the Motion time since the loop's previous frame, in seconds. It is
+   * never negative, and switching clocks does not produce a jump in it.
    */
   function raf(fn) {
     var entry = { fn: fn, last: now(), stopped: false };
@@ -416,6 +468,8 @@
 
     handle._fail = function () { handle.active = false; resolveFinished(false); };
 
+    handle._shift = function (delta) { startedAt += delta; };   // the clock was re-based
+
     handle._tick = function (t) {
       var local = t - startedAt - delay;
       if (local < 0) { return; }
@@ -562,6 +616,7 @@
       driver = {
         infinite: false,
         _fail: function () { driver = null; stopDriver(false); },
+        _shift: function (delta) { startedAt += delta; },
         _tick: function (t) {
           var pos = startPos + (t - startedAt);
           if (pos >= total) { render(total); stopDriver(true); }
@@ -803,6 +858,7 @@
     setTime: setTime,
     useRealClock: useRealClock,
     isManual: function () { return clock.manual; },
+    onRebase: onRebase,
 
     // easing
     ease: ease,

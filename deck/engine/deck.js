@@ -52,6 +52,13 @@
  *   once, then step(n, dir) on every change, and destroy() when the slide has
  *   left. destroy() MUST stop every Motion.raf loop and timer the scene started.
  *
+ * THEMING
+ *
+ *   The engine reads the design tokens of docs/TOKENS.md and exposes its own
+ *   knobs as --deck-* and --timer-* CSS variables. The full list, the markup
+ *   of the progress bar, and the classes and attributes it keeps up to date
+ *   for the theme are documented at the top of engine/deck.css.
+ *
  * URL FLAGS (combine with &):
  *   ?fast       all motion 20x, CSS transitions instant (screenshots, tests)
  *   ?print      every slide at its final step, one per page (PDF export)
@@ -632,12 +639,18 @@
    *   presenter -> deck   { type: 'hello' }           on load, then every 2 s
    *   deck -> presenter   { type: 'state', reply }    answer to hello
    *   either way          { type: 'state', id, step, blackout }   on any change
-   *   presenter -> deck   { type: 'cmd', cmd }        timer keys
+   *   deck -> presenter   ... the same message also carries `overview`: is the
+   *                       overview grid what the audience sees right now?
+   *   presenter -> deck   { type: 'cmd', cmd }        timer keys, O
+   *   presenter -> deck   { type: 'pace', pace }      the elapsed timer, for safe keeping
+   *   deck -> presenter   { type: 'pace', pace }      handed back to a presenter window
+   *                                                   that says hello (see "pace" below)
    * ==================================================================== */
 
   var peer = null;          // the other window
   var lastLocalChange = 0;  // ms; stops a late 'hello' reply from undoing a fresh key press
   var lastHeard = 0;        // ms; presenter: when the deck last answered
+  var peerOverview = false; // presenter: the deck window is showing its overview
 
   function post(msg) {
     if (!peer) { return; }
@@ -648,10 +661,15 @@
     } catch (e) { /* the other window went away */ }
   }
 
+  /**
+   * Tell the other window where we are.
+   * reply = true marks a message that is not news (an answer to hello, or a
+   * change of the overview): the receiver treats it as catching up.
+   */
   function sendState(reply) {
     var s = slides[state.index];
     if (!reply) { lastLocalChange = Date.now(); }
-    post({ type: 'state', id: s ? s.id : null, step: state.step, blackout: state.blackout, reply: !!reply });
+    post({ type: 'state', id: s ? s.id : null, step: state.step, blackout: state.blackout, overview: state.overview, reply: !!reply });
   }
 
   function onMessage(e) {
@@ -667,32 +685,93 @@
       peer = e.source;
     }
 
-    if (m.type === 'hello' && !mode.presenter) { sendState(true); return; }
+    if (m.type === 'hello' && !mode.presenter) {
+      sendState(true);
+      if (keptPace) { post({ type: 'pace', pace: keptPace }); }
+      return;
+    }
 
     if (m.type === 'state') {
+      // The overview belongs to the deck window alone, so what it says about it is always true.
+      if (mode.presenter && typeof m.overview === 'boolean' && m.overview !== peerOverview) {
+        peerOverview = m.overview;
+        renderPresenterFlags();
+      }
       if (mode.presenter && m.reply && Date.now() - lastLocalChange < 800) { return; }
       if (m.id != null && Object.prototype.hasOwnProperty.call(indexById, m.id)) {
-        go(indexById[m.id], m.step, { remote: true, catchUp: !!m.reply });
+        var moved = go(indexById[m.id], m.step, { remote: true, catchUp: !!m.reply });
+        // The presenter window moved on: the audience must see the slide, not a grid left open here.
+        if (moved && !mode.presenter && state.overview) { setOverview(false); }
       }
       if (typeof m.blackout === 'boolean') { setBlackout(m.blackout, true); }
+      return;
+    }
+
+    if (m.type === 'pace') {
+      if (mode.presenter) { paceAdoptFromDeck(m.pace); }
+      else { keepPace(m.pace); }
       return;
     }
 
     if (m.type === 'cmd' && !mode.presenter) {
       if (m.cmd === 'timer-toggle') { timerCommand('toggle'); }
       if (m.cmd === 'timer-reset') { timerCommand('reset'); }
+      if (m.cmd === 'overview-toggle') { setOverview(!state.overview); }
     }
+  }
+
+  /**
+   * The address of the presenter window. It has to build the SAME running
+   * order as this window, so it gets every flag this window was opened with
+   * (?demo, ?kit, ?debug, anything a slide file reads), except the three that
+   * change what kind of page it is.
+   */
+  function presenterUrl() {
+    var base = window.location.href.split('#')[0].split('?')[0];
+    var flags = window.location.search.replace(/^\?/, '').split('&').filter(function (part) {
+      var name = part.split('=')[0];
+      return part !== '' && name !== 'presenter' && name !== 'print' && name !== 'fast';
+    });
+    var s = slides[state.index];
+    return base + '?' + ['presenter'].concat(flags).join('&') + (s ? '#/' + encodeURIComponent(s.id) + '/' + state.step : '');
   }
 
   function openPresenter() {
     if (peer) {
       try { if (!peer.closed) { peer.focus(); return; } } catch (e) { /* fall through and reopen */ }
     }
-    var s = slides[state.index];
-    var url = window.location.href.split('#')[0].split('?')[0] + '?presenter' + (mode.debug ? '&debug' : '') +
-      (s ? '#/' + encodeURIComponent(s.id) + '/' + state.step : '');
-    peer = window.open(url, 'deck-presenter', 'popup=yes,width=1280,height=820');
+    // 1280 x 820 fits a laptop screen; the presenter view lays itself out for any size.
+    peer = window.open(presenterUrl(), 'deck-presenter', 'popup=yes,width=1280,height=820');
     if (!peer) { toast('The presenter window was blocked. Allow pop-ups for this page, then press S again.'); }
+  }
+
+  /*
+   * "pace": the presenter view's elapsed timer, kept safe in the deck window.
+   *
+   * The timer runs in the presenter window, but that window is the one that
+   * gets closed by accident. So it sends a copy of its timer here whenever the
+   * timer changes (and every few seconds), and a presenter window that opens
+   * later is handed that copy and carries on from it: closing and reopening
+   * the presenter view does not lose the elapsed time. The copy also survives
+   * a reload of this window (sessionStorage). Reset in the presenter view
+   * clears it.
+   */
+  var keptPace = null;
+  var KEPT_PACE_KEY = 'deck.pace.kept';
+
+  function keepPace(snapshot) {
+    keptPace = (snapshot && snapshot.started) ? snapshot : null;
+    try {
+      if (keptPace) { window.sessionStorage.setItem(KEPT_PACE_KEY, JSON.stringify(keptPace)); }
+      else { window.sessionStorage.removeItem(KEPT_PACE_KEY); }
+    } catch (e) { /* no storage: the copy still lives as long as this page does */ }
+  }
+
+  function recallKeptPace() {
+    try {
+      var saved = JSON.parse(window.sessionStorage.getItem(KEPT_PACE_KEY) || 'null');
+      keptPace = (saved && saved.started) ? saved : null;
+    } catch (e) { keptPace = null; }
   }
 
   /* ======================================================================
@@ -1759,6 +1838,15 @@
    * Public API
    * ==================================================================== */
 
+  /**
+   * Deck.config({
+   *   title: 'The talk',                       document title
+   *   startClock: '14:30',                     session start (24-hour); the presenter view shows planned clock times
+   *   acts: ['Walk-in', 'The Bandwagon', ...], act names by number: overview headings, presenter view, progress label
+   *   counters: { duration: 1.5, ease: 'outExpo', steps: 12 }   deck-wide defaults for data-count-to
+   * })
+   * Call it before Deck.start(). It may be called more than once; later keys win.
+   */
   function configure(opts) {
     opts = opts || {};
     Object.keys(opts).forEach(function (key) { config[key] = opts[key]; });

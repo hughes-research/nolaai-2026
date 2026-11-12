@@ -182,7 +182,10 @@ The full contract is at the top of `deck/engine/deck.js`. The short version:
 - `data-count-to="3600" data-count-format="$,d"` counts up when it becomes
   visible. Formats: `$,d` → $3,600 · `$,.2f` → $3,600.00 · `,d` → 3,600 ·
   `.1f` → 4.3 · `%d` → 3600 · `d%` → 36%. Also `data-count-from`,
-  `data-count-prefix`, `data-count-suffix`, `data-count-duration` (seconds).
+  `data-count-prefix`, `data-count-suffix`, `data-count-duration` (seconds),
+  `data-count-ease` (a `Motion.ease` name) and `data-count-steps` (the number
+  ticks that many times instead of running smoothly). Deck-wide defaults:
+  `Deck.config({ counters: { duration: 1.5, ease: 'outExpo', steps: 12 } })`.
 - `Scenes.define(name, (host, opts, api) => ({ step(n, dir), resize(), destroy() }))`
   and `<div class="scene" data-scene="name" data-opts='{"json": 1}'></div>`.
   `destroy()` must stop every `Motion.raf` loop the scene started; the test
@@ -198,16 +201,55 @@ The full contract is at the top of `deck/engine/deck.js`. The short version:
   Escape leaves a text field. After a mouse click on a button or slider the
   keyboard goes back to the deck, so a clicker keeps working.
 - Style `.slide`, not `.deck-stage .slide`: the same markup is reused in
-  the overview and the presenter view. Engine knobs are the `--deck-*` and
-  `--timer-*` variables listed at the top of `deck/engine/deck.css`.
+  the overview and the presenter view.
 - Math that must give the same numbers in Node and in the browser should
   use `Motion.rng(seed)` and stay away from `Math.log`, `Math.exp`,
   `Math.pow`, `Math.sin`, `Math.cos`: those differ in the last digit
   between Node 22 and Chromium. `Math.sqrt` is safe.
 
+### For the theme
+
+The engine reads the canonical tokens of `docs/TOKENS.md` (`--c-bg`,
+`--c-ink`, `--c-accent`, `--c-accent-ink`, `--f-display`, `--f-body`,
+`--f-mono`, `--t-small`, `--d-fast`, `--d-base`, `--e-out`, `--e-in-out`)
+and falls back to plain values without them. `deck/engine/deck.css` loads
+after the theme, so everything in it that is about looks is written with
+zero specificity (`:where()`): any ordinary rule in the theme wins. The top
+of that file is the reference. In short:
+
+- **Knobs:** `--deck-slide-duration` (0s = hard cut), `--deck-reveal-*`,
+  `--deck-hide-duration`, one group per `data-anim`, `--deck-progress-*`,
+  `--timer-*`. The engine's defaults follow `--d-base`, `--d-fast`, `--e-out`.
+- **Slide change:** the new slide is `.slide.is-current`, the old one
+  `.slide.is-leaving` until the duration is over. Meanwhile `.deck-stage` has
+  `.is-transitioning` and `data-dir="forward|back"`, and an empty
+  `<div class="deck-transition">` sits above both slides. It is a new element
+  every time, so a CSS animation on it restarts: that is where a cover or a
+  wipe goes.
+- **Where we are:** `.deck-stage` carries `data-current-slide`,
+  `data-current-act`, `data-current-layout`, `data-current-step`.
+- **Progress:** `.deck-progress` contains one `.deck-progress-act` per act
+  with a `.deck-progress-fill`, one `.deck-progress-tick` per slide
+  (`.is-done`, `.is-current`), the act number and name
+  (`.deck-progress-actnum`, `.deck-progress-actname`), and
+  `.deck-progress-current` / `.deck-progress-total`. By default only a thin
+  bar and the number show; the ticks and the act label are switched off.
+- **Reveals:** only the hidden state is styled
+  (`[data-anim="rise"]:not(.is-visible)` and so on), with `opacity`,
+  `translate`, `scale`, `rotate` and `clip-path`, so `transform` stays free.
+- **Timer:** `.timer[data-state="idle|running|paused|finished"]` and
+  `.timer[data-last-minute]`. The states differ by shape and ground, not only
+  by colour: outlined digits when paused, an accent block in the last minute,
+  an inverted block that flashes three times at zero.
+- **Counters:** `Deck.config({ counters: { duration, ease, steps } })`.
+
+`deck/theme/tokens.css` and `deck/theme/components.css` are placeholders
+until the real theme lands. The placeholder defines every canonical token.
+
 ### Demo slides
 
 `deck/slides/_demo.js` holds six throwaway slides that exercise the engine.
-Switch them off for the real talk with `window.DECK_DEMO = false;` anywhere
-before that file loads (the top of `deck/slides/act0.js` is a good place).
-`?demo` in the address forces them back on.
+They carry their own few lines of CSS, so they do not depend on the slide
+kit. Switch them off for the real talk with `window.DECK_DEMO = false;`
+anywhere before that file loads (the top of the first slides file is a good
+place). `?demo` in the address forces them back on.

@@ -8,9 +8,31 @@
  *   label      small caption above the digits (optional)
  *   autostart  true starts counting as soon as the slide appears (default false)
  *   hint       false hides the "T start" line under the bar (default true)
+ *   keep       minutes a paused or finished countdown is remembered after its
+ *              slide was last on screen (default 10). 0 = remember nothing:
+ *              a fresh countdown on every visit.
+ *   id         a name for this countdown's memory. Only needed if a slide's
+ *              markup is rebuilt in a way that reorders its timers.
  *
  * Keys (forwarded by the engine): T start / pause, R reset. Clicking the timer
  * also starts and pauses it.
+ *
+ * THE COUNTDOWN BELONGS TO THE SLIDE, NOT TO ONE VISIT
+ * The engine destroys a scene when its slide leaves. A stray clicker press in
+ * the middle of a ten minute exercise must not throw the remaining time away,
+ * so the countdown's state is kept outside the scene:
+ *   - step to another slide and back, or reload the page: a running countdown
+ *     has kept counting (it is over if its time ran out meanwhile), a paused
+ *     one is still paused at the same time;
+ *   - R resets it and forgets it;
+ *   - a countdown that is paused or over is forgotten `keep` minutes after its
+ *     slide was last on screen, so a rehearsal does not leave a half-used
+ *     timer behind for the talk. A running one is never forgotten before it
+ *     ends.
+ * It is kept in memory (exact, on the Motion clock) and in sessionStorage
+ * (survives a reload, gone when the tab closes; wall-clock time is the only
+ * clock that survives a reload, so that copy uses Date.now()).
+ * No loop runs while the slide is away: the state is two numbers.
  *
  * The time left is always worked out from timestamps (Motion.now()), never
  * from counting ticks, so it stays right when the tab is in the background,
@@ -25,15 +47,88 @@
   'use strict';
   if (!window.Scenes) { return; }
 
+  /* ---------------------------------------------------------------------
+   * Memory shared by every timer on the page.
+   *
+   * A record is the countdown's state at the moment it was written:
+   *   { total, banked, running, at, wall }
+   *   total    length in seconds (a record for another length is ignored)
+   *   banked   seconds used up when the record was written
+   *   running  was it counting?
+   *   at       Motion.now() when written  (memory only: exact, test-drivable)
+   *   wall     Date.now() when written    (storage: survives a reload)
+   * ------------------------------------------------------------------- */
+  var memory = {};
+  var STORE_PREFIX = 'deck.timer:';
+  var DEFAULT_KEEP_MINUTES = 10;
+
+  function storageKey(key) { return STORE_PREFIX + window.location.pathname + ':' + key; }
+
+  function remember(key, rec) {
+    memory[key] = rec;
+    try {
+      window.sessionStorage.setItem(storageKey(key), JSON.stringify({ total: rec.total, banked: rec.banked, running: rec.running, wall: rec.wall }));
+    } catch (e) { /* no storage here: the countdown still survives leaving the slide */ }
+  }
+
+  function forget(key) {
+    delete memory[key];
+    try { window.sessionStorage.removeItem(storageKey(key)); } catch (e) { /* nothing to remove */ }
+  }
+
+  /**
+   * What the countdown `key` should look like right now, or null for a fresh one.
+   * Returns { banked, running }: seconds used up, and whether it is counting.
+   */
+  function recall(key, total, keepSeconds, motionNow) {
+    var rec = memory[key];
+    var exact = !!rec;                       // this page wrote it: use the Motion clock
+    if (!rec) {
+      try { rec = JSON.parse(window.sessionStorage.getItem(storageKey(key)) || 'null'); } catch (e) { rec = null; }
+    }
+    if (!rec || rec.total !== total || !(rec.banked >= 0)) { return null; }
+
+    var wallNow = Date.now();
+    var used = rec.banked;
+    if (rec.running) { used += exact ? motionNow - rec.at : (wallNow - rec.wall) / 1000; }
+    used = Math.max(0, used);
+    if (rec.running && used < total) { return { banked: used, running: true }; }
+
+    // Paused or over. How long ago did it stop mattering?
+    var stoppedAt = rec.running ? rec.wall + (total - rec.banked) * 1000 : rec.wall;
+    if (wallNow - stoppedAt > keepSeconds * 1000) { forget(key); return null; }
+    return { banked: Math.min(used, total), running: false };
+  }
+
+  // The Motion clock was re-based (see Motion.onRebase): move the timestamps of
+  // the countdowns whose slides are away. Mounted ones move their own below.
+  if (window.Motion && window.Motion.onRebase) {
+    window.Motion.onRebase(function (delta) {
+      Object.keys(memory).forEach(function (key) { memory[key].at += delta; });
+    });
+  }
+
   window.Scenes.define('timer', function (host, opts, api) {
     var Motion = api.motion;
     var total = Math.max(1, Math.round((Number(opts.minutes) > 0 ? Number(opts.minutes) : 5) * 60));   // seconds
+
+    // Memory: on unless keep is 0, and never in print mode (the PDF shows full time).
+    var keepSeconds = (opts.keep != null && Number(opts.keep) >= 0 ? Number(opts.keep) : DEFAULT_KEEP_MINUTES) * 60;
+    var keeps = keepSeconds > 0 && !api.mode.print;
+    var key = api.slide + ':' + (opts.id != null ? opts.id : timerIndex());
 
     // The whole state: seconds counted before the latest start, and when that start was.
     var banked = 0;
     var startedAt = null;        // Motion.now() of the latest start; null while not running
     var stopLoop = null;         // stop function of the Motion.raf loop; null while not running
     var lastShown = '';
+
+    /** Which timer on this slide is this? (0 for the first, which is nearly always the only one.) */
+    function timerIndex() {
+      var slide = host.closest ? host.closest('.slide') : null;
+      var all = slide ? slide.querySelectorAll('[data-scene="timer"]') : [];
+      return Math.max(0, Array.prototype.indexOf.call(all, host));
+    }
 
     /* ---- DOM ---- */
     var root = document.createElement('div');
@@ -69,6 +164,28 @@
       return banked > 0 ? 'paused' : 'idle';
     }
 
+    /* ---- memory ---- */
+
+    /** Write the state down as it is this instant (or forget it, when there is nothing to keep). */
+    function persist() {
+      if (!keeps) { return; }
+      var used = Math.min(total, elapsed());
+      var running = startedAt !== null && used < total;
+      if (!running && used <= 0) { forget(key); return; }
+      remember(key, { total: total, banked: used, running: running, at: Motion.now(), wall: Date.now() });
+    }
+
+    /** Pick up where this slide's countdown was left. True if there was something to pick up. */
+    function restore() {
+      if (!keeps) { return false; }
+      var was = recall(key, total, keepSeconds, Motion.now());
+      if (!was) { return false; }
+      banked = was.banked;
+      startedAt = was.running ? Motion.now() : null;
+      if (was.running && !stopLoop) { stopLoop = Motion.raf(render); }
+      return true;
+    }
+
     /* ---- drawing ---- */
     function render() {
       var left = remaining();
@@ -79,6 +196,7 @@
         banked = total;
         startedAt = null;
         stop();
+        persist();
       }
 
       // Round up, so the display reads 10:00 until a full second has gone and 0:00 only at the end.
@@ -92,10 +210,10 @@
       else { root.removeAttribute('data-last-minute'); }
       root.setAttribute('aria-label', (opts.label ? opts.label + ': ' : '') + text + ' left');
 
-      hint.textContent = state === 'idle' ? 'T start \u00b7 R reset'
-        : state === 'running' ? 'T pause \u00b7 R reset'
-        : state === 'paused' ? 'Paused \u00b7 T resume \u00b7 R reset'
-        : 'Time \u00b7 R reset';
+      hint.textContent = state === 'idle' ? 'T start · R reset'
+        : state === 'running' ? 'T pause · R reset'
+        : state === 'paused' ? 'Paused · T resume · R reset'
+        : 'Time · R reset';
     }
 
     /* The digits are sized to the box the slide gives us (override with --timer-size). */
@@ -115,6 +233,7 @@
       if (startedAt !== null || remaining() <= 0) { return; }
       startedAt = Motion.now();
       if (!stopLoop) { stopLoop = Motion.raf(render); }   // the loop only exists while counting
+      persist();
       render();
     }
 
@@ -123,6 +242,7 @@
       banked = elapsed();
       startedAt = null;
       stop();
+      persist();
       render();
     }
 
@@ -134,18 +254,30 @@
       banked = 0;
       startedAt = null;
       stop();
+      if (keeps) { forget(key); }
       render();
     }
 
+    // A reload gives no destroy(): write the state down when the page goes away.
+    window.addEventListener('pagehide', persist);
+    // If the Motion clock is re-based while we count, our start time moves with it.
+    var offRebase = Motion.onRebase ? Motion.onRebase(function (delta) {
+      if (startedAt !== null) { startedAt += delta; }
+    }) : null;
+
     fit();
+    var restored = restore();
     render();
-    if (opts.autostart && !api.mode.print) { start(); }
+    if (!restored && opts.autostart && !api.mode.print) { start(); }
 
     return {
       step: function () {},
       resize: fit,
       destroy: function () {
+        persist();                 // the countdown outlives the scene (see the top of this file)
         stop();
+        window.removeEventListener('pagehide', persist);
+        if (offRebase) { offRebase(); }
         root.removeEventListener('click', toggle);
         if (root.parentNode) { root.parentNode.removeChild(root); }
       },

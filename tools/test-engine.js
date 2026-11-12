@@ -177,20 +177,38 @@ const sceneLog = (page, name) => page.evaluate((n) => window.__sceneLog.filter((
 
 test('offline contract: index.html load order, no modules, no network references', async () => {
   const html = fs.readFileSync(SOURCE_FILE, 'utf8').replace(/<!--[\s\S]*?-->/g, '');
-  const refs = [];
-  html.replace(/<link[^>]+href="([^"]+)"|<script[^>]+src="([^"]+)"/g, (m, href, src) => { refs.push(href || src); return m; });
-  eq(refs, [
-    'theme/tokens.css', 'theme/components.css', 'engine/deck.css',
-    'lib/motion.js', 'lib/benchlm-data.js', 'lib/cost-math.js', 'lib/gates-core.js', 'lib/slotting-core.js',
-    'content/your-numbers.js', 'engine/deck.js',
-    'scenes/timer.js', 'scenes/title.js', 'scenes/gates.js', 'scenes/cost.js', 'scenes/cash.js',
-    'scenes/warehouse.js', 'scenes/screener.js', 'scenes/misc.js',
-    'slides/act0.js', 'slides/act1.js', 'slides/act2.js', 'slides/act3.js', 'slides/act4.js', 'slides/act5.js',
-    'slides/_demo.js'
-  ], 'load order');
+  const styles = [];
+  const scripts = [];
+  html.replace(/<link[^>]+href="([^"]+)"|<script[^>]+src="([^"]+)"/g, (m, href, src) => { (href ? styles : scripts).push(href || src); return m; });
+  const at = (list, ref) => {
+    const i = list.indexOf(ref);
+    assert(i !== -1, 'index.html must load ' + ref);
+    return i;
+  };
+
+  // stylesheets: the theme first, the engine's css last
+  assert(at(styles, 'theme/tokens.css') < at(styles, 'theme/components.css'), 'tokens.css loads before components.css');
+  eq(styles[styles.length - 1], 'engine/deck.css', 'engine/deck.css is the last stylesheet');
+
+  // scripts: motion, libraries and the speaker's numbers, then the engine, then scenes, then slides
+  eq(scripts[0], 'lib/motion.js', 'lib/motion.js is the first script');
+  const engine = at(scripts, 'engine/deck.js');
+  for (const ref of ['lib/benchlm-data.js', 'lib/cost-math.js', 'lib/gates-core.js', 'lib/slotting-core.js', 'content/your-numbers.js', 'scenes/timer.js', 'slides/_demo.js']) { at(scripts, ref); }
+  scripts.forEach((ref, i) => {
+    if (/^(lib|content)\//.test(ref)) { assert(i < engine, ref + ' loads before engine/deck.js'); }
+    if (/^(scenes|slides)\//.test(ref)) { assert(i > engine, ref + ' loads after engine/deck.js'); }
+  });
+  const lastScene = Math.max(...scripts.map((ref, i) => (/^scenes\//.test(ref) ? i : -1)));
+  const firstSlide = Math.min(...scripts.map((ref, i) => (/^slides\//.test(ref) ? i : Infinity)));
+  assert(lastScene < firstSlide, 'every scene loads before the first slides file');
+  eq(new Set(scripts).size, scripts.length, 'no script is loaded twice');
+
   assert(/Deck\.start\(\)\s*;?\s*<\/script>\s*<\/body>/.test(html), 'the last script calls Deck.start()');
   assert(!/type\s*=\s*["']module["']/.test(html), 'index.html uses no ES modules');
-  for (const ref of refs) { assert(fs.existsSync(path.join(ROOT, 'deck', ref)), 'missing file: deck/' + ref); }
+  for (const ref of styles.concat(scripts)) {
+    assert(!/^(https?:)?\/\//.test(ref), 'no external reference: ' + ref);
+    assert(fs.existsSync(path.join(ROOT, 'deck', ref)), 'missing file: deck/' + ref);
+  }
 
   // The engine's own files must not reach for the network or use modules.
   const own = ['deck/index.html', 'deck/engine/deck.js', 'deck/engine/deck.css', 'deck/lib/motion.js', 'deck/scenes/timer.js',
@@ -478,6 +496,25 @@ test('counters count up when revealed, reset when hidden, and are instant in ?fa
     eq((await look(p, second)).text, '4.3 seconds', 'format ".1f" with a suffix');
     await p.keyboard.press('ArrowLeft');
     eq((await look(p, second)).text, '0.0 seconds', 'stepping back resets it');
+
+    // data-count-steps: the number ticks instead of running smoothly; Deck.config sets deck-wide defaults
+    await p.evaluate(() => {
+      window.Deck.config({ counters: { duration: 2, ease: 'linear', steps: 4 } });
+      const host = document.querySelector('.deck-slides > .slide.is-current .demo-body');
+      host.insertAdjacentHTML('beforeend',
+        '<p data-step="1"><span data-demo="ticks" data-count-to="100" data-count-format="d"></span> ' +
+        '<span data-demo="own" data-count-to="100" data-count-format="d" data-count-duration="1" data-count-ease="linear" data-count-steps="0"></span></p>');
+    });
+    await p.keyboard.press('ArrowRight');
+    const seen = [];
+    for (const t of [110.1, 110.6, 111.1, 111.6, 112.5]) {
+      await p.evaluate((time) => window.Motion.setTime(time), t);
+      seen.push([(await look(p, '[data-demo="ticks"]')).text, (await look(p, '[data-demo="own"]')).text]);
+    }
+    eq(seen.map((x) => x[0]), ['0', '25', '50', '75', '100'], 'four ticks over two seconds (deck-wide default from Deck.config)');
+    eq(seen.map((x) => x[1]), ['10', '60', '100', '100', '100'], 'the element\'s own attributes win over the defaults');
+    await p.evaluate(() => { window.Deck.config({ counters: null }); });
+    await p.keyboard.press('ArrowLeft');
 
     // with the real clock the same thing finishes by itself
     await p.evaluate(() => window.Motion.useRealClock());
@@ -803,10 +840,18 @@ test('scenes: mounted on enter, step(current, 0) then step(n, dir), destroyed on
     await p.keyboard.press('ArrowRight');   // step 2
     await p.keyboard.press('ArrowRight');   // next slide
     eq(await liveCount(p), 2, 'two slides in the DOM during the transition');
+    eq(await p.evaluate(() => {
+      const stage = document.querySelector('.deck-stage');
+      const hook = stage.querySelector('.deck-transition');
+      return [stage.classList.contains('is-transitioning'), stage.getAttribute('data-dir'), !!hook, hook && hook.getAttribute('data-dir'),
+        document.querySelectorAll('.deck-slides > .slide.is-leaving').length];
+    }), [true, 'forward', true, 'forward', 1], 'theme hooks during a transition');
     eq((await sceneLog(p, 'demo-orbit')).some((e) => e[0] === 'destroy'), false, 'not destroyed until the transition ends');
     // ...and afterwards it is destroyed and its loop is gone
     await settle(p);
     eq(await liveCount(p), 1, 'one slide in the DOM after the transition');
+    eq(await p.evaluate(() => [document.querySelector('.deck-stage').classList.contains('is-transitioning'), !!document.querySelector('.deck-transition')]),
+      [false, false], 'the transition hooks are gone afterwards');
     const log = await sceneLog(p, 'demo-orbit');
     eq(log[log.length - 1], ['destroy', 'demo-orbit'], 'destroy() on exit');
     eq(log.filter((e) => e[0] === 'destroy').length, 1, 'destroyed exactly once');
@@ -835,6 +880,16 @@ test('scenes: mounted on enter, step(current, 0) then step(n, dir), destroyed on
     await goto(p, 'demo-reveals', 0);
     eq(await loops(p), idle, 'no loops leaked after rapid navigation');
     eq(await p.evaluate(() => window.Motion.stats().pending), 0, 'no tweens left running');
+
+    // a theme can turn the transition into a hard cut with one variable (any CSS time works)
+    await goto(p, 'demo-reveals', 5);
+    await p.evaluate(() => { document.documentElement.style.setProperty('--deck-slide-duration', 'calc(0s * 2)'); });
+    await p.keyboard.press('ArrowRight');
+    eq([await liveCount(p), await p.evaluate(() => !!document.querySelector('.deck-transition'))], [1, false], '--deck-slide-duration: 0 is a cut: the old slide is gone at once');
+    await p.evaluate(() => { document.documentElement.style.setProperty('--deck-slide-duration', '0.25s'); });
+    await p.keyboard.press('ArrowLeft');
+    eq([await liveCount(p), await p.evaluate(() => document.querySelector('.deck-stage').getAttribute('data-dir'))], [2, 'back'], 'the variable is read in seconds too; going back sets data-dir="back"');
+    await settle(p);
     eq(t.problems, [], 'console errors');
   } finally { await t.close(); }
 });
@@ -849,7 +904,9 @@ test('timer scene: T start/pause, R reset, last-minute and finished states, time
         text: root.querySelector('.timer-digits').textContent,
         state: root.getAttribute('data-state'),
         lastMinute: root.hasAttribute('data-last-minute'),
-        color: getComputedStyle(root).color,
+        // the look of a state: its ink, its ground, and whether the digits are outlined
+        color: [getComputedStyle(root).color, getComputedStyle(root).backgroundColor,
+          getComputedStyle(root.querySelector('.timer-digits')).webkitTextStrokeWidth !== '0px' ? 'outlined' : 'solid'].join(' | '),
         size: parseFloat(getComputedStyle(root.querySelector('.timer-digits')).fontSize),
         label: root.querySelector('.timer-label').textContent
       };
@@ -870,7 +927,9 @@ test('timer scene: T start/pause, R reset, last-minute and finished states, time
     eq((await timer()).text, '1:30', 'derives the time from timestamps');
 
     await p.keyboard.press('t');
-    eq((await timer()).state, 'paused', 'T pauses');
+    s = await timer();
+    eq(s.state, 'paused', 'T pauses');
+    assert(/outlined/.test(s.color) && s.color !== normalColor, 'paused looks different (outlined digits): ' + s.color);
     eq(await loops(p), idle, 'no loop while paused');
     await p.evaluate(() => window.Motion.setTime(1100));
     eq((await timer()).text, '1:30', 'time stands still while paused');
@@ -880,14 +939,14 @@ test('timer scene: T start/pause, R reset, last-minute and finished states, time
     await settle(p);                       // the colour change is a short CSS transition
     s = await timer();
     eq([s.text, s.state, s.lastMinute], ['1:00', 'running', true], 'last minute');
-    assert(s.color !== normalColor, 'the last minute has its own colour');
+    assert(s.color !== normalColor, 'the last minute has its own look: ' + s.color + ' vs ' + normalColor);
     const warnColor = s.color;
 
     await p.evaluate(() => window.Motion.setTime(1100 + 95));
-    eq(await settle(p), true, 'settle() ignores the endless "finished" pulse');
+    eq(await settle(p), true, 'settle() waits out the finishing flashes (they are finite)');
     s = await timer();
     eq([s.text, s.state, s.lastMinute], ['0:00', 'finished', false], 'finished');
-    assert(s.color !== normalColor && s.color !== warnColor, 'finished has its own colour');
+    assert(s.color !== normalColor && s.color !== warnColor, 'finished has its own look: ' + s.color);
     eq(await loops(p), idle, 'the loop stops at zero');
     await p.keyboard.press('t');
     eq((await timer()).state, 'finished', 'T does nothing once time is up');
@@ -1344,6 +1403,28 @@ test('progress bar (P), notes overlay (N), fullscreen key (F)', async () => {
     eq((await bar()).hidden, true, 'P hides it');
     await p.keyboard.press('p');
     eq((await bar()).hidden, false, 'P shows it again');
+
+    // hooks for the theme: one tick per slide, the act name, where-we-are attributes on the stage
+    await goto(p, 'demo-scene', 1);
+    const hooks = await p.evaluate(() => {
+      const root = document.querySelector('.deck-progress');
+      const ticks = Array.from(root.querySelectorAll('.deck-progress-tick'));
+      const stage = document.querySelector('.deck-stage');
+      return {
+        ticks: ticks.length,
+        current: ticks.findIndex((t) => t.classList.contains('is-current')),
+        done: ticks.filter((t) => t.classList.contains('is-done')).length,
+        actNum: root.querySelector('.deck-progress-actnum').textContent,
+        actName: root.querySelector('.deck-progress-actname').textContent,
+        rootAttrs: [root.getAttribute('data-act'), root.getAttribute('data-act-name'), root.getAttribute('data-index'), root.getAttribute('data-total')],
+        stage: [stage.getAttribute('data-current-slide'), stage.getAttribute('data-current-act'), stage.getAttribute('data-current-layout'), stage.getAttribute('data-current-step')]
+      };
+    });
+    const sceneIndex = ids.indexOf('demo-scene');
+    eq([hooks.ticks, hooks.current, hooks.done], [ids.length, sceneIndex, sceneIndex], 'one tick per slide; the current one and the done ones are marked');
+    eq([hooks.actNum, hooks.actName], ['0', 'Walk-in'], 'act number and name');
+    eq(hooks.rootAttrs, ['0', 'Walk-in', String(sceneIndex + 1), String(ids.length)], 'attributes on .deck-progress');
+    eq(hooks.stage, ['demo-scene', '0', 'demo', '1'], 'attributes on .deck-stage');
 
     await goto(p, 'demo-counter', 0);
     await p.keyboard.press('n');

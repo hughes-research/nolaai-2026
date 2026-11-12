@@ -564,9 +564,9 @@
    * Formatters
    * ------------------------------------------------------------------------ */
 
-  var MINUS = '−';     // a real minus sign
-  var TIMES = '×';     // a real multiplication sign
-  var INFINITE = '∞';  // the infinity sign
+  var MINUS = '\u2212';     // a real minus sign
+  var TIMES = '\u00d7';     // a real multiplication sign
+  var INFINITE = '\u221e';  // the infinity sign
 
   function withCommas(wholeNumber) {
     return String(wholeNumber).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
@@ -594,7 +594,7 @@
   }
 
   /* The value a formatter was handed: unwraps anything carrying .pricePerRun. */
-  function valueOf(x) {
+  function amountOf(x) {
     if (x && typeof x === 'object' && 'pricePerRun' in x) x = x.pricePerRun;
     return toNumber(x);
   }
@@ -620,7 +620,7 @@
    * Never prints "NaN": a missing value is "n/a".
    */
   function money(x) {
-    var n = valueOf(x);
+    var n = amountOf(x);
     if (n !== n) return 'n/a';
     if (n === Infinity) return INFINITE;
     if (n === -Infinity) return MINUS + INFINITE;
@@ -644,10 +644,11 @@
   /*
    * Dollars and cents, always: 12147.975 -> "$12,147.98", 5000 -> "$5,000.00",
    * 1.35 -> "$1.35". For arithmetic a reader follows line by line. Halves go up.
-   * Something smaller than half a cent is "under $0.01", never "$0.00".
+   * Something smaller than half a cent is "under $0.01" (or "about $0" for a
+   * loss that small), never "$0.00".
    */
   function cents(x) {
-    var n = valueOf(x);
+    var n = amountOf(x);
     if (n !== n) return 'n/a';
     if (n === Infinity) return INFINITE;
     if (n === -Infinity) return MINUS + INFINITE;
@@ -655,7 +656,7 @@
     var abs = tidy(Math.abs(n));
     if (abs >= TOO_BIG) return tooBig(n < 0, '$', '');
     var rounded = roundTo(abs, 2);
-    if (rounded === 0) return abs === 0 ? '$0.00' : 'under $0.01';
+    if (rounded === 0) return abs === 0 ? '$0.00' : (n > 0 ? 'under $0.01' : 'about $0');
     var text = rounded.toFixed(2);
     var dot = text.indexOf('.');
     return (n < 0 ? MINUS : '') + '$' + withCommas(text.slice(0, dot)) + text.slice(dot);
@@ -668,7 +669,7 @@
    * "about" or the sign for "approximately".
    */
   function aboutMoney(x) {
-    var n = valueOf(x);
+    var n = amountOf(x);
     if (!isFinite(n) || Math.abs(n) < 1000) return money(n);
     return money(roundTo(n, -2));
   }
@@ -679,7 +680,7 @@
    * $1,000 it is the same as money().
    */
   function shortMoney(x) {
-    var n = valueOf(x);
+    var n = amountOf(x);
     if (!isFinite(n)) return money(n);
     var abs = tidy(Math.abs(n));
     if (abs < 1000) return money(n);
@@ -724,7 +725,7 @@
     var sign = n < 0 ? MINUS : '';
     if (abs === 0) return '0' + TIMES;
     if (abs >= TOO_BIG) return tooBig(n < 0, '', TIMES);
-    if (abs < 0.001) return sign + 'under 0.001' + TIMES;
+    if (abs < 0.001) return (n > 0 ? 'under 0.001' : 'about 0') + TIMES;
     var shown;
     if (abs >= 9.95) shown = roundTo(abs, 0);
     else if (abs >= 0.95) shown = roundTo(abs, 1);
@@ -772,7 +773,7 @@
     var text;
     if (abs === 0) text = '0';
     else if (abs >= TOO_BIG) text = tooBig(n < 0, '', '');
-    else if (abs < 0.001) text = sign + 'under 0.001';
+    else if (abs < 0.001) text = n > 0 ? 'under 0.001' : 'about 0';
     else if (abs >= 9.95) text = sign + plainText(roundTo(abs, 0), 0);
     else if (abs >= 0.995) text = sign + plainText(roundTo(abs, 1), 0);
     else if (abs >= 0.095) text = sign + plainText(roundTo(abs, 2), 0);
