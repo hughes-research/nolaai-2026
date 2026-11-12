@@ -25,9 +25,14 @@
  *
  * HOW IT WORKS
  *   - The model is built once per page and shared by every mount. The search
- *     (about two seconds of arithmetic) runs in idle slices so the page stays
- *     responsive; in ?fast and ?print it simply runs at once. The run time
- *     shown in step 6 is the measured time of that arithmetic on this machine.
+ *     (about two seconds of arithmetic, twelve on a slow laptop) runs from the
+ *     moment the scene mounts (or the talk reaches Act 4) in time-boxed
+ *     setTimeout slices, so no task holds the page for more than ~50 ms; in
+ *     ?fast and ?print it simply runs at once. If a step needs the result
+ *     before it is ready, the step waits honestly: the rule of thumb stays on
+ *     the map and the counter shows the swaps the real search has tried so
+ *     far; then the step carries on. The run time shown in step 6 is the
+ *     measured time of that arithmetic on this machine.
  *   - The animation is a pure function of (step, seconds into the step):
  *     render(step, t). Time comes from Motion (a Motion.tween drives it), so
  *     ?fast, a frozen clock and frame-by-frame capture all work. Stepping
@@ -198,44 +203,80 @@
         m.routesAfter = m.dayOrders.map(function (o) { return S.route(world, m.result.optimized, o); });
       }
       while (flyStage < FLY_POINTS) { flyCheckpoint(); }
+      if (timer) { clearTimeout(timer); timer = null; }
+      m.pumping = false;
       m.ready = true;
       var list = m.waiting.slice();
       m.waiting.length = 0;
       list.forEach(function (fn) { try { fn(); } catch (e) { /* one listener must not stop the rest */ } });
     }
 
-    /* Everything at once (blocks for the length of the search). */
+    /* Everything at once. It blocks for the length of the search, so only
+     * ?fast / ?print and frame capture (seek) use it, never a live talk. */
     m.finishNow = finish;
 
-    /* In idle slices. Safe to call many times. */
+    /* The swaps the real search has tried so far, and how many it will try. */
+    m.tried = function () { return job.annealer.tried; };
+    m.iterations = job.annealer.iterations;
+
+    /* The rule of thumb's checkpoints (16 scores, a few ms) come first:
+     * step 3's opening fly-in needs nothing else, so it never waits. */
+    m.ensureFly = function () { while (flyStage < FLY_POINTS) { flyCheckpoint(); } };
+
+    /* In time-boxed slices on setTimeout, whatever the page is doing: idle
+     * callbacks barely run while a scene animates, which is when this has to
+     * get done. A slice works for SLICE_BUSY ms while anything moves (so a
+     * frame still fits in every 16 ms) and SLICE_FREE ms when nothing does;
+     * one unit of work is at most a few ms on a slow laptop. Every slice
+     * tells the listeners how far it got. Safe to call many times; it stops
+     * by itself when the run is finished. The work is deterministic: the
+     * result does not depend on how it is sliced. */
+    var SLICE_BUSY = 10, SLICE_FREE = 40, UNIT = 100;
+    var progress = [];
+    var timer = null, told = 0;
+    function now() { return (window.performance && performance.now) ? performance.now() : Date.now(); }
+    function busy() {
+      var Mo = window.Motion;
+      if (!Mo || typeof Mo.stats !== 'function') { return true; }
+      var st = Mo.stats();
+      return st.tweens + st.loops > 0;
+    }
+    function unit() {
+      if (flyStage < FLY_POINTS) { flyCheckpoint(); }
+      else if (!job.done) { job.step(UNIT); }
+      else if (!m.result) { m.result = job.result(); m.after = m.result.after; }
+      else if (!m.routesAfter) { m.routesAfter = m.dayOrders.map(function (o) { return S.route(world, m.result.optimized, o); }); }
+      else { finish(); }
+    }
+    function slice() {
+      timer = null;
+      if (m.ready) { m.pumping = false; return; }
+      var budget = busy() ? SLICE_BUSY : SLICE_FREE;
+      var t0 = now();
+      do { unit(); } while (!m.ready && now() - t0 < budget);
+      if (m.ready) { m.pumping = false; return; }      // finish() has told whenReady's listeners
+      if (now() - told > 200) {                         // the counter moves five times a second: enough to read, cheap to draw
+        told = now();
+        progress.slice().forEach(function (fn) { try { fn(); } catch (e) { /* one listener must not stop the rest */ } });
+      }
+      timer = setTimeout(slice, 0);   // a fresh task: frames, keys and clicks get in between slices
+    }
     m.pump = function () {
       if (m.ready || m.pumping) { return; }
       m.pumping = true;
-      var idle = window.requestIdleCallback;
-      function work(deadline) {
-        if (m.ready) { m.pumping = false; return; }
-        var guard = 0;
-        do {
-          if (!job.done) { job.step(300); }
-          else if (!m.result) { m.result = job.result(); m.after = m.result.after; }
-          else if (!m.routesAfter) { m.routesAfter = m.dayOrders.map(function (o) { return S.route(world, m.result.optimized, o); }); }
-          else if (flyStage < FLY_POINTS) { flyCheckpoint(); }
-          else { finish(); }
-          guard++;
-        } while (!m.ready && deadline && deadline.timeRemaining && deadline.timeRemaining() > 4 && guard < 400);
-        if (m.ready) { m.pumping = false; return; }
-        next();
-      }
-      function next() {
-        if (idle) { idle(work, { timeout: 250 }); }
-        else { setTimeout(function () { work(null); }, 12); }
-      }
-      next();
+      timer = setTimeout(slice, 0);
     };
 
+    /* listeners; each returns a function that removes it */
+    function off(list, fn) { return function () { var i = list.indexOf(fn); if (i !== -1) { list.splice(i, 1); } }; }
     m.whenReady = function (fn) {
-      if (m.ready) { fn(); return; }
+      if (m.ready) { fn(); return function () {}; }
       m.waiting.push(fn);
+      return off(m.waiting, fn);
+    };
+    m.onProgress = function (fn) {
+      progress.push(fn);
+      return off(progress, fn);
     };
 
     return m;
@@ -947,14 +988,17 @@
     var DASH_MIN = Math.max(4, ROUTE.before[0] * RS), DASH_MAX = Math.min(BAND_MIN - 3, Math.max(DASH_MIN, ROUTE.before[1] * RS));
     var DASH = ROUTE.dash, DASH_PERIOD = DASH[0] + DASH[1];
 
+    /* The optimized day, once the search is done. Never finishes the search
+     * itself: callers check M.ready (or are ?fast / seek, which finish it). */
     function needOptimized() {
-      if (!M.ready) { M.finishNow(); }
+      if (!M.ready) { return false; }
       if (!dayAfter) {
         dayAfter = buildDay(M.routesAfter);
         fullAfter = trafficAt(dayAfter, Infinity);
         TRAFFIC_MAX = Math.max(TRAFFIC_MAX, trafficMax(fullAfter));
       }
       fillCaptions();
+      return true;
     }
 
     function widthFor(n, lo, hi) {
@@ -1266,9 +1310,12 @@
     var view = { step: 0, t: 0 };
 
     function render(step, t) {
+      // without the finished search, step 3 can only draw its fly-in (goTo and play never ask for more)
+      if (step >= 3 && !M.ready) { step = 3; t = Math.min(t, T_FLY - 1e-3); }
       view.step = step; view.t = t;
       var end = t >= duration(step) - 1e-6;
       var q = Math.floor(t / TICK) * TICK;         // the clock counters read: it moves in sixteenths
+      // step 3's fly-in needs only the rule of thumb; everything after it needs the finished search
       if (step >= 3) { needOptimized(); }
 
       /* ---- structure ---- */
@@ -1451,9 +1498,13 @@
         figA = { label: 'Feet walked', chip: 'dashed', value: commas(lv2.feet), unit: 'ft', sub: 'Busiest day · ' + M.dayOrders.length + ' orders' };
         figB = { label: 'Ladder set-ups', chip: 'ladder', value: commas(lv2.setups) };
       } else if (step === 3) {
-        var an3 = M.result.anneal;
-        var shownTried = t < T_FLY ? 0 : (end || !searching ? an3.tried : Math.round(an3.tried * clamp01((q - T_FLY) / T_SEARCH)));
-        figA = { label: 'Swaps tried', value: commas(shownTried), sub: !searching && t >= T_FLY ? commas(an3.accepted) + ' kept' : (t < T_FLY ? 'Rule of thumb first' : 'Replaying ' + commas(an3.sampleOrders) + ' orders') };
+        if (t < T_FLY) {
+          figA = { label: 'Swaps tried', value: '0', sub: 'Rule of thumb first' };
+        } else {
+          var an3 = M.result.anneal;
+          var shownTried = end || !searching ? an3.tried : Math.round(an3.tried * clamp01((q - T_FLY) / T_SEARCH));
+          figA = { label: 'Swaps tried', value: commas(shownTried), sub: !searching ? commas(an3.accepted) + ' kept' : 'Replaying ' + commas(an3.sampleOrders) + ' orders' };
+        }
       } else if (step === 4) {
         // The as-is day is a fixed reference from the first frame: its whole
         // total, the figure the room just watched land on step 2. Only the
@@ -1560,20 +1611,35 @@
 
     var tween = null;
     var current = { step: 0, playing: false };
+    /* A step that needs the finished search, asked for before the search is
+     * done: { step, animate, from }. While it waits the map holds the rule of
+     * thumb and the counter shows the swaps the real search has tried so far;
+     * when the search lands, the step carries on from `from`. */
+    var pending = null;
 
     function stop() {
       if (tween) { tween.cancel(); tween = null; }
       current.playing = false;
     }
 
-    function play(step) {
+    function play(step, from) {
       stop();
       var len = duration(step);
+      var t0 = Math.max(0, Math.min(len, from || 0));
+      // step 3 without the search: play the fly-in, then wait for the search at its end
+      var to = step === 3 && !M.ready ? Math.min(len, T_FLY) : len;
       current.playing = true;
       tween = Motion.tween({
-        from: 0, to: len, duration: len, ease: 'linear',
+        from: t0, to: to, duration: to - t0, ease: 'linear',
         onUpdate: function (t) { render(step, t); },
-        onDone: function () { tween = null; current.playing = false; render(step, duration(step)); }
+        onDone: function () {
+          tween = null; current.playing = false;
+          if (to < len) {
+            if (M.ready) { play(step, to); } else { wait(step, true, to); }
+            return;
+          }
+          render(step, len);
+        }
       });
     }
 
@@ -1582,17 +1648,49 @@
       render(step, duration(step));
     }
 
+    /* the waiting frame: the rule of thumb in place, the real count of swaps tried */
+    function renderWait() {
+      M.ensureFly();
+      render(3, T_FLY - 1e-3);
+      view.step = pending ? pending.step : 3;
+      setFigure(dom.figA, { label: 'Swaps tried', value: commas(M.tried()), sub: 'of ' + commas(M.iterations) });
+    }
+
+    function wait(step, animate, from) {
+      stop();
+      pending = { step: step, animate: animate, from: from };
+      renderWait();
+      M.pump();
+    }
+
+    function onSearchProgress() { if (pending) { setFigure(dom.figA, { label: 'Swaps tried', value: commas(M.tried()), sub: 'of ' + commas(M.iterations) }); } }
+
+    function onSearchDone() {
+      fillCaptions();
+      if (!pending) { return; }
+      var p = pending;
+      pending = null;
+      needOptimized();
+      if (p.animate) { play(p.step, p.step === 3 ? p.from : 0); } else { settle(p.step); }
+    }
+
     function goTo(step, dir) {
       step = Math.max(0, Math.min(STEPS, Math.round(step) || 0));
       current.step = step;
-      if (step >= 3) { needOptimized(); }
+      pending = null;
       var animate = !fast && (dir > 0 || (dir === 0 && step === 0));
+      if (step >= 3 && !M.ready) {
+        if (fast) { M.finishNow(); }
+        else if (step === 3 && animate) { M.ensureFly(); M.pump(); play(3, 0); return; }
+        else { wait(step, animate, 0); return; }
+      }
+      if (step >= 3) { needOptimized(); }
       if (animate) { play(step); } else { settle(step); }
     }
 
     fitAll();
     fillCaptions();
-    M.whenReady(fillCaptions);
+    var unlisten = [M.whenReady(onSearchDone), M.onProgress(onSearchProgress)];
     // fonts arriving late change nothing on the canvases (all text is DOM), so there is no redraw to schedule
 
     return {
@@ -1601,17 +1699,21 @@
         fitAll();
         keys.struct = null;
         keys.dots = null;
-        render(view.step, view.t);
+        if (pending) { renderWait(); } else { render(view.step, view.t); }
       },
       destroy: function () {
         stop();
+        pending = null;
+        // the search itself carries on (it is shared, and wanted when the slide comes back); this mount stops listening
+        unlisten.forEach(function (fn) { fn(); });
         if (dark && slideEl) { slideEl.classList.remove('on-ink'); }
         if (root.parentNode) { root.parentNode.removeChild(root); }
       },
       /* for tests and screenshots */
       debug: function () {
         return {
-          step: view.step, t: view.t, playing: current.playing, ready: M.ready,
+          step: view.step, t: view.t, playing: current.playing, ready: M.ready, waiting: !!pending,
+          triedSoFar: M.tried(),
           durations: [0, 1, 2, 3, 4, 5, 6].map(function (s) { if (s >= 3 && !M.ready) { return null; } if (s >= 3) { needOptimized(); } return duration(s); }),
           timings: { fly: T_FLY, search: T_SEARCH, rain: RAIN, structure: T_IN + T_STRUCT },
           totals: world.totals,
@@ -1622,7 +1724,7 @@
         };
       },
       /* draw any moment of any step (seconds into the step); used for frame capture */
-      seek: function (step, t) { stop(); current.step = step; if (step >= 3) { needOptimized(); } render(step, Math.max(0, Math.min(duration(step), t))); }
+      seek: function (step, t) { stop(); pending = null; current.step = step; if (step >= 3) { M.finishNow(); needOptimized(); } render(step, Math.max(0, Math.min(duration(step), t))); }
     };
   });
 }());

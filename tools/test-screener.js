@@ -19,6 +19,10 @@
  *   - the standalone page has no sideways scroll at 360, 768 and 1440 px, its
  *     results match Gates, it saves locally, it works with saving blocked, and
  *     it asks the network for nothing;
+ *   - every number box stops at a generous ceiling and the results still fit
+ *     their boxes at the ceilings (stage and page; pictures in out/fix-inputs);
+ *     Escape in a box, or just after Enter, never reaches the deck; the stage
+ *     keeps typed candidates across a reload (session storage) until Reset;
  *   - the QR encoder (deck/lib/qr.js) is read back by an independent decoder
  *     from PNG screenshots, including off the real slide.
  *
@@ -166,8 +170,10 @@ function compareLive(where) {
     if (box.getAttribute('data-outcome') !== outcome) { bad.push('candidate ' + c + ': outcome ' + box.getAttribute('data-outcome') + ', Gates says ' + outcome); }
     if (box.getAttribute('data-two-year') !== String(r.twoYearValue)) { bad.push('candidate ' + c + ': two-year value ' + box.getAttribute('data-two-year') + ', Gates says ' + r.twoYearValue); }
     const text = box.textContent;
-    if (r.verdict === 'YES' && text.indexOf(CM.money(r.twoYearValue)) === -1) { bad.push('candidate ' + c + ': "' + text + '" does not show ' + CM.money(r.twoYearValue)); }
-    if (r.verdict === 'YES' && r.cashFreed > 0 && text.indexOf(CM.aboutMoney(r.cashFreed)) === -1) { bad.push('candidate ' + c + ': cash freed ' + CM.aboutMoney(r.cashFreed) + ' is not shown'); }
+    // A figure too wide for its box is written to three significant figures with its unit (CostMath.shortMoney), never cut.
+    const shows = (full, short) => text.indexOf(full) !== -1 || text.indexOf(short) !== -1;
+    if (r.verdict === 'YES' && !shows(CM.money(r.twoYearValue), CM.shortMoney(r.twoYearValue))) { bad.push('candidate ' + c + ': "' + text + '" does not show ' + CM.money(r.twoYearValue)); }
+    if (r.verdict === 'YES' && r.cashFreed > 0 && !shows(CM.aboutMoney(r.cashFreed), 'about ' + CM.shortMoney(r.cashFreed))) { bad.push('candidate ' + c + ': cash freed ' + CM.aboutMoney(r.cashFreed) + ' is not shown'); }
     if (r.verdict === 'NO' && text.indexOf('Out at ' + r.gates[r.firstNo].label) === -1) { bad.push('candidate ' + c + ': "' + text + '" does not say Out at ' + r.gates[r.firstNo].label); }
     const tag = root.querySelector('[data-tag="' + c + '"]');
     if (tag.textContent !== (snap.example[c] ? 'Example' : 'Yours')) { bad.push('candidate ' + c + ': tag "' + tag.textContent + '"'); }
@@ -664,6 +670,221 @@ test('live scorecard: after every control the screen equals Gates.rank on the sa
     eq(await t.hookErrors(), [], 'slide and scene hooks');
     eq(t.problems, [], 'console errors');
   } finally { await t.close(); }
+});
+
+/* Pictures of the ceiling tests, for a person to look at (out/ is git-ignored). */
+const SHOTS = path.join(ROOT, 'out', 'fix-inputs');
+
+/* Runs IN THE PAGE: every two-year figure and the line under it sit inside their result box. */
+function resultsFit(where) {
+  const root = where === 'page' ? document : document.querySelector('.slide.is-current');
+  return Array.from(root.querySelectorAll('.scr-result')).filter((box) => box.clientWidth).map((box) => {
+    const main = box.querySelector('.scr-result-main');
+    const b = main.querySelector('b');
+    const sub = box.querySelector('.scr-result-sub');
+    const r = box.getBoundingClientRect();
+    const kids = [main, b, sub].filter((n) => n && n.getClientRects().length).map((n) => n.getBoundingClientRect());
+    return {
+      outcome: box.getAttribute('data-outcome'), text: main.textContent, sub: sub.textContent,
+      fits: main.scrollWidth <= main.clientWidth + 0.5 && (!b || b.scrollWidth <= b.clientWidth + 0.5) && sub.scrollWidth <= sub.clientWidth + 0.5 &&
+        kids.every((k) => k.left >= r.left - 0.5 && k.right <= r.right + 0.5)
+    };
+  });
+}
+
+/* Type a huge figure into every number box of the candidate in hand (both lenses) and press Enter after each. */
+async function typeTheMost(page, where) {
+  const shown = [];
+  const fill = async (sel) => {
+    await page.click(sel);
+    await page.keyboard.press('ControlOrMeta+a');
+    await page.keyboard.type('999999999999');
+    await page.keyboard.press('Enter');
+    shown.push(await page.evaluate((q) => document.querySelector(q).value, sel));
+  };
+  const nums = (lens) => page.evaluate((l) => Array.from(document.querySelectorAll('.scr-editor .scr-ctl input[inputmode]')).filter((i) => !i.closest('.scr-ctl').hidden).map((i) => i.closest('.scr-ctl').getAttribute('data-ctl')), lens);
+  await page.click('.scr-editor [data-ctl="ownerNamed"] button[data-value="true"]');
+  await page.click('.scr-editor [data-ctl="lens"] button[data-value="service"]');
+  for (const key of await nums()) { await fill('.scr-editor [data-ctl="' + key + '"] input'); }
+  await page.click('.scr-editor [data-ctl="lens"] button[data-value="product"]');
+  await page.click('.scr-editor [data-ctl="touchesCashPath"] button[data-value="true"]');
+  for (const key of await nums()) { await fill('.scr-editor [data-ctl="' + key + '"] input'); }
+  return shown;
+}
+
+test('ceilings: every box stops at its maximum, shows it, and the results still fit their boxes (stage)', async () => {
+  const t = await openDeck({ hash: 'ex-screen/1' });
+  fs.mkdirSync(SHOTS, { recursive: true });
+  try {
+    const page = t.page;
+    const caps = await page.evaluate(() => {
+      const s = window.__deck.scene('screener');
+      return { fields: s.fields, rules: s.rules };
+    });
+    // the house rules at their most generous ceilings, so every column passes with the biggest figures
+    await page.click('[data-act="rules"]');
+    for (const p of caps.rules) {
+      await page.click('.scr-rules [data-ctl="' + p + '"] input');
+      await page.keyboard.press('ControlOrMeta+a');
+      await page.keyboard.type('999999999999');
+      await page.keyboard.press('Enter');
+    }
+    const rules = await page.evaluate(() => Array.from(document.querySelectorAll('.scr-rules input[data-rule]')).map((i) => [i.getAttribute('data-rule'), i.value]));
+    eq(rules, [['houseRules.costMaxShareOfReturn', '100'], ['houseRules.minReturnPerYear', '10,000,000'], ['houseRules.maxPaybackWeeks', '520'], ['houseRules.minGrowth', '10'],
+      ['rates.loadedHourly', '1,000'], ['rates.builderHourly', '1,000'], ['rates.workWeeks', '52'], ['company.annualRevenue', '100,000,000,000']], 'each rule box shows its ceiling');
+    // a floor this high would stop everything; put the return floor and the growth minimum at zero to see the biggest YES
+    for (const [p, v] of [['houseRules.minReturnPerYear', '0'], ['houseRules.minGrowth', '0']]) { await page.fill('.scr-rules [data-ctl="' + p + '"] input', v); }
+    await page.click('[data-act="rules"]');
+    let r = await page.evaluate(compareLive, 'deck');
+    eq(r.bad, [], 'after the rules');
+
+    for (const c of [0, 1, 2]) {
+      await page.click('.scr-pick[data-pick="' + c + '"]');
+      const shown = await typeTheMost(page, 'deck');
+      eq(shown, ['480', '10,000', '100,000', '10,000', '500', '10', '100', '1,000', '480', '10,000', '100,000', '10,000', '500', '10', '365'], 'column ' + c + ': each box shows its ceiling after Enter');
+      r = await page.evaluate(compareLive, 'deck');
+      eq(r.bad, [], 'column ' + c + ': the screen equals Gates at the ceilings');
+    }
+    const snap = r.snap.candidates[0];
+    eq([snap.minutesPerRun, snap.runsPerWeek, snap.growth, snap.daysOffCashCycle, snap.capacityConversion], ['480', '10,000', '10', '365', '100%'], 'Gates is handed the ceilings');
+    const fit = await page.evaluate(resultsFit, 'deck');
+    eq(fit.length, 3, 'three result boxes');
+    fit.forEach((f, c) => assert(f.fits, 'column ' + c + ': the result fits its box: ' + JSON.stringify(f)));
+    assert(fit.some((f) => f.outcome !== 'no'), 'at least one column passes, so a big figure was drawn: ' + JSON.stringify(fit));
+    assert(fit.every((f) => f.outcome === 'no' || /\$[\d.]+[KMBT]?\s*over two years/.test(f.text)), 'a figure too wide to write out is abbreviated, not cut: ' + JSON.stringify(fit));
+    await page.screenshot({ path: path.join(SHOTS, 'stage-ceilings.png') });
+    // and the stepper never goes past a ceiling either
+    await page.click('.scr-pick[data-pick="0"]');
+    await page.click('.scr-editor [data-ctl="minutesPerRun"] button[data-dir="1"]');
+    eq(await page.evaluate(() => window.__deck.scene('screener').snapshot().candidates[0].minutesPerRun), '480', 'plus at the ceiling stays at the ceiling');
+    // a slip past a ceiling counts as the ceiling at once, before Enter
+    await page.fill('.scr-editor [data-ctl="runsPerWeek"] input', '50000');
+    eq(await page.evaluate(() => window.__deck.scene('screener').snapshot().candidates[0].runsPerWeek), '10,000', 'while typing, Gates already gets the ceiling');
+    eq(await t.hookErrors(), [], 'slide and scene hooks');
+    eq(t.problems, [], 'console errors');
+  } finally { await t.close(); }
+});
+
+test('keys: Escape in a box, or just after Enter, never opens the overview; the arrows still move on after Enter', async () => {
+  const t = await openDeck({ hash: 'ex-screen/1' });
+  try {
+    const page = t.page;
+    const overview = () => page.evaluate(() => document.querySelector('.is-overview') !== null);
+    const where = () => page.evaluate(() => { const c = window.__deck.current(); return c.id + '/' + c.step; });
+    const box = '.scr-editor [data-ctl="minutesPerRun"] input';
+    // the reported slip: click the box, type 9999, Enter, Escape
+    await page.click(box);
+    await page.keyboard.press('ControlOrMeta+a');
+    await page.keyboard.type('9999');
+    await page.keyboard.press('Enter');
+    eq(await page.evaluate(() => document.activeElement && document.activeElement.tagName), 'BODY', 'Enter hands the keyboard back to the deck');
+    eq(await page.evaluate((q) => document.querySelector(q).value, box), '480', 'and the box shows the ceiling');
+    await page.keyboard.press('Escape');
+    eq(await overview(), false, 'a reflex Escape after Enter does not open the overview');
+    eq(await where(), 'ex-screen/1', 'and does not move the deck');
+    // Escape inside a box does nothing visible: the box keeps the keyboard, the deck never sees it
+    await page.click(box);
+    await page.keyboard.press('Escape');
+    eq(await overview(), false, 'Escape in a box does not open the overview');
+    eq(await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-field')), 'minutesPerRun', 'Escape in a box leaves the box as it was');
+    await page.keyboard.press('Escape');
+    eq(await overview(), false, 'nor does a second one');
+    await page.keyboard.press('Enter');
+    // Escape in a name box on the board too
+    await page.click('.scr-name[data-cand="1"]');
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('Escape');
+    eq(await overview(), false, 'the name boxes behave the same');
+    // the arrow keys still work straight after Enter
+    await page.click(box);
+    await page.keyboard.type('5');
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('ArrowRight');
+    await page.evaluate(() => window.__deck.settle());
+    assert(await where() !== 'ex-screen/1', 'the right arrow moves on after Enter: ' + await where());
+    eq(await overview(), false, 'still no overview');
+    // the guard is short and one key long: later, Escape is the deck's again
+    await t.goto('ex-screen', 1);
+    await page.click(box);
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(1700);
+    await page.keyboard.press('Escape');
+    eq(await overview(), true, 'well after Enter, Escape opens the overview as usual');
+    await page.keyboard.press('Escape');
+    eq(await overview(), false, 'and closes it');
+    eq(await t.hookErrors(), [], 'slide and scene hooks');
+    eq(t.problems, [], 'console errors');
+  } finally { await t.close(); }
+});
+
+test('stage memory: typed candidates come back after a reload of the deck; Reset forgets them', async () => {
+  const t = await openDeck({ hash: 'ex-screen/1' });
+  try {
+    const page = t.page;
+    await page.fill('.scr-name[data-cand="2"]', 'Reload survivor');
+    await page.fill('.scr-editor [data-ctl="minutesPerRun"] input', '7');
+    const before = await page.evaluate(() => window.__deck.scene('screener').snapshot());
+    eq(before.example, [true, true, false], 'C was edited');
+    await page.reload();
+    await page.waitForFunction(() => window.__deck && window.__deck.count() > 0);
+    await t.goto('ex-screen', 1);
+    let r = await page.evaluate(compareLive, 'deck');
+    eq(r.bad, [], 'after a reload');
+    eq([r.snap.example, r.snap.candidates[2].name, r.snap.candidates[2].minutesPerRun], [[true, true, false], 'Reload survivor', '7'], 'the candidate came back');
+    eq(await page.evaluate(() => Object.keys(sessionStorage)), ['four-gate-screener:v1:stage'], 'kept under one namespaced key, in this tab only');
+    await page.click('[data-act="reset"]');
+    eq(await page.evaluate(() => sessionStorage.getItem('four-gate-screener:v1:stage')), null, 'Reset clears it');
+    await page.reload();
+    await page.waitForFunction(() => window.__deck && window.__deck.count() > 0);
+    await t.goto('ex-screen', 1);
+    eq((await page.evaluate(compareLive, 'deck')).snap.example, [true, true, true], 'and nothing comes back after another reload');
+    eq(t.problems, [], 'console errors');
+  } finally { await t.close(); }
+});
+
+test('stage memory: with session storage blocked the screener still works', async () => {
+  const t = await openDeck({
+    hash: 'ex-screen/1',
+    init: () => { Object.defineProperty(window, 'sessionStorage', { configurable: true, get: () => { throw new Error('blocked'); } }); }
+  });
+  try {
+    await t.page.fill('.scr-editor [data-ctl="minutesPerRun"] input', '7');
+    eq((await t.page.evaluate(compareLive, 'deck')).bad, [], 'after typing');
+    await t.page.click('[data-act="reset"]');
+    eq((await t.page.evaluate(compareLive, 'deck')).snap.example, [true, true, true], 'Reset works');
+    eq(await t.hookErrors(), [], 'slide and scene hooks');
+    eq(t.problems, [], 'console errors');
+  } finally { await t.close(); }
+});
+
+test('ceilings: the standalone page at 360 and 1440 px with every box at its maximum', async () => {
+  fs.mkdirSync(SHOTS, { recursive: true });
+  for (const width of [360, 1440]) {
+    const t = await openPage({ width, height: width < 700 ? 740 : 900, touch: width < 700 });
+    try {
+      const page = t.page;
+      await page.click('[data-act="rules"]');
+      for (const [p, v] of [['houseRules.costMaxShareOfReturn', '99999999'], ['houseRules.maxPaybackWeeks', '99999999'], ['rates.loadedHourly', '99999999'], ['rates.workWeeks', '99999999'], ['company.annualRevenue', '9999999999999'], ['houseRules.minReturnPerYear', '0'], ['houseRules.minGrowth', '0']]) {
+        await page.fill('.scr-rules [data-ctl="' + p + '"] input', v);
+      }
+      await page.click('[data-act="rules"]');
+      for (const c of [0, 1, 2]) {
+        await page.click('.scr-pick[data-pick="' + c + '"]');
+        await typeTheMost(page, 'page');
+      }
+      const r = await page.evaluate(compareLive, 'page');
+      eq(r.bad, [], width + 'px: the screen equals Gates at the ceilings');
+      const fit = await page.evaluate(resultsFit, 'page');
+      fit.forEach((f, c) => assert(f.fits, width + 'px, column ' + c + ': the result fits its box: ' + JSON.stringify(f)));
+      assert(fit.some((f) => f.outcome !== 'no'), width + 'px: a big figure was drawn: ' + JSON.stringify(fit));
+      const s = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth }));
+      assert(s.sw <= s.cw, width + 'px: no sideways scroll at the ceilings (' + JSON.stringify(s) + ')');
+      await page.locator('.scr-board').screenshot({ path: path.join(SHOTS, 'page-' + width + '-ceilings-board.png') });
+      await page.screenshot({ path: path.join(SHOTS, 'page-' + width + '-ceilings.png'), fullPage: true });
+      eq(t.problems, [], width + 'px: console errors');
+    } finally { await t.close(); }
+  }
 });
 
 test('standalone page: no sideways scroll at 360, 768 and 1440; results match Gates; controls work; nothing on the network', async () => {

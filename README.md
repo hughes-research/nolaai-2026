@@ -31,8 +31,8 @@ A mouse click on a slide does not advance it, because several slides have live c
 - [ ] Nine slides have a `YOUR STORY` note: a place where only you know what to say. Decide each one before you walk on.
 - [ ] Print **`handouts/worksheet.pdf`**, one sheet per person, two-sided, black and white. Bring pens.
 - [ ] Copy `dist/` to a USB stick. `dist/deck.pdf` is the fallback if a browser misbehaves (41 pages: two slides print an extra click).
-- [ ] Present from Chrome, with the laptop plugged in. Reach the warehouse slide (27) by stepping through Act 4; do not reload or jump straight to it, or a slow laptop can pause for several seconds while the search runs.
-- [ ] On the screener slide (23), after typing a number press → or click the slide. Escape opens the overview, and a reload clears what the room typed.
+- [ ] Present from Chrome, with the laptop plugged in. If you jump straight to the warehouse slide (27) on a slow laptop, it shows the search counting up for a few seconds before the result lands; stepping through Act 4 normally avoids the wait.
+- [ ] On the screener slide (23), what the room types survives a reload. Press RESET after rehearsing so you start clean.
 - [ ] In the room: check the coral ink (Flare) on the projector, and check you can read the screener slide (slide 23, the densest) from the back row.
 
 ## Your numbers
