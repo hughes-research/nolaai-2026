@@ -262,7 +262,7 @@
       'Today is about telling which is which.'
     ],
       'One click for the second line. Do not rush the first.',
-      '(click to the title) "So, who is asking."'
+      '(click to the title) "So who’s asking?"'
     ),
     enter: function (ctx) {
       if (!FX || !FX.shouldPlay(ctx)) { return; }
@@ -302,10 +302,10 @@
     notes: notes([
       'I’m ' + spokenName + '. ' + (sp.role || 'VP of Technology') + ' at ' + company + '.',
       'This is a workshop, not a demo. You do the work, on paper.',
-      'You will run three of your own ideas through four gates, and say no to at least two of them.'
+      'Three of your own ideas go through four gates. At least two of them get a no.'
     ],
       'The card builds itself in about eight seconds. Talk over it. Nothing to click.',
-      '"First, some homework. I did not pick it."'
+      '"First, some homework. I didn’t pick it."'
     )
   });
 
@@ -347,9 +347,9 @@
       '<p class="attribution">' + esc(SHANNON) + '</p>',
     notes: notes([
       'The organizers assigned one page of reading: Claude Shannon, 1956, "The Bandwagon."',
-      'Shannon founded information theory. He still wrote this, to say his own field was being oversold.',
+      'Shannon founded information theory. And he still wrote this, to say his own field was being oversold.',
       '(click) The assignment: swap two words. Read it again.',
-      '(click) And this is the line today is built around. A few secrets give way at a time. The skill is picking which few.'
+      '(click) This is the line today is built around. A few secrets give way at a time. The skill is picking which few.'
     ],
       'Click one makes the edit. It is flagged "our edit" so nobody thinks Shannon wrote "AI". Click two brings his second sentence and the year.',
       '"So who am I to tell you which few?"'
@@ -420,14 +420,14 @@
         '<p class="sub wt-line" data-step="3" data-anim="wipe">A win only counts with all four.</p>' +
       '</div>',
     notes: notes([
-      'I say no for a living. That is the job: deciding what we do not build.',
-      '(click) ' + company + ' is a marine diesel distributor. ' + BIO.people + ' people, ' + BIO.locations + ' locations, a small technology team. Parts on one side, service techs on the other: a product business and a service business under one roof.',
+      'I say no for a living. My job is deciding what we don’t build.',
+      '(click) ' + company + ' is a marine diesel distributor. ' + BIO.people + ' people, ' + BIO.locations + ' locations, a small technology team. Parts on one side, service techs on the other. A product business and a service business under one roof.',
       BIO.yearsBuilding + ' years building software. Working with AI since ' + BIO.aiSince + '.',
-      '(click) I lead Waypoint, our company-wide AI program. It has one rule. A win only counts with the task, the prompt, the output and the time saved.',
-      '(click) All four, or it does not count.'
+      '(click) I lead Waypoint, our company-wide AI program. One rule: a win only counts with the task, the prompt, the output and the time saved.',
+      '(click) All four, or it doesn’t count.'
     ],
       'Three clicks: the facts, the four boxes, the line. The facts arrive whole; nothing counts.',
-      '"Here is why I am that strict."',
+      '"Here’s why I’m that strict."',
       'one Waypoint win with all four boxes filled, and one thing you turned down.'
     )
   });
@@ -676,11 +676,11 @@
       'This is a drawing, not data. I made the dots up to show a pattern.',
       'Across: how exciting an idea sounds in the meeting. Up: what it returns.',
       'What gets pitched lives down here. Exciting, low return.',
-      '(click) And up here is the one nobody brought to the meeting, because it is dull.',
-      'Sounding good and paying back are two different axes. A pitch only tests the first one.'
+      '(click) Up here is the one nobody brought to the meeting, because it’s dull.',
+      'Sounding good and paying back are two different things. A pitch only tests the first one.'
     ],
       'One click singles out the dull dot.',
-      '"So today we only test the second one. Here is how."'
+      '"Today we only test the second one. Here’s how."'
     )
   });
 
@@ -717,13 +717,14 @@
       '</ol>' +
       '<p class="sub pr-foot" data-step="1" data-anim="wipe">You leave with one use case worth doing,<br>and two you can stop thinking about.</p>',
     notes: notes([
+      'Most sessions promise what AI can do. This one shows you what yours should.',
       'The next ' + minutes + ' minutes, in five steps.',
-      'You inventory two weeks of real work. Not ideas. Work. You pick three. Each one goes through four gates, and the math picks, not the loudest voice in the room.',
+      'You inventory two weeks of real work. Not ideas. Work. You pick three. Each one goes through four gates, and the math picks. Not the loudest voice in the room.',
       'Then I show you one from my own shop being built: the real numbers, and the method running on made-up data, because I can’t show you our building.',
       '(click) You leave with one use case worth doing, and two you can stop thinking about. The two you drop are worth as much as the one you keep.'
     ],
       'Hold up the worksheet. Check everyone has one and a pen. One click for the last line.',
-      '"Before you write anything, here is the screen."'
+      '"Before you write anything, here’s the screen."'
     ),
     enter: function (ctx) {
       if (!FX || !FX.shouldPlay(ctx)) { return; }

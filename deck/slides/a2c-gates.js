@@ -289,15 +289,15 @@
     step: moved,
     notes: [
       'SAY: Climb only as far as the task makes you.',
-      'Bottom rung: do not automate it. Then a spreadsheet formula, then plain code. A model only when the task needs judgment. An agent last.',
+      'Bottom rung: don’t automate it. Then a spreadsheet formula, then plain code. A model only when the task needs judgment. An agent last.',
       'Every rung up costs more to run and more to keep alive.',
       '',
       'DO: Click. Frontier model and plain code light up.',
       '',
       'SAY: Use the expensive model once, to write the tool. Then the tool runs for free.',
-      'You will see it in my own project.',
+      'You’ll see it in my own project.',
       '',
-      'NEXT: Cost is one side. Gate two asks what comes back, starting with a business that sells parts.'
+      'NEXT: Cost is one side. Gate two asks what comes back. Start with a business that sells parts.'
     ].join('\n')
   });
 
@@ -392,7 +392,7 @@
       'SAY: For this example company, about ' + perDayText + '. One day of sales, freed once, not every year. Cash, not profit.',
       'Where to look: inventory, invoicing, collections.',
       '',
-      'NEXT: That is a business that sells parts. A business that sells hours gets paid differently.'
+      'NEXT: That’s a business that sells parts. A business that sells hours gets paid differently.'
     ].join('\n')
   });
 
@@ -432,14 +432,15 @@
       '',
       'DO: Click. The slider runs up to 100 percent. (You can also drag it with the mouse.)',
       '',
-      'SAY: Bill every freed hour and it is ' + (capFull.ok ? capFull.valueText : 'real money') + ' a year in this example. More time, more work done, more money.',
+      'SAY: Bill every freed hour and it’s ' + (capFull.ok ? capFull.valueText : 'real money') + ' a year in this example.',
+      'In a service business, time is truly money. More time, more work done, more money.',
       '',
       'DO: Click. The slider runs back to zero.',
       '',
-      'SAY: At zero percent it is zero dollars. The tool worked, the hours came back, and nothing happened with them.',
+      'SAY: At zero percent it’s zero dollars. The tool worked, the hours came back, and nothing happened with them.',
       'Zero is also a decision. Hold on to that. It comes back at the end.',
       '',
-      'NEXT: So which ideas count for more? There is a first question to ask, and a real test behind it.'
+      'NEXT: So which minutes count for more? Start with one question.'
     ].join('\n')
   });
 
@@ -508,7 +509,7 @@
       '',
       'DO: If asked: the house rule waves a small return through only when it takes days off the cash cycle. On the path with zero days, it counts once, like the memo.',
       '',
-      'NEXT: That is what comes back. Now what it costs you to keep it coming.'
+      'NEXT: That’s what comes back. Now what it costs you to keep it coming.'
     ].join('\n')
   });
 
@@ -546,7 +547,7 @@
     enter: arrive,
     step: moved,
     notes: [
-      'SAY: The demo is the cheap part. It is that sliver on the left.',
+      'SAY: The demo is the cheap part. It’s that sliver on the left.',
       '',
       'DO: Click. Build and roll out.',
       '',
@@ -616,13 +617,13 @@
       '',
       'DO: Click. Every team.',
       '',
-      'SAY: Every team. Growth multiplies the return, not the build. It is a projection, so write down a number you would defend.',
+      'SAY: Every team. Growth multiplies the return, not the build. It’s a projection. Write down a number you’d defend.',
       '',
       'DO: Click. The question.',
       '',
       'SAY: One check before this gate opens: who owns the freed time? I want a name. No owner, no growth.',
       '',
-      'NEXT: That is all four gates. Here is how they add up.'
+      'NEXT: That’s all four gates. Here’s how they add up.'
     ].join('\n')
   });
 
@@ -691,9 +692,9 @@
       '',
       'DO: Click. The house rules. (The worksheet does this arithmetic for them.)',
       '',
-      'SAY: This is where each gate says no. My defaults. Change them, but before you score your favorite, not after.',
+      'SAY: This is where each gate says no. My defaults. Change them if you want. Before you score your favorite, not after.',
       '',
-      'NEXT: That is the whole method. Now your own work goes on the table.'
+      'NEXT: That’s the whole method. Now your own work goes on the table.'
     ].join('\n')
   });
 }());

@@ -117,12 +117,11 @@
       '<div class="plot is-full scene cg-host cg-ladder" data-scene="cost-ladder">' + poster('ladder') + '</div>' +
       '<p class="source-line">' + esc(copy.ladderSource) + '</p>',
     notes: [
-      'SAY: Every dot is a model, one AI engine you pay by the use: ' + n.priced + ' of the ' + n.rows + ' in the BenchLM leaderboard file.',
+      'SAY: I build a cost and return analysis before I even start a project. You look this up before you start. Not after.',
+      'Every dot is a model, one AI engine you pay by the use: ' + n.priced + ' of the ' + n.rows + ' in the BenchLM leaderboard file.',
       'Same task for every one: ' + n.task + '. The file counts that in tokens, pieces of words: ' + n.tokens + '.',
-      'The price is per run. One go at that task.',
-      'The cheapest does it for ' + n.cheapest + '. The dearest for ' + n.dearest + '.',
-      'It is a log scale: each step along is ten times the last.',
-      'You look this up before you start. Not after.',
+      'Price is per run, one go at that task. Cheapest: ' + n.cheapest + '. Dearest: ' + n.dearest + '.',
+      'Log scale: each step along is ten times the last.',
       '',
       'DO: Click once for the spread: ' + n.spread + ' between the cheapest and the dearest.' +
         (n.tiesBoth ? ' Two models share the top price and two share the bottom one; the source line names them.' : '') +
@@ -152,11 +151,11 @@
     notes: [
       'SAY: Take ' + n.dearestPhrase + '. ' + n.dearest + ' a run.',
       'At ' + n.rate + ' an hour it pays for itself if it saves ' + n.secDear + '. Once.',
-      'LESSON ONE: at people scale, cost rarely says no. Effort and return decide. Those gates are coming.',
+      'LESSON ONE: at people scale, cost rarely says no. Effort and return decide.',
       '',
       'DO: The ' + n.rate + ' is an example rate. If the room pays more, drag the slider and the number follows. Click once for the other two tiers: the frontier model needs ' + n.secFrontier + ', the small one ' + n.secSmall + '. If asked: frontier is the top-scoring tier; premium is the "pro" tier, priced highest.',
       '',
-      'NEXT: That is one person, once. Now hand the same job to a machine, over and over.'
+      'NEXT: That’s one person, once. Now hand the same job to a machine, over and over.'
     ].join('\n')
   });
 
@@ -184,6 +183,7 @@
       'SAY: ' + n.volume + ' records. Each record is one run of that same task.',
       'Small model: ' + n.small100k + '. Premium: ' + n.premium100k + '. Drawn to scale.',
       'LESSON TWO: at record scale, the tool you pick is the whole game. And plain code wins.',
+      'Just using a model alone may not be the most cost-effective answer.',
       '',
       'DO: Volume buttons if there is time.',
       'Click 1: plain code. About zero. No bar to draw.',

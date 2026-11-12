@@ -159,7 +159,7 @@
       'DO: One click per gate, and read the question off the gate. The fifth click runs an example: Cost passes, Return says no. Let the NO land. Do not talk over it.',
       '',
       'SAY: Any no ends it. Effort and Potential never get asked.',
-      'That is not the screen failing. That is the screen working. Saying no early is the skill.',
+      'That’s not the screen failing. That’s the screen working. Saying no early is the skill.',
       '',
       'NEXT: Before the first gate, one thing about minutes.'
     ].join('\n')
@@ -194,13 +194,13 @@
     enter: S.arrive,
     step: S.moved,
     notes: [
-      'SAY: At work we count wins in minutes. Waypoint, our AI program, does not count a win without the time saved.',
+      'SAY: At work we count wins in minutes. Waypoint doesn’t count a win without the time saved.',
       'But you count cash.',
       '',
       'DO: Click. The minutes run into two channels.',
       '',
-      'SAY: Either way, an hour saved is worth what an hour costs you. That is plain ROI.',
-      'Then it depends on the business. Product side: cash in sooner. Service side: the same crew does more paid work. We have both.',
+      'SAY: Either way, an hour saved is worth what an hour costs you. That’s plain ROI.',
+      'Then it depends on the business. Product side: cash comes in sooner. Service side: the same crew does more paid work. We have both.',
       '',
       'NEXT: Four gates turn those minutes into a yes or a no. First, the one everybody asks about.'
     ].join('\n')
