@@ -77,12 +77,16 @@
   var ELEV = { top: 274, rowH: 46, postL: SIDE_LEFT + 190, postR: SIDE_LEFT + 478, post: 8 };
 
   /* Dot radii in stage px (for the default building; a bigger building is
-   * drawn smaller and its dots with it). Velocity is size first, ink second:
-   * a fast mover is a 15px Flare dot ringed in Lampblack, a steady part a
-   * 8px Lampblack dot, and a slow part a 3px speck in the palest screen, so
-   * the slow majority reads as the texture of the racks and not as noise.
-   * 15px is the dot pitch on a shelf: fast movers side by side just touch. */
-  var DOT = { fast: 7.5, steady: 4, slow: 1.5, ring: 3 };
+   * drawn smaller and its dots with it). Velocity is size first, ink second,
+   * and the sizes are chosen to survive a quarter-size copy and a washed-out
+   * projector: a fast mover is a 23px Flare dot with a heavy Lampblack ring, a steady
+   * part a 10px Lampblack dot, and a slow part a 5px speck in the palest
+   * screen, so the slow majority reads as the texture of the racks.
+   * The dot pitch on a shelf is about 15px, so fast movers are wider than
+   * their slot: they are painted last, on top of their neighbours, and
+   * neighbouring fast movers merge into one ringed Flare run. That is the
+   * point: a hot shelf reads as a hot stripe from the back of the room. */
+  var DOT = { fast: 11.5, steady: 5, slow: 2.5, ring: 4.5 };
   /* The two walks. As-is: dashed, 6 to 10px with the traffic. Optimized:
    * solid, 14 to 22px (or as wide as the aisle allows). The heaviest as-is line is lighter than the lightest
    * optimized one, so the two never read alike, at any size. */
@@ -276,12 +280,12 @@
     '.wh-plate.is-ground{background:var(--c-bg);color:var(--c-ink);border:4px solid var(--c-ink);}',
     '.wh-plate.is-bare{background:var(--c-bg);color:var(--c-ink);height:44px;padding:0 14px;}',
     /* legend */
-    '.wh-legend{display:flex;gap:44px;}',
+    '.wh-legend{display:flex;gap:34px;}',
     '.wh-key{display:flex;align-items:center;gap:14px;height:56px;}',
     '.wh-key i{display:block;flex:none;border-radius:50%;background:var(--c-ink);}',
     /* the keys are the map's own dots, at the map's own sizes */
     /* slow: three specks in a row, the texture they make on the racks */
-    '.wh-key i.is-c{width:' + (2 * DOT.slow) + 'px;height:' + (2 * DOT.slow) + 'px;margin-right:' + (2 * 9) + 'px;box-shadow:9px 0 0 var(--wh-slow),18px 0 0 var(--wh-slow);}',
+    '.wh-key i.is-c{width:' + (2 * DOT.slow) + 'px;height:' + (2 * DOT.slow) + 'px;margin-right:' + (2 * 11) + 'px;box-shadow:11px 0 0 var(--wh-slow),22px 0 0 var(--wh-slow);}',
     '.wh-key i.is-b{width:' + (2 * DOT.steady) + 'px;height:' + (2 * DOT.steady) + 'px;}',
     '.wh-key i.is-a{width:' + (2 * DOT.fast) + 'px;height:' + (2 * DOT.fast) + 'px;background:var(--c-accent);border:' + DOT.ring + 'px solid var(--c-ink);}',
     /* figures: a label, big numerals, a quiet line */
@@ -522,7 +526,7 @@
     var keys3 = [['is-c', 'Slow', SLOW_INK, 130], ['is-b', 'Steady', INK, 190], ['is-a', 'Fast mover', null, 300]];
     var used = 0;
     for (var ki = keys3.length - 1; ki >= 0; ki--) {             // the fast mover's key matters most
-      used += keys3[ki][3] + (ki < keys3.length - 1 ? 44 : 0);
+      used += keys3[ki][3] + (ki < keys3.length - 1 ? 34 : 0);
       keys3[ki].fits = used <= legendRoom;
     }
     dom.legend = el('div', 'wh-t wh-legend');
@@ -1451,10 +1455,15 @@
         var shownTried = t < T_FLY ? 0 : (end || !searching ? an3.tried : Math.round(an3.tried * clamp01((q - T_FLY) / T_SEARCH)));
         figA = { label: 'Swaps tried', value: commas(shownTried), sub: !searching && t >= T_FLY ? commas(an3.accepted) + ' kept' : (t < T_FLY ? 'Rule of thumb first' : 'Replaying ' + commas(an3.sampleOrders) + ' orders') };
       } else if (step === 4) {
+        // The as-is day is a fixed reference from the first frame: its whole
+        // total, the figure the room just watched land on step 2. Only the
+        // optimized walk counts up, toward its own (smaller) total, so no frame
+        // ever compares a finished walk with a half-finished one. (Counting both
+        // at the same clock time would show the optimized walk as longer for
+        // most of the race: the as-is pickers lose time on ladders, not feet.)
         var lv4 = end ? live : drawDayQuiet(dayAfter, q);
-        var old4 = end ? { feet: dayBefore.feet, setups: dayBefore.setups } : drawDayQuiet(dayBefore, q);
-        figA = { label: 'Feet walked', chip: 'solid', value: commas(lv4.feet), unit: 'ft', sub: 'As-is ' + commas(old4.feet) + ' ft', subChip: 'dashed' };
-        figB = { label: 'Ladder set-ups', chip: 'ladder', value: commas(lv4.setups), sub: 'As-is ' + commas(old4.setups) };
+        figA = { label: 'As-is day', chip: 'dashed', value: commas(dayBefore.feet), unit: 'ft', sub: commas(dayBefore.setups) + ' ladder set-ups', subChip: 'ladder' };
+        figB = { label: 'Optimized day', chip: 'solid', value: commas(lv4.feet), unit: 'ft', sub: commas(lv4.setups) + ' ladder set-up' + (lv4.setups === 1 ? '' : 's'), subChip: 'ladder' };
       }
       setFigure(dom.figA, figA);
       setFigure(dom.figB, figB);

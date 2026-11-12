@@ -101,7 +101,7 @@
       minutes: 2.5,
       layout: 'px-results-slide',
       html: `
-        <h2 class="headline">The real numbers.</h2>
+        <h2 class="headline px-h4">The real numbers.</h2>
         <span class="tag is-laborde px-tag-tr">${label}</span>
         <div class="px-results">
           <div class="px-res-head"><span></span><span class="label">As-is move</span><span></span><span class="label">Optimized</span><span></span></div>
@@ -202,7 +202,7 @@
       minutes: 2.5,
       layout: 'chart px-attempts-slide',
       html: `
-        <h2 class="headline is-s">Seven attempts.<br>The first three lost to the old building.</h2>
+        <h2 class="headline px-h4">Seven attempts.<br>The first three lost to the old building.</h2>
         <p class="label axis-note">Percent less walking · zero is the old building · drawn to scale</p>
         <div class="px-att" style="height:${AT.h}px">
           <i class="px-att-zero" data-px style="top:${AT.y0}px"></i>
@@ -227,7 +227,8 @@
 
         DO: Click once for the climb. Read the four bars as they land.
 
-        SAY: The gains came from measuring against real orders. Not from fancier math.
+        SAY: Attempt four added annealing: try a swap, keep it if the walk gets shorter.
+        The gains came from measuring against real orders. Not from fancier math.
         These are from the March model, on a placeholder floor plan. The October runs, on the real shelving plan with every part, came out at ${num(old7.walkPctLess, 1)}% against the old building: the number on the last slide.
 
         DO: Click once for three lines from our own experiment log.
@@ -263,7 +264,7 @@
       steps: refusals.length,
       html: `
         <h2 class="headline is-hero px-no-head">What we said no to.</h2>
-        <span class="tag is-laborde px-tag-tr px-no-tag">${RECORDS}</span>
+        <span class="tag is-laborde is-records px-tag-tr px-no-tag">${RECORDS}</span>
         <div class="dock px-no-dock">
           ${refusals.map(function (r, i) {
             // data-step: static copies (overview, presenter preview) follow the builds too
@@ -350,7 +351,7 @@
       steps: mc.ok ? 2 : 0,
       html: `
         ${costStrip}
-        <h2 class="headline px-cost-head">What it costs to run: nothing.</h2>
+        <h2 class="headline px-h4 px-cost-head">What it costs to run:<br>nothing.</h2>
         <div class="px-facts"${mc.ok ? ' data-step-out="1"' : ''}>
           <div class="px-fact3" data-px data-count="${commits.aiCoAuthored}">
             <p class="counter-v"><b>${num(commits.aiCoAuthored)}</b><small>of ${num(commits.total)}</small></p>
@@ -373,7 +374,6 @@
           <div class="px-cb-plot" style="height:${mc.rows.length * (CB.row + CB.gap)}px">
             <i class="px-cb-axis" data-px></i>
             ${mc.rows.map(costRowHtml).join('')}
-            <p class="deadpan" data-px>Nobody would. That is the point.</p>
           </div>
           <div class="px-cb-band" data-px>
             <p class="px-cb-band-name">Plain code</p>
@@ -392,7 +392,7 @@
 
         DO: Click once for the thought experiment.
 
-        SAY: This is a deliberately silly design. Nobody would call a model ${callsWords} times.
+        SAY: This is a deliberately silly design. Would anyone call a model ${callsWords} times? Nobody would. That is the point: wrong tool.
         I show it because that is what "put AI in the loop" means for a problem like this. Tokens are pieces of words; it is the same task size as the cost slides.
         ${mc.rows.map(function (r) { return P.curly(r.label) + ': ' + r.text + '.'; }).join(' ')} For one run.
         Plain code: the electricity.
@@ -495,29 +495,42 @@
         SAY: Now the uncomfortable part. My own favorite project, through my own four gates.
 
         DO: Click: Cost.
+
         SAY: ${costText} to run. No model runs when it runs. Pass.
 
         DO: Click: Return. Let the NO land before you speak.
+
         SAY: On minutes alone it saves ${num(ma.hours)} pick hours a year. At ${ma.ok ? money(ma.rate) : 'the example rate'} an hour, ${minutesMoney || 'a small number'}.
         My rule: under ${floorMoney || 'the floor'} a year, and no days off the cash cycle, is a no.
         Picking is on my cash path. But walking less doesn't bring cash in any sooner. So: no.
         And any no ends it. Effort and Potential never get asked.`;
 
     var notesEmpty = `
-        DO: Nothing more to click here. The line top right lands on its own.
+        DO: Nothing more to click here. The line under the gates lands on its own.
 
         SAY: So on minutes alone my own project fails my own screen. ${minutesMoney} a year.
         I'm not going to put a number up here that I can't show you all four Waypoint boxes for.
+        My rule says stop at the first no. We built it anyway, and I'm telling you that in the open.
         What made it worth doing: every part was moving anyway. The choice was never automate or not.
-        It was guess or calculate. And calculating took ladder picks from ${ladderFrom} to ${ladderTo}.`;
+        It was guess or calculate. And calculating took ladder picks from ${ladderFrom} to ${ladderTo}.
+        The move was free. The build was not.
 
+        YOUR STORY: why you built it anyway, in one sentence you can defend.
+`;
+
+    var later = [effortSay ? 'SAY: ' + sentence(effortSay) : '', potentialSay ? 'SAY: ' + sentence(potentialSay) : '', showClose ? 'SAY: The minutes said no. The move said yes.' : '']
+      .filter(Boolean).map(function (line) { return '\n        ' + line + '\n'; }).join('');
     var notesFilled = `
         DO: Click: the bigger return.
+
         SAY: My rule says stop at the first no. I'm overruling it in the open, and here is why.
         The move was the one free re-slot. Every part was moving anyway, so it was never automate or not. It was guess or calculate.
+        The move was free. The build was not.
+
         SAY: ${biggerSay}
+
         YOUR STORY: the bigger return, in a sentence or two.
-${effortSay ? '        SAY: ' + sentence(effortSay) + '\n' : ''}${potentialSay ? '        SAY: ' + sentence(potentialSay) + '\n' : ''}${showClose ? '        SAY: The minutes said no. The move said yes.\n' : ''}`;
+${later}`;
 
     Deck.slide({
       id: 'slotting-scorecard',
@@ -528,9 +541,8 @@ ${effortSay ? '        SAY: ' + sentence(effortSay) + '\n' : ''}${potentialSay ?
       layout: 'px-score-slide',
       steps: filled ? 3 : 2,
       html: `
-        <h2 class="headline is-s px-sc-head">My own project,<br>through my own gates.</h2>
-        <p class="voice is-l px-sc-close px-sc-reslot" data-step="2" data-px>The move was the<br>one free re-slot.</p>
-        ${showClose ? '<p class="voice is-l px-sc-close" data-step="3" data-px>The minutes said no.<br>The move said yes.</p>' : ''}
+        <h2 class="headline px-h4 px-sc-head">My own project,<br>through my own gates.</h2>
+        <p class="source-line px-sc-src">${label}<br>${num(ma.hours)} hours = ${num(R.pickHoursAsIs)} − ${num(R.pickHoursOptimized)} pick hours a year${ma.ok ? '<br>valued at ' + money(ma.rate) + ' an hour, an example rate' : ''}</p>
         <div class="dock px-sc-dock">
           <article class="gate px-g-cost is-still ${costPass ? 'is-pass' : 'is-no'}">
             <i class="gate-shutter"></i>
@@ -540,10 +552,10 @@ ${effortSay ? '        SAY: ' + sentence(effortSay) + '\n' : ''}${potentialSay ?
             </div>
             <p class="gate-why">${costPass ? 'carried forward' : 'over the cost limit'}</p>
           </article>
-          <article class="gate px-g-return is-still ${returnPass ? 'is-pass is-minutes-pass' : 'is-no has-tell'}">
+          <article class="gate px-g-return is-still ${returnPass ? 'is-pass is-minutes-pass' : 'is-no is-flare has-tell'}">
             <i class="gate-shutter"></i>
             <h3 class="gate-name">Return</h3>
-            <div class="px-find px-find-min is-blend" data-step="2">
+            <div class="px-find px-find-min${returnPass ? ' is-blend' : ''}" data-step="2">
               <p class="label" data-px>On minutes alone</p>
               <p class="px-find-l" data-px style="margin-top:14px">${num(ma.hours)} hours a year</p>
               <p class="num px-find-eq" data-px>= ${minutesMoney}</p>
@@ -577,7 +589,8 @@ ${effortSay ? '        SAY: ' + sentence(effortSay) + '\n' : ''}${potentialSay ?
             ${notYet}
           </article>
         </div>
-        <p class="source-line">${label} · ${num(ma.hours)} hours = ${num(R.pickHoursAsIs)} − ${num(R.pickHoursOptimized)} pick hours a year${ma.ok ? ' · valued at ' + money(ma.rate) + ' an hour, an example rate' : ''}</p>
+        <p class="voice is-l px-sc-close px-sc-reslot" data-step="2" data-px>The move was the<br>one free re-slot.</p>
+        ${showClose ? '<p class="voice is-l px-sc-close" data-step="3" data-px>The minutes said no.<br>The move said yes.</p>' : ''}
         ${P.driver('scorecard', { costPass: costPass, returnPass: returnPass, filled: filled })}
       `,
       notes: notesHead + '\n' + (filled ? notesFilled : notesEmpty) + `

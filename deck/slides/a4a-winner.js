@@ -47,7 +47,7 @@
     layout: 'px-winner',
     html: `
       <h2 class="say is-l px-winner-say">${winnerHead}<br>where the parts live.</h2>
-      <span class="tag is-laborde px-tag-tr">Laborde project records</span>
+      <span class="tag is-laborde is-records px-tag-tr">Laborde project records</span>
       <p class="sub px-winner-sub" data-px>Warehouse slotting. Nobody pitches this.</p>
       <div class="px-fact" data-step="1">
         <p class="num px-fact-n"><b>${partsBig}</b></p>
@@ -121,7 +121,7 @@
     minutes: 1.5,
     layout: 'px-problem',
     html: `
-      <h2 class="headline">${partsBig} parts. ${slotsBig} slots.</h2>
+      <h2 class="headline px-h4">${partsBig} parts. ${slotsBig} slots.</h2>
       <div class="px-prob">
         <p class="px-lead" data-step="1" data-px>Move them across in their current order and</p>
         <div class="px-band" data-step="1" data-px>
@@ -147,7 +147,7 @@
       Do that, and ${ladder} of picks need a ladder.
       Taller racks make it worse. More of the shelf is up high, and whatever lands there stays there.
 
-      NEXT: I can't show you our building. I can show you the method, running.
+      NEXT: So where should each of those ${parts} parts go? Let me show you how the tool decides.
     `
   });
 }());

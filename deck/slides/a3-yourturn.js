@@ -58,10 +58,10 @@
 
 /* ex-screen, step 1: the screener takes the stage; the headline and the clock move to the top bar */
 .slide.yt-step :is([data-step], [data-step-out]) { transition: none; }
-.slide > .yt-live { position: absolute; left: 128px; top: 120px; width: 1736px; height: 920px; flex: none; }
+.slide > .yt-live { position: absolute; left: 128px; top: 150px; width: 1736px; height: 908px; flex: none; }
 .slide[data-current-step="1"] > .yt-kicker { visibility: hidden; }
-.slide[data-current-step="1"] > .yt-head { position: absolute; left: 128px; top: 34px; margin: 0; font-size: 96px; line-height: 0.708; white-space: nowrap; }
-.slide[data-current-step="1"] .yt-side { position: absolute; right: 56px; top: 28px; width: 300px; height: 84px; border: 0; }
+.slide[data-current-step="1"] > .yt-head { position: absolute; left: 128px; top: var(--m-y, 60px); margin: 0; font-size: 96px; line-height: 0.708; white-space: nowrap; }
+.slide[data-current-step="1"] .yt-side { position: absolute; right: 56px; top: 54px; width: 300px; height: 84px; border: 0; }
 /* in the top bar the last minute is an ink block, so the winner below keeps the slide's one Flare */
 .slide[data-current-step="1"] .yt-side > .timer-host { --timer-size: 96px; --timer-warn-bg: var(--c-ink); --timer-warn-color: var(--c-bg); }
 .slide[data-current-step="1"] .yt-side .timer-bar,

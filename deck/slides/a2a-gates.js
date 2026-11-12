@@ -161,9 +161,7 @@
       'SAY: Any no ends it. Effort and Potential never get asked.',
       'That is not the screen failing. That is the screen working. Saying no early is the skill.',
       '',
-      'NEXT: Before the first gate, one thing about minutes.',
-      '',
-      'TIME: 1.5 minutes.'
+      'NEXT: Before the first gate, one thing about minutes.'
     ].join('\n')
   });
 
@@ -204,9 +202,7 @@
       'SAY: Either way, an hour saved is worth what an hour costs you. That is plain ROI.',
       'Then it depends on the business. Product side: cash in sooner. Service side: the same crew does more paid work. We have both.',
       '',
-      'NEXT: Four gates turn those minutes into a yes or a no. First, the one everybody asks about.',
-      '',
-      'TIME: 1 minute.'
+      'NEXT: Four gates turn those minutes into a yes or a no. First, the one everybody asks about.'
     ].join('\n')
   });
 }());

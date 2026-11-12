@@ -122,9 +122,7 @@ Potential. If it works, how far does it grow?
 **SAY:** Any no ends it. Effort and Potential never get asked.  
 That is not the screen failing. That is the screen working. Saying no early is the skill.  
   
-**NEXT:** Before the first gate, one thing about minutes.  
-  
-**TIME:** 1.5 minutes.
+**NEXT:** Before the first gate, one thing about minutes.
 
 ## 9. Minutes are the raw material
 
@@ -138,9 +136,7 @@ But you count cash.
 **SAY:** Either way, an hour saved is worth what an hour costs you. That is plain ROI.  
 Then it depends on the business. Product side: cash in sooner. Service side: the same crew does more paid work. We have both.  
   
-**NEXT:** Four gates turn those minutes into a yes or a no. First, the one everybody asks about.  
-  
-**TIME:** 1 minute.
+**NEXT:** Four gates turn those minutes into a yes or a no. First, the one everybody asks about.
 
 ## 10. Gate 1: Cost
 
@@ -199,17 +195,15 @@ Every rung up costs more to run and more to keep alive.
 **SAY:** Use the expensive model once, to write the tool. Then the tool runs for free.  
 You will see it in my own project.  
   
-**NEXT:** Cost is one side. Gate two asks what comes back, starting with a business that sells parts.  
-  
-**TIME:** 1 minute.
+**NEXT:** Cost is one side. Gate two asks what comes back, starting with a business that sells parts.
 
 ## 14. Gate 2: Return, product side
 
 *2:48 · 1.5 min · 2 clicks · id `gate-return-cash`*
 
 **SAY:** This is the language your CFO speaks.  
-Parts sit on the shelf: days of inventory. The customer takes a while to pay: days to collect. You take a while to pay your supplier: days to pay.  
-Add the first two, take off the third. That is how long your cash is out. Here, 68 days.  
+Parts on the shelf: days of inventory. Customers paying you: days to collect. You paying your supplier: days to pay.  
+First two, minus the third: how long your cash is out. Here, 68 days.  
   
 **DO:** Click. One day comes off days to collect.  
   
@@ -217,13 +211,10 @@ Add the first two, take off the third. That is how long your cash is out. Here, 
   
 **DO:** Click. The example figure lands.  
   
-**SAY:** For this example company, about $54,800.  
-It comes once, not every year, and it is cash, not profit. But it was sitting in somebody else’s account.  
+**SAY:** For this example company, about $54,800. One day of sales, freed once, not every year. Cash, not profit.  
 Where to look: inventory, invoicing, collections.  
   
-**NEXT:** That is a business that sells parts. A business that sells hours gets paid differently.  
-  
-**TIME:** 1.5 minutes.
+**NEXT:** That is a business that sells parts. A business that sells hours gets paid differently.
 
 ## 15. Gate 2: Return, service side
 
@@ -241,9 +232,7 @@ One question on this slide: how much of the freed time becomes paid work? Right 
 **SAY:** At zero percent it is zero dollars. The tool worked, the hours came back, and nothing happened with them.  
 Zero is also a decision. Hold on to that. It comes back at the end.  
   
-**NEXT:** Both sides come down to one question you can ask in a hallway.  
-  
-**TIME:** 1.5 minutes.
+**NEXT:** So which ideas count for more? There is a first question to ask, and a real test behind it.
 
 ## 16. Does it touch the cash path?
 
@@ -267,9 +256,7 @@ Touching the path is the first question, not the test. The test is whether cash 
   
 **DO:** If asked: the house rule waves a small return through only when it takes days off the cash cycle. On the path with zero days, it counts once, like the memo.  
   
-**NEXT:** That is what comes back. Now what it costs you to keep it coming.  
-  
-**TIME:** 1 minute.
+**NEXT:** That is what comes back. Now what it costs you to keep it coming.
 
 ## 17. Gate 3: Effort
 
@@ -290,9 +277,7 @@ Nobody puts this part in the pitch.
   
 **YOUR STORY:** one tool that was quick to demo and then needed looking after every month. What the upkeep turned out to be.  
   
-**NEXT:** Last gate. This one looks forward.  
-  
-**TIME:** 1 minute.
+**NEXT:** Last gate. This one looks forward.
 
 ## 18. Gate 4: Potential
 
@@ -308,13 +293,11 @@ Nobody puts this part in the pitch.
   
 **SAY:** Every team. Growth multiplies the return, not the build. It is a projection, so write down a number you would defend.  
   
-**DO:** Click. The check line.  
+**DO:** Click. The question.  
   
 **SAY:** One check before this gate opens: who owns the freed time? I want a name. No owner, no growth.  
   
-**NEXT:** That is all four gates. Here is how they add up.  
-  
-**TIME:** 1 minute.
+**NEXT:** That is all four gates. Here is how they add up.
 
 ## 19. Let the math pick
 
@@ -331,9 +314,7 @@ Any no and it is out. Of the survivors, the biggest number wins.
   
 **SAY:** This is where each gate says no. My defaults. Change them, but before you score your favorite, not after.  
   
-**NEXT:** That is the whole method. Now your own work goes on the table.  
-  
-**TIME:** 1 minute.
+**NEXT:** That is the whole method. Now your own work goes on the table.
 
 ---
 
@@ -427,7 +408,7 @@ At 1:00 left, take one last answer and move on.
 
 ---
 
-# Act 4: Build the Winner
+# Act 4: The One We Built
 
 ## 25. The one we built: where the parts live
 
@@ -460,7 +441,7 @@ Above that you reach. Above that you go and get a ladder.
 Do that, and 23% of picks need a ladder.  
 Taller racks make it worse. More of the shelf is up high, and whatever lands there stays there.  
   
-**NEXT:** I can't show you our building. I can show you the method, running.
+**NEXT:** So where should each of those 6,493 parts go? Let me show you how the tool decides.
 
 ## 27. The method, live (synthetic re-creation)
 
@@ -472,13 +453,14 @@ All synthetic. Ours comes after.
   
 DO, step 1 (on screen as the slide opens): Point at the pack station, bottom left. Then the side view: floor, golden zone, reach, ladder.  
   
-DO, step 2: Click. A year of orders rains in. Point at the hatched bars: those picks need a ladder.  
+DO, step 2: Click. A year of orders rains in. Point at the big orange dots: all over the building. Then the hatched bars: those picks need a ladder.  
   
 DO, step 3: Click. The as-is move. The dashed line is the walk for the busiest day. Point at the ladder count.  
   
 DO, step 4: Click. Rule of thumb first: fast movers to the golden shelves by the door. Then the search: swap two parts, replay the orders, keep the swap if pick time drops.  
   
-DO, step 5: Click. Both walks again, same orders, same speed. Solid is new, dashed is old. Say nothing until the dashed one gets home.  
+DO, step 5: Click. Both walks again, same orders, same speed. Solid is new, dashed is old. Point at the big orange dots: now bunched by the pack station.  
+Then the numbers: the top one is the old day, the total you just saw, and it stays put. The bottom one counts the new walk and stops well short of it. Say nothing until the dashed one gets home.  
   
 DO, step 6: Click. Read the four lines, before then after. The 100% is a rule the search has to keep, not something it found.  
 **SAY:** Don't write these down. This is a made-up building, and its numbers are bigger than ours. The real result is next, and it's smaller.  
@@ -524,7 +506,8 @@ The line is the old building. Above it: less walking than today. Below it: more.
   
 **DO:** Click once for the climb. Read the four bars as they land.  
   
-**SAY:** The gains came from measuring against real orders. Not from fancier math.  
+**SAY:** Attempt four added annealing: try a swap, keep it if the walk gets shorter.  
+The gains came from measuring against real orders. Not from fancier math.  
 These are from the March model, on a placeholder floor plan. The October runs, on the real shelving plan with every part, came out at 12.3% against the old building: the number on the last slide.  
   
 **DO:** Click once for three lines from our own experiment log.  
@@ -565,7 +548,7 @@ When the tool runs, 0 AI models run. It is plain math: 10 million swaps in about
   
 **DO:** Click once for the thought experiment.  
   
-**SAY:** This is a deliberately silly design. Nobody would call a model 10 million times.  
+**SAY:** This is a deliberately silly design. Would anyone call a model 10 million times? Nobody would. That is the point: wrong tool.  
 I show it because that is what "put AI in the loop" means for a problem like this. Tokens are pieces of words; it is the same task size as the cost slides.  
 Small model: $4,500. Frontier model: $360,000. Premium “pro” model: $1,500,000. For one run.  
 Plain code: the electricity.  
@@ -585,20 +568,27 @@ Plain code: the electricity.
 **SAY:** Now the uncomfortable part. My own favorite project, through my own four gates.  
   
 **DO:** Click: Cost.  
+  
 **SAY:** $0 to run. No model runs when it runs. Pass.  
   
 **DO:** Click: Return. Let the NO land before you speak.  
+  
 **SAY:** On minutes alone it saves 15.4 pick hours a year. At $30 an hour, $462.  
 My rule: under $5,000 a year, and no days off the cash cycle, is a no.  
 Picking is on my cash path. But walking less doesn't bring cash in any sooner. So: no.  
 And any no ends it. Effort and Potential never get asked.  
   
-**DO:** Nothing more to click here. The line top right lands on its own.  
+**DO:** Nothing more to click here. The line under the gates lands on its own.  
   
 **SAY:** So on minutes alone my own project fails my own screen. $462 a year.  
 I'm not going to put a number up here that I can't show you all four Waypoint boxes for.  
+My rule says stop at the first no. We built it anyway, and I'm telling you that in the open.  
 What made it worth doing: every part was moving anyway. The choice was never automate or not.  
 It was guess or calculate. And calculating took ladder picks from 23% to 0.6%.  
+The move was free. The build was not.  
+  
+**YOUR STORY:** why you built it anyway, in one sentence you can defend.  
+  
 **NEXT:** Mine was never about the minutes. Yours might be. Look at the one you kept.
 
 ---
@@ -695,13 +685,16 @@ Asked which AI assistant: “an AI coding assistant”. Never name it.
   
 Q1 “All that for 15.4 hours a year?” On minutes, no: $462. I said so.  
 Every part moved anyway: guess or calculate. Ladder picks went 23% to 0.6%.  
+The move was free. The build was not.  
 Q2 “47% is against a baseline nobody picks.” True: the as-is move.  
 Old building: 12.3% less walking, 22.7% less pick time. Both rest on estimates.  
 Q3 “It’s on your cash path. Doesn’t it pass?” Only if cash comes sooner.  
 Walking less doesn’t do that. The rule wants cash days, not a tick.  
 Q4 “Prices change every quarter. Stale?” One export, November 2026.  
-17 of 50 scores estimated: tiers, not ranks. The lessons hold.  
+17 of the file’s 50 scores are estimated; 12 of the 41 that have a price. Tiers, not ranks. The lessons hold.  
 Q5 “How do I keep my numbers honest?” Set house rules before you score.  
 Then hold every win to all four Waypoint boxes.  
+Q6 “So what was the bigger return on the warehouse project?”  
+**YOUR STORY:** the bigger return, in one sentence you can defend. If you have not put a number on it yet, say so: "I haven't put a number on it that I can show you all four Waypoint boxes for. The move had to happen; the question was guess or calculate."  
   
 **NEXT:** Q&A until 4:00. Then stop on time.

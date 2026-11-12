@@ -27,16 +27,17 @@ A mouse click on a slide does not advance it, because several slides have live c
 ## The day before
 
 - [ ] Fill in your numbers (next section).
-- [ ] Run through it once with the presenter view open. `docs/SPEAKER-NOTES.md` has every note in order; `docs/RUN-OF-SHOW.md` has the clock time of every slide.
+- [ ] Run through it once with the presenter view open and its window maximised (the last slide's notes hold five likely questions and need the room). `docs/SPEAKER-NOTES.md` has every note in order; `docs/RUN-OF-SHOW.md` has the clock time of every slide and a cut plan for running late.
+- [ ] Nine slides have a `YOUR STORY` note: a place where only you know what to say. Decide each one before you walk on.
 - [ ] Print **`handouts/worksheet.pdf`**, one sheet per person, two-sided, black and white. Bring pens.
-- [ ] Copy `dist/` to a USB stick. `dist/deck.pdf` is the fallback if a browser misbehaves.
-- [ ] In the room: check the coral ink (Flare) on the projector, and check you can read the smallest line on slide 23 from the back row.
+- [ ] Copy `dist/` to a USB stick. `dist/deck.pdf` is the fallback if a browser misbehaves (41 pages: two slides print an extra click).
+- [ ] In the room: check the coral ink (Flare) on the projector, and check you can read the screener slide (slide 23, the densest) from the back row.
 
 ## Your numbers
 
 Everything you may want to change is in one file: **`deck/content/your-numbers.js`**. It is written to be edited by hand and every value has a plain-language comment.
 
-- **`slotting.biggerReturn`, `slotting.effort`, `slotting.potential`**: the scorecard for your own project. Until you fill these in, the slide shows dashed boxes that read YOUR NUMBER. It never makes a figure up.
+- **`slotting.biggerReturn`, `slotting.effort`, `slotting.potential`**: the scorecard for your own project. While they are empty the scorecard stops at the Return gate's NO ("$462 on minutes alone"), shows no placeholder to the room, and the notes give you the words to say. Once you fill them in, the slide completes itself and the Act 4 headline changes from "The one we built" to "The winner". The deck never makes a figure up. `docs/RUN-OF-SHOW.md` ends with a list of what is still unfilled.
 - **`slotting.results`**: the real project figures. Check them against your records.
 - **`story.howWeBuiltIt`**: a few lines in your own words. The slide is skipped while the list is empty.
 - **`rates`, `company`, `houseRules`, `examples`, `candidates`**: the example hourly rate, the example company, the pass/fail thresholds, and the three example candidates. All are labeled "Example" on screen.
@@ -61,7 +62,7 @@ These need Node 22 and Playwright (`npm install -g playwright`, then `npx playwr
 | 2:30 | 1. The Bandwagon | The hook, Shannon's 1956 warning, who is talking, the promise. |
 | 2:40 | 2. The Four Gates | Cost, Return, Effort, Potential. Minutes become money through the cash conversion cycle or through capacity. |
 | 2:55 | 3. Your Turn | Three exercises on the worksheet: inventory two weeks, pick three, run them through the gates. |
-| 3:30 | 4. Build the Winner | A real warehouse slotting project: the problem, a live re-creation, the real numbers, seven attempts, what was refused, what it costs to run, and the scorecard. |
+| 3:30 | 4. The One We Built | A real warehouse slotting project: the problem, a live re-creation, the real numbers, seven attempts, what was refused, what it costs to run, and the scorecard. |
 | 3:50 | 5. Who Owns the Minutes? | Freed time is a management decision. Share the gain. Close. |
 
 ## Where every number comes from

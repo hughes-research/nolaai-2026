@@ -116,70 +116,72 @@
     '.cc-sum small { font-size: 60px; text-transform: none; }',
     '.cc-line { position: absolute; left: var(--m-x); top: 752px; width: 800px; margin: 0; font-size: 60px; line-height: 1.1; }',
     '.cc-cash { position: absolute; right: 0; top: 664px; width: 920px; height: 322px; padding: 30px var(--m-right) 0 44px; background: var(--c-accent); color: var(--c-accent-ink); }',
-    '.cc-cash-v { display: flex; align-items: baseline; gap: 16px; margin: 32px 0 0; font-family: var(--f-display); font-size: 196px; font-weight: var(--wght-display);',
+    '.cc-cash-v { display: flex; align-items: baseline; gap: 16px; margin: 22px 0 0; font-family: var(--f-display); font-size: 196px; font-weight: var(--wght-display);',
     '  font-stretch: var(--wdth-display); line-height: var(--lh-cap); font-variant-numeric: tabular-nums; white-space: nowrap; }',
     '.cc-cash-v > i { font-style: normal; font-stretch: var(--wdth-text); font-weight: var(--wght-strong); font-size: 0.62em; }',
-    '.cc-cash-v > small { font-size: 60px; text-transform: none; }',
+    '.cc-cash-say { margin: 24px 0 0; font-size: var(--t-body-l); font-weight: 700; line-height: 1; white-space: nowrap; }',
 
-    /* ---------------- gate-return-capacity ---------------- */
+    /* ---------------- gate-return-capacity: a quiet slide ---------------- */
+    /* Card ground, one normal-width headline, outline shapes in Lampblack. The
+       figure is Lampblack at every value (Flare never means paid); the slide's
+       one Flare is the small block under "Zero is also a decision." */
     '.cap-stage { position: relative; flex: 1 1 0; min-height: 0; }',
     '.cap-stage > [data-step-only]:not(.is-visible) { display: none; }',
     '.cap-view { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }',
     '.cap-left { position: absolute; left: 0; top: 14px; width: 900px; }',
-    '.cap-hours { display: flex; gap: 12px; margin: 26px 0 26px; }',
-    '.cap-hour { position: relative; flex: none; width: calc(min(132px, (876px - (var(--cap-n) - 1) * 12px) / var(--cap-n)) * var(--w, 1)); height: 132px; border: var(--w-rule) solid var(--c-ink); }',
-    '.cap-hour > b { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c-ink); }',
-    '.cap-split { display: flex; align-items: baseline; gap: 20px; margin: 0; font-size: var(--t-body-l); font-weight: 600; line-height: 1; white-space: nowrap; }',
-    '.cap-split > b { font-family: var(--f-display); font-size: 96px; font-weight: var(--wght-display); font-stretch: var(--wdth-display);',
+    '.cap-hours { display: flex; gap: 12px; margin: 26px 0 28px; }',
+    '.cap-hour { position: relative; flex: none; width: calc(min(120px, (876px - (var(--cap-n) - 1) * 12px) / var(--cap-n)) * var(--w, 1)); height: 112px; border: var(--w-rule) solid var(--c-ink); }',
+    /* the part of an hour that became paid work: hatched, not a solid field */
+    '.cap-hour > b { position: absolute; left: 0; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, var(--c-ink) 0 6px, transparent 6px 20px); }',
+    '.cap-split { display: flex; align-items: baseline; gap: 18px; margin: 0; font-size: var(--t-body-l); font-weight: 600; line-height: 1; white-space: nowrap; }',
+    '.cap-split > b { font-family: var(--f-display); font-size: 72px; font-weight: var(--wght-display); font-stretch: var(--wdth-display);',
     '  line-height: var(--lh-cap); font-variant-numeric: tabular-nums; }',
     '.cap-right { position: absolute; left: 960px; right: 0; top: 14px; }',
     '.cap-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); margin: 0; height: 56px; white-space: nowrap; }',
-    '.cap-money { display: inline-block; margin: 22px 0 0 -32px; padding: 30px 32px 46px; background: var(--c-accent); color: var(--c-accent-ink);',
-    '  font-family: var(--f-display); font-size: 250px; font-weight: var(--wght-display); font-stretch: var(--wdth-display); line-height: var(--lh-cap);',
+    '.cap-money { display: block; margin: 40px 0 0; padding: 0; color: var(--c-ink);',
+    '  font-family: var(--f-display); font-size: 180px; font-weight: var(--wght-display); font-stretch: var(--wdth-display); line-height: var(--lh-cap);',
     '  font-variant-numeric: tabular-nums; white-space: nowrap; }',
     '.cap-money > b { font-weight: inherit; }',
-    /* nothing there: no block, and the figure is only an outline */
-    '.is-zero > .cap-right > .cap-money { background: none; color: var(--c-ink); }',
-    /* (the stroke is drawn first and the fill covers its inner half, so only the outer contour shows) */
-    '.is-zero > .cap-right > .cap-money > b { color: var(--c-bg); -webkit-text-stroke: 14px var(--c-ink); paint-order: stroke fill; }',
-    '.cap-math { margin: 20px 0 0; font-size: var(--t-body); font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; }',
+    '.cap-math { margin: 34px 0 0; font-size: var(--t-body); font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; }',
     '.cap-math > b { font-weight: var(--wght-display); }',
-    '.cap-slider { position: absolute; left: 0; right: 0; top: 466px; display: grid; grid-template-columns: 1fr auto; column-gap: var(--s-5); row-gap: 14px; }',
+    '.cap-slider { position: absolute; left: 0; right: 0; top: 420px; display: grid; grid-template-columns: 1fr auto; column-gap: var(--s-5); row-gap: 14px; }',
     '.cap-slider > input[type="range"] { width: 100%; height: 96px; }',
     '.cap-slider > input[type="range"]::-webkit-slider-runnable-track { height: 96px; }',
     '.cap-slider > input[type="range"]::-moz-range-track { height: 96px; }',
     '.cap-slider > input[type="range"]::-webkit-slider-thumb { width: 40px; height: 96px; }',
     '.cap-slider > input[type="range"]::-moz-range-thumb { width: 40px; height: 96px; }',
-    '.cap-slider > output { min-width: 2.9em; text-align: right; font-size: 120px; }',
-    '.cap-zero { position: absolute; right: 0; bottom: 9px; margin: 0; }',   // on the kit's deadpan slot: bottom edge at y 968, like gate-effort
+    '.cap-slider > output { min-width: 2.9em; text-align: right; font-size: 96px; }',
+    /* the one Flare: Lampblack type on a small block, in the kit's deadpan slot */
+    '.cap-zero { position: absolute; right: 0; bottom: 18px; margin: 0; padding: 12px 22px 18px; background: var(--c-accent); color: var(--c-accent-ink); font-size: 56px; }',
     /* the quiet headline: one line of Archivo at normal width */
     '.slide > .say.cap-say { margin: 18px 0 36px; white-space: nowrap; }',
 
-    /* ---------------- cash-path ---------------- */
-    '.cp-tag { position: absolute; left: 1290px; top: 146px; }',
-    '.cp-path { position: relative; display: grid; grid-template-columns: repeat(6, 1fr); margin: -6px 0 0; padding: 0; border-bottom: var(--w-rule) solid var(--c-line); }',
+    /* ---------------- cash-path: a quiet slide ---------------- */
+    /* two Card columns in Lampblack outline; the one Flare is the small block on "Counts twice." */
+    '.slide > .say.cp-say { margin: 18px 0 40px; white-space: nowrap; }',
+    '.cp-tag { position: absolute; right: var(--m-right); top: 164px; }',
+    '.cp-path { position: relative; display: grid; grid-template-columns: repeat(6, 1fr); margin: 0; padding: 0; border-bottom: var(--w-rule) solid var(--c-line); }',
     '.cp-path > li { position: relative; display: flex; align-items: center; height: 68px; }',
     '.cp-path > li > span { padding: 14px 16px 12px; margin-left: -16px; }',
     /* the direction of the path: a head on the rule at the end of each stage */
     '.cp-path > li::after { content: ""; position: absolute; right: 18px; bottom: -17px; border: 14px solid transparent; border-left: 22px solid var(--c-line); border-right: 0; }',
     '.cp-path > li.is-on > span { background: var(--c-ink); color: var(--c-bg); }',
     /* the one link from the path down to the idea that sits on it */
-    '.cp-path > li.is-on::before { content: ""; position: absolute; left: 56px; top: 100%; width: var(--w-bold); height: 62px; background: var(--c-line); }',
-    '.cp-cols { flex: none; height: 500px; margin-top: 56px; border-top: 0; }',
-    '.cp-cols > .col { gap: 0; padding-top: 34px; padding-bottom: 0; }',
-    '.cp-cols > .col.is-point { padding-left: var(--s-5); }',
-    '.cp-cols > .col + .col { border-left: 0; }',
-    '.cp-cols > .col:first-child { border-right: var(--w-rule) solid var(--c-line); }',
-    '.cp-cols .col-title { margin: 20px 0 30px; }',
+    '.cp-path > li.is-on::before { content: ""; position: absolute; left: 56px; top: 100%; width: var(--w-bold); height: 56px; background: var(--c-line); }',
+    '.cp-cols { flex: none; height: 452px; margin-top: 56px; border-top: 0; column-gap: 48px; }',
+    '.cp-cols > .col { gap: 0; padding: 30px 40px 0; border: var(--w-rule) solid var(--c-ink); }',
+    '.cp-cols > .col + .col { padding-left: 40px; border-left: var(--w-rule) solid var(--c-ink); }',
+    '.cp-cols .col-title { margin: 22px 0 26px; font-size: 72px; }',
     '.cp-counts { margin: 0; padding: 0; }',
-    '.cp-counts > li { display: flex; align-items: center; gap: var(--s-4); height: 92px; border-top: var(--w-hair) solid var(--c-ink); font-size: var(--t-body-l); font-weight: 700; line-height: 1; }',
+    '.cp-counts > li { display: flex; align-items: center; gap: var(--s-4); height: 80px; border-top: var(--w-hair) solid var(--c-ink); font-size: var(--t-body-l); font-weight: 700; line-height: 1; }',
     '.cp-counts > li:last-child { border-bottom: var(--w-hair) solid var(--c-ink); }',
-    '.cp-counts > li > b { flex: none; width: 48px; font-family: var(--f-display); font-size: 84px; font-weight: var(--wght-display); font-stretch: var(--wdth-display); line-height: var(--lh-cap); }',
+    '.cp-counts > li > b { flex: none; width: 44px; font-family: var(--f-display); font-size: 64px; font-weight: var(--wght-display); font-stretch: var(--wdth-display); line-height: var(--lh-cap); }',
     '.cp-counts > li.is-none > span { font-weight: var(--wght-text); }',
-    '.cp-verdict { display: flex; align-items: baseline; gap: 22px; margin: 30px 0 0; font-family: var(--f-display); font-size: 96px; font-weight: var(--wght-display);',
+    '.cp-verdict { display: flex; align-items: baseline; gap: 20px; margin: 34px 0 0; font-family: var(--f-display); font-size: 72px; font-weight: var(--wght-display);',
     '  font-stretch: var(--wdth-display); line-height: var(--lh-cap); text-transform: uppercase; white-space: nowrap; }',
-    '.cp-verdict > .voice { font-size: 72px; line-height: 1; text-transform: none; }',
-    '.cp-line { margin: 30px 0 0; font-size: var(--t-voice); line-height: 1; white-space: nowrap; }',
+    '.cp-verdict > .voice { font-size: 60px; line-height: 1; text-transform: none; }',
+    '.cp-verdict > .punch { margin-left: -0.16em; padding: 0.17em 0.16em 0.12em; box-shadow: none; }',
+    '.cp-line { position: absolute; left: var(--m-x); top: 928px; margin: 0; font-size: var(--t-voice); line-height: 1; white-space: nowrap; }',
 
     /* ---------------- gate-effort ---------------- */
     '.ef-stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }',
@@ -199,32 +201,38 @@
     '.ef-demo-note::before { content: ""; position: absolute; left: -16px; bottom: -4px; border: 12px solid transparent; border-top: 20px solid var(--c-ink); border-bottom: 0; }',
     '.ef-cap { position: absolute; top: 784px; margin: 0; font-size: var(--t-body-l); font-weight: 700; line-height: 1; white-space: nowrap; }',
 
-    /* ---------------- gate-potential ---------------- */
-    '.po-stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }',
-    '.po-head { position: absolute; top: 262px; margin: 0; white-space: nowrap; }',
-    '.po-tag { position: absolute; right: var(--m-right); top: 250px; }',
-    '.po-block { position: absolute; width: 392px; height: 128px; display: flex; align-items: center; padding: 0 26px; font-family: var(--f-display); font-size: 84px;',
-    '  font-weight: var(--wght-display); font-stretch: var(--wdth-display); line-height: var(--lh-cap); text-transform: uppercase; white-space: nowrap; }',
-    /* the one Flare: the build, which growth does not multiply */
-    '.po-block.is-build { left: 128px; top: 312px; background: var(--c-accent); color: var(--c-accent-ink); }',
-    '.po-block.is-ret { left: calc(620px + var(--c) * 416px); top: calc(312px + var(--r) * 144px); background: var(--c-ink); color: var(--c-bg); }',
-    '.po-line { position: absolute; left: 128px; top: 476px; width: 440px; margin: 0; line-height: 1.08; }',
-    '.po-check { position: absolute; left: 128px; top: 760px; width: 452px; margin: 0; display: grid; grid-template-columns: 64px 1fr; column-gap: 24px; align-items: start;',
-    '  font-family: var(--f-display); font-size: 64px; font-weight: var(--wght-strong); font-stretch: var(--wdth-text); line-height: 1.02; letter-spacing: -0.012em; }',
-    '.po-check > i { width: 64px; height: 64px; margin-top: 2px; border: var(--w-bold) solid var(--c-ink); }',
+    /* ---------------- gate-potential: a quiet illustration ---------------- */
+    /* one solid build bar that never grows; small outline tiles of return that
+       multiply in three beats named in words; one Fraunces line. No Flare. */
+    '.slide > .say.po-say { margin: 18px 0 0; white-space: nowrap; }',
+    '.po-stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; pointer-events: none; }',
+    '.po-head { position: absolute; top: 300px; margin: 0; white-space: nowrap; }',
+    '.po-tag { position: absolute; right: var(--m-right); top: 290px; }',
+    '.po-build { position: absolute; left: 128px; top: 356px; width: 400px; height: 104px; display: flex; align-items: center; padding: 0 28px; background: var(--c-ink); color: var(--c-bg);',
+    '  font-family: var(--f-display); font-size: 64px; font-weight: var(--wght-display); font-stretch: var(--wdth-display); line-height: var(--lh-cap); text-transform: uppercase; }',
+    '.po-line { position: absolute; left: 128px; top: 500px; width: 420px; margin: 0; font-size: var(--t-body-l); font-weight: 600; line-height: 1.18; }',
+    '.po-tile { position: absolute; left: calc(620px + var(--c) * 172px); top: calc(356px + var(--r) * 124px); width: 152px; height: 104px; border: var(--w-rule) solid var(--c-ink); }',
+    '.po-beats { position: absolute; left: 1210px; top: 356px; margin: 0; padding: 0; list-style: none; border-left: var(--w-rule) solid var(--c-ink); }',
+    '.po-beats > li { display: flex; align-items: center; height: 84px; margin: 0; padding: 0 0 0 30px; font-size: var(--t-body-l); font-weight: 700; line-height: 1; white-space: nowrap; }',
+    '.po-beats > li > span { padding: 12px 18px 14px; margin-left: -18px; }',
+    /* the beat the picture is at: Card on Lampblack */
+    '.slide[data-current-step="0"] .po-beats > li:nth-child(1) > span,',
+    '.slide[data-current-step="1"] .po-beats > li:nth-child(2) > span,',
+    '.slide:not([data-current-step="0"]):not([data-current-step="1"]) .po-beats > li:nth-child(3) > span { background: var(--c-ink); color: var(--c-bg); }',
+    '.po-owner { position: absolute; left: 128px; top: 896px; margin: 0; font-size: 64px; line-height: 1; white-space: nowrap; }',
 
     /* ---------------- the-math ---------------- */
-    '.tm-formula { display: flex; align-items: baseline; gap: 22px; margin: 30px 0 0; white-space: nowrap; }',
+    '.tm-formula { display: flex; align-items: baseline; gap: 22px; margin: 36px 0 0; white-space: nowrap; }',
     '.tm-formula > b { font-family: var(--f-display); font-size: 96px; font-weight: var(--wght-display); font-stretch: var(--wdth-display); line-height: var(--lh-cap); text-transform: uppercase; }',
     '.tm-formula > i { font-family: var(--f-display); font-style: normal; font-size: 84px; font-weight: var(--wght-strong); font-stretch: var(--wdth-text); line-height: var(--lh-cap); }',
     '.tm-formula > .voice { margin: 0 4px 0 18px; font-size: var(--t-voice); line-height: 1; }',
-    '.tm-rule { position: absolute; left: var(--spine-w); top: 448px; width: 700px; bottom: 0; padding: 44px 40px 0; background: var(--c-accent); color: var(--c-accent-ink); }',
+    '.tm-rule { position: absolute; left: var(--spine-w); top: 400px; width: 700px; bottom: 0; padding: 44px 40px 0; background: var(--c-accent); color: var(--c-accent-ink); }',
     '.tm-rule > p { margin: 0; }',
     '.tm-rule-words { font-family: var(--f-display); font-size: 84px; font-weight: var(--wght-display); font-stretch: var(--wdth-display); line-height: var(--lh-cap); text-transform: uppercase; white-space: nowrap; }',
     '.tm-rule-v { margin: 34px 0 34px !important; font-family: var(--f-display); font-size: var(--t-mega); font-weight: var(--wght-display); font-stretch: var(--wdth-display);',
     '  line-height: var(--lh-cap); font-variant-numeric: tabular-nums; white-space: nowrap; }',
     '.tm-rule-at { margin-top: 40px !important; font-size: var(--t-label); font-weight: 700; line-height: 1; white-space: nowrap; }',
-    '.tm-house { position: absolute; left: 860px; right: var(--m-right); top: 448px; }',
+    '.tm-house { position: absolute; left: 860px; right: var(--m-right); top: 400px; }',
     '.tm-house > .label { margin: 0 0 22px; white-space: nowrap; }',
     '.tm-rules { margin: 0; padding: 0; border-top: var(--w-rule) solid var(--c-line); }',
     '.tm-rules > li { display: grid; grid-template-columns: 262px 1fr; column-gap: 20px; align-items: center; min-height: 120px; padding: 12px 0; border-bottom: var(--w-hair) solid var(--c-line); }',
@@ -289,9 +297,7 @@
       'SAY: Use the expensive model once, to write the tool. Then the tool runs for free.',
       'You will see it in my own project.',
       '',
-      'NEXT: Cost is one side. Gate two asks what comes back, starting with a business that sells parts.',
-      '',
-      'TIME: 1 minute.'
+      'NEXT: Cost is one side. Gate two asks what comes back, starting with a business that sells parts.'
     ].join('\n')
   });
 
@@ -316,8 +322,9 @@
   var companyLabel = G ? G.companyLabel() : (A.company.label || '');
   /* the figure arrives with its block, whole: a counter would tick through
      false-precision values ("$51,749") beside an approximately sign */
-  /* the figure is set as large as its length allows: "$54,800" is seven characters */
-  var perDaySize = perDayText.length <= 7 ? 196 : (perDayText.length === 8 ? 164 : (perDayText.length === 9 ? 146 : 120));
+  /* the figure is set as large as its length allows ("$54,800" is seven characters),
+     with room under it for the caption that says what it is: one day of sales, freed once */
+  var perDaySize = perDayText.length <= 7 ? 176 : (perDayText.length === 8 ? 156 : (perDayText.length === 9 ? 140 : 120));
 
   function swap(before, after, atStep) {
     return '<span class="a2-swap"><span data-step-out="' + atStep + '">' + esc(before) + '</span><span data-step="' + atStep + '">' + esc(after) + '</span></span>';
@@ -362,8 +369,8 @@
       '<div class="cc-cash" data-step="2">' +
         tag('example', companyLabel) +
         '<p class="cc-cash-v" style="font-size: ' + perDaySize + 'px"><i>≈</i>' +
-          '<b>' + esc(perDayText) + '</b>' +
-          '<small>per day</small></p>' +
+          '<b>' + esc(perDayText) + '</b></p>' +
+        '<p class="cc-cash-say">one day of sales, freed once</p>' +
       '</div>' +
       '<p class="source-line">Example figures, not Laborde’s' +
         // the day counts in the source line follow the bars: 38 to collect becomes 37 with the step
@@ -373,8 +380,8 @@
     step: moved,
     notes: [
       'SAY: This is the language your CFO speaks.',
-      'Parts sit on the shelf: days of inventory. The customer takes a while to pay: days to collect. You take a while to pay your supplier: days to pay.',
-      'Add the first two, take off the third. That is how long your cash is out.' + (cycleOk ? ' Here, ' + num(ccc) + ' days.' : ''),
+      'Parts on the shelf: days of inventory. Customers paying you: days to collect. You paying your supplier: days to pay.',
+      'First two, minus the third: how long your cash is out.' + (cycleOk ? ' Here, ' + num(ccc) + ' days.' : ''),
       '',
       'DO: Click. One day comes off days to collect.',
       '',
@@ -382,13 +389,10 @@
       '',
       'DO: Click. The example figure lands.',
       '',
-      'SAY: For this example company, about ' + perDayText + '.',
-      'It comes once, not every year, and it is cash, not profit. But it was sitting in somebody else’s account.',
+      'SAY: For this example company, about ' + perDayText + '. One day of sales, freed once, not every year. Cash, not profit.',
       'Where to look: inventory, invoicing, collections.',
       '',
-      'NEXT: That is a business that sells parts. A business that sells hours gets paid differently.',
-      '',
-      'TIME: 1.5 minutes.'
+      'NEXT: That is a business that sells parts. A business that sells hours gets paid differently.'
     ].join('\n')
   });
 
@@ -435,9 +439,7 @@
       'SAY: At zero percent it is zero dollars. The tool worked, the hours came back, and nothing happened with them.',
       'Zero is also a decision. Hold on to that. It comes back at the end.',
       '',
-      'NEXT: Both sides come down to one question you can ask in a hallway.',
-      '',
-      'TIME: 1.5 minutes.'
+      'NEXT: So which ideas count for more? There is a first question to ask, and a real test behind it.'
     ].join('\n')
   });
 
@@ -457,7 +459,7 @@
     steps: 3,
     html:
       '<p class="kicker">Gate 2 · Return</p>' + strip(2) +
-      '<h2 class="headline is-s a2-under-strip">Does it touch the cash path?</h2>' +
+      '<h2 class="say is-s cp-say">Does it touch the cash path?</h2>' +
       '<span class="cp-tag">' + tag('example') + '</span>' +
       '<ol class="cp-path">' +
         PATH.map(function (name) {
@@ -474,14 +476,14 @@
           '</ol>' +
           '<p class="cp-verdict" data-step="2">Counts once. <span class="voice">Maybe.</span></p>' +
         '</section>' +
-        '<section class="col is-point">' +
+        '<section class="col">' +
           '<p class="label is-tight">On the path · 20 minutes saved</p>' +
           '<h3 class="col-title">Invoicing</h3>' +
           '<ol class="cp-counts" data-step="1">' +
             '<li><b>1</b><span>Labor</span></li>' +
             '<li><b>2</b><span>Cash sooner</span></li>' +
           '</ol>' +
-          '<p class="cp-verdict" data-step="1">Counts twice.</p>' +
+          '<p class="cp-verdict" data-step="1"><span class="punch">Counts twice.</span></p>' +
         '</section>' +
       '</div>' +
       '<p class="voice cp-line" data-step="3" data-anim="wipe">The boring idea on the cash path beats the exciting one off it.</p>',
@@ -506,9 +508,7 @@
       '',
       'DO: If asked: the house rule waves a small return through only when it takes days off the cash cycle. On the path with zero days, it counts once, like the memo.',
       '',
-      'NEXT: That is what comes back. Now what it costs you to keep it coming.',
-      '',
-      'TIME: 1 minute.'
+      'NEXT: That is what comes back. Now what it costs you to keep it coming.'
     ].join('\n')
   });
 
@@ -561,9 +561,7 @@
       '',
       'YOUR STORY: one tool that was quick to demo and then needed looking after every month. What the upkeep turned out to be.',
       '',
-      'NEXT: Last gate. This one looks forward.',
-      '',
-      'TIME: 1 minute.'
+      'NEXT: Last gate. This one looks forward.'
     ].join('\n')
   });
 
@@ -573,15 +571,16 @@
 
   var SITES = 3;        // the brief's picture: one site to three sites
   var TEAM_ROWS = 4;    // "every team": a whole number of rows that ends well above the floor
-  function returnBlock(c, r) {
+  var BEATS = ['One site', 'Three sites', 'Every team'];
+  function returnTile(c, r) {
     var step = r > 0 ? 2 : (c > 0 ? 1 : 0);
-    var delay = r > 0 ? swungMs(r - 1) : (c > 0 ? swungMs(c - 1) : 0);
-    return '<div class="po-block is-ret"' + (step ? ' data-step="' + step + '" data-anim="rise"' : '') +
-      ' style="--c: ' + c + '; --r: ' + r + (step ? '; --delay: ' + delay + 'ms' : '') + '">Return</div>';
+    var delay = r > 0 ? swungMs(r - 1) : (c > 0 ? swungMs(c - 1) : 0);   // a team arrives as a row
+    return '<i class="po-tile"' + (step ? ' data-step="' + step + '" data-anim="rise"' : '') +
+      ' style="--c: ' + c + '; --r: ' + r + (step ? '; --delay: ' + delay + 'ms' : '') + '"></i>';
   }
   var returnGrid = '';
   (function () {
-    for (var r = 0; r < TEAM_ROWS; r++) { for (var c = 0; c < SITES; c++) { returnGrid += returnBlock(c, r); } }
+    for (var r = 0; r < TEAM_ROWS; r++) { for (var c = 0; c < SITES; c++) { returnGrid += returnTile(c, r); } }
   }());
 
   Deck.slide({
@@ -593,19 +592,18 @@
     steps: 3,
     html:
       '<p class="kicker">Gate 4 · Potential</p>' + strip(4) +
-      '<h2 class="headline is-s a2-under-strip">If it works, how far does it grow?</h2>' +
+      '<h2 class="say is-s po-say">If it works, how far does it grow?</h2>' +
       '<div class="po-stage">' +
         '<p class="label is-tight po-head" style="left: 128px">Build effort</p>' +
-        '<p class="label is-tight po-head a2-swap" style="left: 620px">' +
-          '<span data-step-out="1">One site · one team</span>' +
-          '<span data-step="1" data-step-out="2">Three sites · one team</span>' +
-          '<span data-step="2">Three sites · every team</span>' +
-        '</p>' +
+        '<p class="label is-tight po-head" style="left: 620px">Return</p>' +
         '<span class="po-tag">' + tag('illustration') + '</span>' +
-        '<div class="po-block is-build">Once</div>' +
+        '<div class="po-build">Once</div>' +
+        '<p class="po-line" data-step="1" style="--delay: 600ms">Growth multiplies return, not build effort.</p>' +
         returnGrid +
-        '<p class="voice po-line" data-step="1" data-anim="wipe" style="--delay: 600ms">Growth multiplies return, not build effort.</p>' +
-        '<p class="po-check" data-step="3"><i></i><span>Who owns the freed time?</span></p>' +
+        '<ol class="po-beats">' +
+          BEATS.map(function (b, i) { return '<li' + (i ? ' data-step="' + i + '"' : '') + '><span>' + esc(b) + '</span></li>'; }).join('') +
+        '</ol>' +
+        '<p class="voice po-owner" data-step="3" data-anim="wipe">Who owns the freed time?</p>' +
       '</div>',
     enter: arrive,
     step: moved,
@@ -620,13 +618,11 @@
       '',
       'SAY: Every team. Growth multiplies the return, not the build. It is a projection, so write down a number you would defend.',
       '',
-      'DO: Click. The check line.',
+      'DO: Click. The question.',
       '',
       'SAY: One check before this gate opens: who owns the freed time? I want a name. No owner, no growth.',
       '',
-      'NEXT: That is all four gates. Here is how they add up.',
-      '',
-      'TIME: 1 minute.'
+      'NEXT: That is all four gates. Here is how they add up.'
     ].join('\n')
   });
 
@@ -670,7 +666,7 @@
     layout: 'math',
     steps: 2,
     html:
-      '<h2 class="headline is-hero">Let the math pick.</h2>' +
+      '<h2 class="headline">Let the math pick.</h2>' +
       '<p class="tm-formula"><b>Return</b><i>−</i><b>Cost</b><i>−</i><b>Effort</b><span class="voice is-l">then grown by</span><b>Potential</b></p>' +
       '<div class="tm-rule" data-step="1" data-anim="stamp">' +
         '<p class="tm-rule-words">A minute a week is</p>' +
@@ -697,9 +693,7 @@
       '',
       'SAY: This is where each gate says no. My defaults. Change them, but before you score your favorite, not after.',
       '',
-      'NEXT: That is the whole method. Now your own work goes on the table.',
-      '',
-      'TIME: 1 minute.'
+      'NEXT: That is the whole method. Now your own work goes on the table.'
     ].join('\n')
   });
 }());

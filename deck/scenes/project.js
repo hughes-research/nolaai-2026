@@ -251,6 +251,11 @@
     '.px-tag-tr { position: absolute; right: var(--m-right); top: 62px; z-index: 2; }',
     '.px-comma { margin: 0 0.015em 0 0.025em; }',
     '.px-nobr { white-space: nowrap; }',
+    /* Act 4 chart and gate slides share one headline: 96px, cap top on the grid line (y 60) */
+    '.headline.px-h4 { font-size: 96px; }',
+    /* a project-records tag is not an Oct 27-28 run figure: no double rule (that marks a real result) */
+    '.tag.is-laborde.is-records { margin-bottom: 0; }',
+    '.tag.is-laborde.is-records::after { content: none; }',
 
     /* ---- the-winner ---- */
     '.px-winner-say { margin-top: 84px; }',
@@ -351,7 +356,7 @@
     '.px-fact3 > .counter-v { --cs: 330px; font-size: var(--cs); }',
     '.px-fact3 > .counter-v > small { font-size: 112px; }',
     '.px-fact3 > p:last-child { font-size: 52px; font-weight: 700; line-height: 1.1; max-width: 560px; text-wrap: balance; }',
-    '.px-cost-head { margin-top: 76px; }',
+    '.px-cost-head { max-width: 860px; }',
     '.px-cb-recap { margin-top: 0; font-size: 36px; font-weight: 600; line-height: 1.1; white-space: nowrap; }',
     '.px-cb-recap > b { font-weight: 800; }',
     '.px-cb { flex: none; display: flex; flex-direction: column; }',
@@ -371,7 +376,6 @@
     '.px-cb-cut { left: 423px; top: -12px; width: 18px; height: 104px; background: var(--c-bg); }',
     '.px-cb-ptr { top: 36px; width: 56px; height: 8px; background: var(--c-ink); }',
     '.px-cb-ptr::before { content: ""; position: absolute; left: -14px; top: -10px; border: 14px solid transparent; border-left-width: 0; border-right: 18px solid var(--c-ink); }',
-    '.px-cb-plot > .deadpan { right: var(--m-right); top: 14px; }',
     '.px-cb-band { position: relative; flex: none; height: 156px; margin: 0 calc(var(--m-right) * -1) 0 calc((var(--m-x) - var(--spine-w)) * -1); background: var(--c-accent); color: var(--c-accent-ink); }',
     '.px-cb-band > * { position: absolute; }',
     '.px-cb-band-name { left: calc(var(--m-x) - var(--spine-w)); top: 48px; font-family: var(--f-display); font-size: 88px; font-weight: var(--wght-display); font-stretch: var(--wdth-display); line-height: var(--lh-cap); text-transform: uppercase; }',
@@ -380,15 +384,24 @@
     '.px-cb-line { margin-top: 22px; font-size: var(--t-voice); line-height: 1.05; white-space: nowrap; }',
 
     /* ---- slotting-scorecard ---- */
-    '.px-sc-head { max-width: 1000px; margin-bottom: 0; line-height: 0.8; text-wrap: initial; }',
-    '.px-sc-close { position: absolute; right: var(--m-right); top: 62px; text-align: right; line-height: 1.12; white-space: nowrap; }',
-    '.px-sc-dock { --gw: 440px; --gh: 664px; position: absolute; left: var(--m-x); top: 236px; }',
-    '.px-sc-dock .gate { --gcap: 80px; }',
+    '.px-sc-head { max-width: 1100px; margin-bottom: 0; text-wrap: initial; }',
+    /* the source sits top right: RETURN's shutter runs through the floor to the
+       stage edge, so nothing can run along the foot of the slide */
+    '.px-sc-src { position: absolute; right: var(--m-right); top: 56px; margin: 0; text-align: right; line-height: 1.24; }',
+    /* the dry line after the NO: the deadpan slot, under the dock at the right */
+    '.px-sc-close { position: absolute; right: var(--m-right); top: 914px; margin: 0; text-align: right; line-height: 1.1; white-space: nowrap; }',
+    '.px-sc-dock { --gw: 440px; --gh: 600px; position: absolute; left: var(--m-x); top: 230px; }',
+    '.px-sc-dock .gate { --gcap: 80px; --graised: calc(var(--gfull) * 0.17); }',
     '.px-sc-dock .gate-name { top: calc(var(--gl) * 2 + var(--graised) + 36px); }',
     '.px-sc-dock .gate-why { font-size: var(--t-label); font-stretch: var(--wdth-tight); letter-spacing: 0.03em; white-space: nowrap; }',
-    '.px-sc-dock .gate.is-no > .gate-shutter::after { font-size: calc(var(--gw) * 0.47); bottom: calc(var(--gl) + var(--gthrough) + var(--gw) * 0.04); }',
-    /* the NO's reason runs to two lines: the floor, and no days off the cash cycle */
-    '.px-sc-dock .px-g-return > .gate-why { white-space: normal; line-height: 1.08; }',
+    /* RETURN's NO is the point of the slide (DIRECTION Part 1, section 1): a Flare
+       shutter down through the floor line to the stage edge (1080 - 230 - 600 = 250
+       past the floor), the NO at its foot. All type on it is Lampblack (7.1:1). */
+    '.px-sc-dock .px-g-return { --gthrough: 250px; }',
+    '.px-sc-dock .px-g-return.is-no > .gate-shutter::after { font-size: 330px; left: calc(var(--gpad) * 0.6); bottom: 14px; }',
+    /* its reason, in the rule's own two parts, on the shutter just above the floor line */
+    '.px-sc-dock .px-g-return.is-no > .gate-why { top: auto; bottom: calc(var(--gcap) + var(--gl) + 26px); height: auto; font-size: 36px; white-space: normal; line-height: 1.08; }',
+    '.px-find-min { color: var(--c-accent-ink); }',
     /* after the NO, the gates that never get asked say so: NOT YET, frame only */
     '.px-notyet { position: absolute; left: calc(var(--gl) * 2 + var(--gpad)); top: var(--gh); height: var(--gcap); z-index: 1; display: flex; align-items: center; }',
     '.px-notyet > .verdict { --vh: 56px; }',
@@ -444,6 +457,12 @@
     '.px-br.is-many .px-br-l { font-size: 32px; }',
     '.px-br.is-three .px-br-item { flex-direction: row; flex-wrap: wrap; align-items: baseline; column-gap: 14px; row-gap: 4px; }',
     '.px-br.is-three .px-br-item > .px-br-v { font-size: min(var(--brv), 56px); }',
+    /* three entries: each figure over its label, one compact block apiece */
+    '.px-br.is-three .px-br-item, .px-br.is-three .px-br-item + .px-br-item { flex-direction: column; align-items: flex-start; gap: 4px; }',
+    '.px-br.is-three { gap: 6px; margin-top: 8px; }',
+    '.px-br.is-three .px-br-item + .px-br-item { padding-top: 10px; }',
+    '.px-br.is-three .px-br-l { line-height: 1.04; font-stretch: var(--wdth-tight); }',
+    '.px-brx:has(> .px-br.is-three) { padding-top: 12px; padding-bottom: 10px; }',
     '.px-kv { align-self: stretch; display: flex; flex-direction: column; align-items: flex-start; }',
     '.px-kv + .px-kv { margin-top: 26px; padding-top: 22px; border-top: var(--w-hair) solid var(--c-line); }',
     /* a long figure pushes its unit onto the next line instead of through the gate wall */
@@ -915,8 +934,7 @@
     var bandAt = stop + BEAT * 2;
     seq.drop(bandAt, q('.px-cb-band'), D_DROP);
     seq.wipe(bandAt + D_DROP + BEAT, q('.px-cb-band-val'), BEAT);
-    seq.wipe(bandAt + D_DROP + BEAT * 4, q('.px-cb-plot > .deadpan'));
-    seq.end(bandAt + D_DROP + BEAT * 4 + D_VOICE);
+    seq.end(bandAt + D_DROP + BEAT * 2 + EPS);
 
     // step 2: the line
     b = seq.base() + SIXTEENTH;
@@ -945,23 +963,29 @@
       function () { setGate(gCost, [], false); });
     seq.end(b + BEAT * 2 + (costPass ? D_LIFT : HOLD_BEFORE + D_DROP + HOLD_AFTER) + EPS);
 
-    // step 2: RETURN, on minutes alone
-    b = seq.base() + SIXTEENTH;
+    // step 2: RETURN, on minutes alone. The finding is in the bay at once; the
+    // bay holds still for 0.8s (the theme's own delay on .is-no), then the Flare
+    // shutter drops through the floor to the stage edge, with the NO at its foot.
+    b = seq.base();
     var lines = qa('.px-find-min [data-px]');
-    Array.prototype.forEach.call(lines, function (el, i) { seq.cut(b + i * BEAT * 1.5, el); });
-    var verdictAt = b + Math.max(0, lines.length - 1) * BEAT * 1.5 + BEAT;
-    seq.at(verdictAt, function () { setGate(gRet, [retPass ? 'is-pass' : 'is-no'], seq.animated); },
+    seq.cut(b, lines);
+    var verdictAt = b;
+    var retNo = ['is-no', 'is-flare'];          // the tell-tale only shows once the shutter is back up (step 3)
+    seq.at(verdictAt, function () { setGate(gRet, retPass ? ['is-pass'] : retNo, seq.animated); },
       function () { setGate(gRet, [], false); });
-    var settled = verdictAt + (retPass ? D_LIFT : HOLD_BEFORE + D_DROP + HOLD_AFTER);
+    var landAt = verdictAt + (retPass ? D_LIFT : HOLD_BEFORE + D_DROP);
+    var settled = landAt + (retPass ? 0 : HOLD_AFTER);
     if (!retPass) {
-      seq.at(verdictAt + HOLD_BEFORE + D_DROP, function () {
-        if (seq.animated) { jolt([q('.px-sc-head'), gCost, gEff, gPot]); }
+      // on impact the rest of the slide recoils (the NO itself does not)
+      seq.at(landAt, function () {
+        if (seq.animated) { jolt([q('.px-sc-head'), q('.px-sc-src'), gCost, gEff, gPot]); }
       });
-      // any NO ends it: the two gates after it say NOT YET, with the NO's reason
+      // any NO ends it: the two gates after it say NOT YET (0.9s after it lands,
+      // with the NO's reason, which the theme cuts in at the same moment)
       seq.cut(settled, qa('.px-notyet'));
     }
     var reslot = q('.px-sc-reslot');
-    if (reslot) { seq.wipe(settled + BEAT * 2, reslot, BEAT); settled += BEAT * 3; }
+    if (reslot) { seq.wipe(settled, reslot, BEAT); settled += BEAT; }
     seq.end(settled + EPS);
     if (!c.opts.filled) { return; }                // nothing supplied: the slide stops at the NO
 
@@ -979,7 +1003,7 @@
         shutter.style.height = (full * (1 - v)).toFixed(1) + 'px';
       });
       seq.at(t + D_LIFT, function () { setGate(gRet, ['has-tell'], false); },
-        function () { setGate(gRet, ['is-no'], false); });
+        function () { setGate(gRet, retNo, false); });
       // the minutes stay printed on the shutter while it goes up, and go with it
       seq.hide(t + D_LIFT, qa('.px-find-min [data-px]'));
       t += D_LIFT;

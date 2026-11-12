@@ -471,6 +471,9 @@ test('ex-screen: the four prompts and the clock, then the screener on the next s
         headline: parseFloat(getComputedStyle(s.querySelector('.yt-head')).fontSize),
         overlap: (() => { const h = s.querySelector('.yt-head').getBoundingClientRect(); const c = s.querySelector('.yt-side .timer-digits').getBoundingClientRect(); return h.right > c.left || h.bottom > s.querySelector('.scr-live').getBoundingClientRect().top + 1; })(),
         assume: s.querySelector('.scr-live .scr-assume').textContent,
+        // the footer is one line at label size or more; it says the rules are defaults and where they change
+        footer: (() => { const n = s.querySelector('.scr-live .scr-assume'); const cs = getComputedStyle(n); return { size: parseFloat(cs.fontSize), lines: Math.round(n.getBoundingClientRect().height / parseFloat(cs.lineHeight)), bottom: n.getBoundingClientRect().bottom, editor: s.querySelector('.scr-live .scr-editor').getBoundingClientRect().bottom }; })(),
+        drawer: s.querySelector('.scr-live .scr-rules-text').textContent,
         rules: (() => { const r = window.__deck.scene('screener').results()[0]; return window.Gates.ORDER.map((id) => r.gates[id].rule); })()
       };
     });
@@ -483,8 +486,21 @@ test('ex-screen: the four prompts and the clock, then the screener on the next s
     eq(second.labels, [], 'labels that carry meaning are at least 32px');
     assert(second.headline >= 96, 'the headline stays at headline size with the screener up: ' + second.headline + 'px');
     eq(second.overlap, false, 'the headline, the clock and the board do not collide');
-    second.rules.forEach((rule) => assert(second.assume.indexOf(rule) !== -1, 'the house rules on the slide are Gates\' own sentences; missing "' + rule + '" in "' + second.assume + '"'));
-    assert(!/or on the cash path/i.test(second.assume), 'no house rule of its own: ' + second.assume);
+    assert(second.footer.size >= 32 && second.footer.lines === 1, 'the footer is one line at 32px or more: ' + JSON.stringify(second.footer));
+    assert(second.footer.bottom <= 1080 - 28 && second.footer.bottom - 38 >= second.footer.editor, 'the footer sits between the editor and the foot of the stage: ' + JSON.stringify(second.footer));
+    assert(/defaults/i.test(second.assume) && /RULES/.test(second.assume), 'the footer says the rules are defaults and where to change them: ' + second.assume);
+    second.rules.forEach((rule) => assert(second.drawer.indexOf(rule) !== -1, 'the house rules in the RULES drawer are Gates\' own sentences; missing "' + rule + '" in "' + second.drawer + '"'));
+    assert(!/or on the cash path/i.test(second.drawer + second.assume), 'no house rule of its own: ' + second.drawer);
+    // open, the drawer holds every rule sentence inside its frame and stays on the stage
+    await t.page.click('[data-act="rules"]');
+    const drawer = await t.page.evaluate(() => {
+      const box = (n) => n.getBoundingClientRect();
+      const d = box(document.querySelector('.scr-live .scr-rules'));
+      const kids = Array.from(document.querySelectorAll('.scr-live .scr-rules > *')).filter((n) => n.getClientRects().length).map(box);
+      return { bottom: d.bottom, inside: kids.every((k) => k.bottom <= d.bottom - 6 + 0.5 && k.top >= d.top), small: Array.from(document.querySelectorAll('.scr-live .scr-rules-text, .scr-live .scr-rules-note')).filter((n) => parseFloat(getComputedStyle(n).fontSize) < 36).length };
+    });
+    assert(drawer.bottom <= 1080 - 28 && drawer.inside && drawer.small === 0, 'the open drawer fits on the stage, its text inside its frame at 36px: ' + JSON.stringify(drawer));
+    await t.page.click('[data-act="rules"]');
     eq(await t.hookErrors(), [], 'slide and scene hooks');
     eq(t.problems, [], 'console errors');
   } finally { await t.close(); }

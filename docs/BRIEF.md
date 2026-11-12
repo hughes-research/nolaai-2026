@@ -222,7 +222,7 @@ The word-swap must be visibly presented as our edit of his sentence, not as some
 | 2:40 | 10–25 | 2 The Four Gates | Minutes → money. Cost (BenchLM). Return (cash cycle, capacity). Effort. Potential. How the math picks. |
 | 2:55 | 25–45 | 3 Your Turn (part 1) | Exercise 1: inventory two weeks (10 min). Exercise 2: pick three (5 min). Worked example (5 min). |
 | 3:15 | 45–60 | 3 Your Turn (part 2) | Exercise 3: screen your three (10 min). Share-out (5 min). |
-| 3:30 | 60–79 | 4 Build the Winner | The real slotting project: the problem, the live re-creation, the real numbers, seven attempts, what we said no to, what it costs, the scorecard. |
+| 3:30 | 60–79 | 4 The One We Built | The real slotting project: the problem, the live re-creation, the real numbers, seven attempts, what we said no to, what it costs, the scorecard. |
 | 3:49 | 79–90 | 5 Who Owns the Minutes? | Freed time is a management decision. Share the gain. Close. Four minutes of Q&A. |
 
 ## 8. Slides
@@ -263,7 +263,7 @@ Slide ids are stable. Order is as listed.
 - **ex-screen** — "Exercise 3 · 10 minutes". "Run your three through the gates." Four prompts, one per gate (timer 10:00). If `YOUR.links.screenerUrl` is set, show a QR code to the screener. Notes: take a volunteer's three and do them on screen with the screener.
 - **share-out** — "Who killed their favorite?" Second line: "Who's keeping the boring one?" Notes: three hands, 5 minutes.
 
-### Act 4: Build the Winner (60–80)
+### Act 4: The One We Built (60–79)
 - **the-winner** — Headline "The winner: where the parts live." when the speaker has supplied `YOUR.slotting.biggerReturn`; while it is empty the headline is "The one we built: where the parts live." (on minutes alone it does not win, so the deck does not call it the winner). Sub: "Warehouse slotting. Nobody pitches this." Then: "6,493 parts were moving to a new building. Every one needed an address." Notes: `YOUR STORY: how slotting came up`.
 - **slotting-problem** — Headline: "6,493 parts. 7,110 slots." (visual) a rack seen from the side with its shelf levels: floor, golden zone, reach, ladder. Step: "Move them across in their current order and 23% of picks need a ladder." Source line: "Laborde results, Oct 2026". Notes: what an as-is move is; why taller racks make it worse.
 - **slotting-live** — (scene `warehouse`, the centerpiece, multi-step; label "Animated re-creation · synthetic data") 1 the warehouse draws itself: two blocks of racks, cross-aisle, pack station, plus a side view of the shelf levels; 2 a year of orders rains in and slots heat up by pick velocity (hot parts are scattered and up high); 3 the as-is move: pickers walk a day of orders, trails accumulate, ladder climbs flash, counters run; 4 the optimizer runs live: swaps flicker across the racks, a cost curve falls, hot parts migrate to golden shelves near the pack station, a counter shows swaps tried; 5 the same orders are walked again; 6 before/after counters land for the synthetic model (feet per run, pick hours per year, ladder picks, fast movers in the golden zone); 7 "N swaps tried in N ms. No AI model in the loop." Notes: narrate each step; say plainly this is a re-creation and the real numbers are next.

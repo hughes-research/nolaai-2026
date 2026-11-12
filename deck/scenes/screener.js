@@ -324,7 +324,8 @@
 
 /* =============================================================================
    3. LIVE SCORECARD on the stage (1920 x 1080). The component is a
-      1736 x 920 box; the slide puts it at (128, 120).
+      1736 x 908 box; the slide puts it at (128, 150), under a headline whose
+      cap top is on the act's usual line (--m-y).
    ========================================================================== */
 .scr-live.scr--stage { position: absolute; inset: 0; --scr-line: 6px; }
 .scr--stage .scr-tools { position: absolute; left: 0; top: 0; width: 248px; height: 128px; display: flex; flex-direction: column; z-index: 4; }
@@ -364,7 +365,7 @@
   position: absolute; left: 0; top: 478px; width: 1736px; height: 344px; border: 6px solid var(--c-ink); background: var(--c-bg);
   padding: 4px 20px 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: 108px; column-gap: 28px; align-content: start;
 }
-.scr--stage .scr-rules { z-index: 4; }
+.scr--stage .scr-rules { z-index: 4; height: 418px; grid-template-rows: repeat(2, 108px); grid-auto-rows: auto; }   /* open, it also covers the one-line footer: the full rules are in it */
 .scr--stage .scr-ctl { justify-content: center; gap: 2px; }
 .scr--stage .scr-ctl-label { font-size: 32px; line-height: 34px; }
 .scr--stage .scr-ctl-note { font-size: 32px; line-height: 34px; font-stretch: 87.5%; }
@@ -375,8 +376,10 @@
 .scr--stage .scr-ctl .seg > button { font-stretch: 100%; letter-spacing: 0.06em; }
 .scr--stage .scr-unit { font-size: 44px; }
 .scr--stage .scr-ctl-name, .scr--stage .scr-detail, .scr--stage .scr-bar, .scr--stage .scr-rules-head { display: none; }
-.scr--stage .scr-rules-note { grid-column: 1 / -1; align-self: center; font-size: 36px; line-height: 42px; font-weight: 500; }
-.scr--stage .scr-assume { position: absolute; left: 0; top: 830px; width: 1736px; max-width: none; line-height: 30px; font-stretch: 90%; text-wrap: pretty; }
+.scr--stage .scr-rules-text, .scr--stage .scr-rules-note { grid-column: 1 / -1; font-size: 36px; line-height: 42px; font-weight: 500; text-wrap: pretty; }
+.scr--stage .scr-rules-text { margin-top: 12px; font-weight: 600; }
+/* one line at label size: the rules are defaults and RULES is where they change (a warning may take two) */
+.scr--stage .scr-assume { position: absolute; left: 0; top: 832px; width: 1736px; max-width: none; font-size: 32px; line-height: 38px; font-stretch: 90%; text-wrap: pretty; }
 
 /* =============================================================================
    4. LIVE SCORECARD as a page: a phone first (360px), then wider. The theme's
@@ -432,6 +435,7 @@
 .scr--page .scr-rules { padding: 1rem; border: 2px solid var(--c-ink); }
 .scr--page .scr-rules-head { font-size: 1.6rem; line-height: 1; }
 .scr--page .scr-rules-note { font-size: 0.9rem; }
+.scr--page .scr-rules-text { display: none; }   /* the page prints the rules under the screener already */
 .scr--page .scr-ctl { gap: 0.3rem; }
 .scr--page .scr-ctl-label, .scr--page .scr-ctl-note { font-size: 0.9rem; line-height: 1.25; }
 .scr--page .scr-ctl-label { white-space: normal; }
@@ -1088,7 +1092,8 @@
       '<div class="scr-rules" hidden>' +
         '<h3 class="scr-rules-head scr-d">House rules</h3>' +
         RULES.map(ruleHtml).join('') +
-        '<p class="scr-rules-note">These are defaults, not laws. Change one and every verdict is worked out again. Sales a year only turns days off the cash cycle into dollars.</p>' +
+        '<p class="scr-rules-text"></p>' +
+        '<p class="scr-rules-note">These are defaults, not laws. Sales a year only turns days off the cash cycle into dollars.</p>' +
       '</div>' +
       '<div class="scr-detail"></div>' +
       '<p class="scr-assume source-line" role="status"></p>' +
@@ -1237,8 +1242,8 @@
           ' an hour, over ' + CM.number(a.rates.workWeeks) + ' working weeks a year. A run is priced at ' + CM.number(a.tokens.in) +
           ' tokens in and ' + CM.number(a.tokens.out) + ' out, from the ' + prices + '.';
       }
-      return rulesText(r) + ' Time at ' + CM.money(a.rates.loadedHourly) + ' an hour, building at ' + CM.money(a.rates.builderHourly) +
-        ', ' + CM.number(a.rates.workWeeks) + ' weeks a year. A run is ' + CM.number(a.tokens.in) + ' tokens in, ' +
+      // On the stage: one line. The rule sentences themselves are in the RULES drawer, in Gates' words.
+      return 'House rules and rates are defaults, yours to change under RULES. A run is ' + CM.number(a.tokens.in) + ' tokens in, ' +
         CM.number(a.tokens.out) + ' out, at ' + (meta.source ? String(meta.source).split(' ')[0] : 'benchmark') + ' prices.';
     }
 
@@ -1307,6 +1312,7 @@
         else { ctl.removeAttribute('aria-invalid'); ctl.removeAttribute('title'); }
       });
 
+      q('.scr-rules-text').textContent = G.ORDER.map(function (id) { return r.gates[id].rule; }).join(' ');
       q('.scr-assume').textContent = r.warnings.length
         ? 'Check ' + LETTERS[state.selected] + ': ' + r.warnings[0]
         : assumptionsLine(r);

@@ -80,13 +80,14 @@
 
       'DO, step 1 (on screen as the slide opens): Point at the pack station, bottom left. Then the side view: floor, golden zone, reach, ladder.',
 
-      'DO, step 2: Click. A year of orders rains in. Point at the hatched bars: those picks need a ladder.',
+      'DO, step 2: Click. A year of orders rains in. Point at the big orange dots: all over the building. Then the hatched bars: those picks need a ladder.',
 
       'DO, step 3: Click. The as-is move. The dashed line is the walk for the busiest day. Point at the ladder count.',
 
       'DO, step 4: Click. Rule of thumb first: fast movers to the golden shelves by the door. Then the search: swap two parts, replay the orders, keep the swap if pick time drops.',
 
-      'DO, step 5: Click. Both walks again, same orders, same speed. Solid is new, dashed is old. Say nothing until the dashed one gets home.',
+      'DO, step 5: Click. Both walks again, same orders, same speed. Solid is new, dashed is old. Point at the big orange dots: now bunched by the pack station.\n' +
+      'Then the numbers: the top one is the old day, the total you just saw, and it stays put. The bottom one counts the new walk and stops well short of it. Say nothing until the dashed one gets home.',
 
       'DO, step 6: Click. Read the four lines, before then after. The 100% is a rule the search has to keep, not something it found.\n' +
       "SAY: Don't write these down. This is a made-up building, and its numbers are bigger than ours. The real result is next, and it's smaller.",

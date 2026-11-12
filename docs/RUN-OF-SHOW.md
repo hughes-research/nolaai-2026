@@ -10,7 +10,7 @@ Generated from the deck by `node tools/build-run-of-show.js`. Do not edit by han
 | 1. The Bandwagon | 10 min | 10 min |
 | 2. The Four Gates | 15 min | 15 min |
 | 3. Your Turn | 35 min | 35 min |
-| 4. Build the Winner | 19 min | 19 min |
+| 4. The One We Built | 19 min | 19 min |
 | 5. Who Owns the Minutes? | 11 min | 11 min |
 | **Total** | **90 min** | **90 min** |
 
@@ -59,7 +59,7 @@ Generated from the deck by `node tools/build-run-of-show.js`. Do not edit by han
 | 23 | 3:15 | Exercise 3: Run your three through the gates | 10 min | 1 |
 | 24 | 3:25 | Share-out | 5 min | 1 |
 
-## Act 4: Build the Winner (19 min, starts 3:30)
+## Act 4: The One We Built (19 min, starts 3:30)
 
 | # | Clock | Slide | Time | Clicks |
 |---|---|---|---|---|

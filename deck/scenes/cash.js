@@ -124,16 +124,18 @@
     }).join('') + '</div>';
   }
 
-  /* The figure is set as large as its longest value (the one at 100%) allows. */
+  /* The figure is set as large as its longest value (the one at 100%) allows,
+     in Lampblack at every value: on this quiet slide Flare never means paid. */
   function moneySize() {
     var full = figure(1);
     var chars = full.ok ? full.valueText.length : 7;
-    return chars <= 7 ? 250 : (chars === 8 ? 216 : (chars === 9 ? 190 : 160));
+    return chars <= 7 ? 180 : (chars === 8 ? 160 : (chars === 9 ? 144 : 124));
   }
 
   /*
    * The stage for one slider position. opts.zeroLine adds the deadpan line
-   * (only when the figure is back at zero AFTER having been something).
+   * (only when the figure is back at zero AFTER having been something); that
+   * line, on a small Flare block, is the slide's one Flare.
    */
   function view(share, opts) {
     var o = opts || {};

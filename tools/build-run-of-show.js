@@ -30,7 +30,7 @@ const ACTS = [
   { name: 'The Bandwagon', budget: 10 },
   { name: 'The Four Gates', budget: 15 },
   { name: 'Your Turn', budget: 35 },
-  { name: 'Build the Winner', budget: 19 },
+  { name: 'The One We Built', budget: 19 },
   { name: 'Who Owns the Minutes?', budget: 11 },
 ];
 

@@ -572,8 +572,51 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
 /* ---- thanks: the quiet slide. It follows the wall and stays up through the
         questions, so it spends no Flare: the last Flare the room saw was THE
         MATH. The name sits under a rule at the foot, where the title slide
-        printed its details. ---- */
-.slide .a5-last { margin-bottom: 44px; }
+        printed its details. The right-hand column is a quiet backdrop for
+        four minutes of questions: the catalogue line in its slot (left 970,
+        top 64, as on the walk-in and title slides), the QR code when there is
+        a link, and Monday's three lines set small at the foot of the column,
+        just above the rule. Everything in it is Lampblack on Card. ---- */
+.slide .a5-last { margin-bottom: 44px; line-height: 1.25; }
+.slide .a5-cat { position: absolute; left: 970px; top: 64px; margin: 0; }
+.slide .a5-mon {
+  position: absolute;
+  left: 970px;
+  right: var(--m-right);
+  bottom: 272px;                         /* 60px clear of the rule over the name */
+  margin: 0;
+}
+.slide .a5-mon > .kicker { margin-bottom: 20px; }
+.slide .a5-mon ol {
+  counter-reset: mon;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: var(--w-hair) solid var(--c-line);
+}
+.slide .a5-mon li {
+  counter-increment: mon;
+  display: flex;
+  align-items: baseline;
+  gap: 28px;
+  padding: 14px 0 12px;
+  border-bottom: var(--w-hair) solid var(--c-line);
+  font-size: 44px;
+  font-weight: 600;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+.slide .a5-mon li::before {
+  content: counter(mon);
+  width: 36px;
+  flex: none;
+  font-family: var(--f-display);
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  font-size: 56px;
+  line-height: var(--lh-cap);
+  font-variant-numeric: tabular-nums;
+}
 .slide .a5-ty {
   margin-top: 0;
   margin-bottom: 0;
@@ -613,7 +656,9 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
   overflow-wrap: anywhere;
 }
 .slide .a5-link > span { display: inline-block; max-width: 100%; }
-.slide .a5-qr { position: absolute; right: var(--m-right); top: var(--m-y); width: 520px; }
+.slide .a5-qr { position: absolute; left: 970px; top: 144px; width: auto; flex-direction: row; align-items: flex-end; gap: 28px; }
+.slide .a5-qr > .qr-code { width: 300px; flex: none; }   /* the screener's code on ex-screen is 340: this one stays up for four minutes */
+.slide .a5-qr > figcaption { padding: 0 0 6px; font-size: var(--t-label); }
 
 /* the cue is a stage-hand: it never shows, on stage or in a thumbnail */
 .slide [data-scene="a5-cue"] { display: none; }
@@ -747,6 +792,12 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
   /* =====================================================================
    * monday
    * =================================================================== */
+  // The three things to do on Monday, held once: the monday slide sets them
+  // large, and the thanks slide keeps them up small through the questions.
+  var MONDAY = ['Inventory two weeks.', 'Run three through the gates.', 'Say no twice.'];
+  // on the monday slide the word "no" is the punch
+  function mondayLine(text) { return esc(text).replace(/\bno\b/, '<b class="punch">no</b>'); }
+
   Deck.slide({
     id: 'monday',
     act: 5,
@@ -756,9 +807,7 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
     html: `
       <h2 class="headline">Monday morning.</h2>
       <ol class="list is-l a5-monday">
-        <li><span data-step="1">Inventory two weeks.</span></li>
-        <li><span data-step="2">Run three through the gates.</span></li>
-        <li><span data-step="3">Say <b class="punch">no</b> twice.</span></li>
+        ${MONDAY.map(function (line, i) { return '<li><span data-step="' + (i + 1) + '">' + mondayLine(line) + '</span></li>'; }).join('\n        ')}
       </ol>
     `,
     notes: `
@@ -848,11 +897,16 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
   var qrHtml = qrSvg
     ? '<figure class="qr a5-qr"><div class="qr-code">' + qrSvg + '</div><figcaption>Deck and code</figcaption></figure>'
     : '';
+  // on two lines, so the catalogue line can have its slot at the head of the right-hand column
   var lastLineHtml = KEEP_LAST_LINE_UP
-    ? '<p class="kicker a5-last">' + esc(LAST_HALVES.join(' ')) + '</p>'
+    ? '<p class="kicker a5-last">' + LAST_HALVES.map(esc).join('<br>') + '</p>'
     : '';
+  // the catalogue line, built as the walk-in and title slides build it (scenes/title.js)
+  var catalogue = ['Waypoint', session.name || 'NOAI 2026', session.city || 'New Orleans'].join(' · ');
+  var mondayHtml = '<div class="a5-mon"><p class="kicker">Monday morning</p><ol>' +
+    MONDAY.map(function (line) { return '<li>' + esc(line) + '</li>'; }).join('') + '</ol></div>';
 
-  /* The five hardest questions the room is likely to ask, with the honest
+  /* The six hardest questions the room is likely to ask, with the honest
    * answer the brief supports (from the skeptical-executive review). Two
    * lines of answer each, so he can glance at them mid-question. Every figure
    * is read from window.YOUR, window.PROJECT, CostMath or the BenchLM file; a
@@ -869,7 +923,8 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
     try { ma = P && P.minutesAlone ? P.minutesAlone() : null; } catch (err) { ma = null; }
     if (ma && ma.ok && ok(R.ladderPctAsIs) && ok(R.ladderPctOptimized)) {
       out.push('Q1 “All that for ' + P.num(ma.hours) + ' hours a year?” On minutes, no: ' + P.money(ma.value) + '. I said so.',
-        'Every part moved anyway: guess or calculate. Ladder picks went ' + pct(R.ladderPctAsIs) + ' to ' + pct(R.ladderPctOptimized) + '.');
+        'Every part moved anyway: guess or calculate. Ladder picks went ' + pct(R.ladderPctAsIs) + ' to ' + pct(R.ladderPctOptimized) + '.',
+        'The move was free. The build was not.');
     }
     if (ok(R.pickTimePctLess) && ok(old.walkPctLess) && ok(old.pickTimePctLess)) {
       out.push('Q2 “' + pct(R.pickTimePctLess) + ' is against a baseline nobody picks.” True: the as-is move.',
@@ -877,15 +932,23 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
     }
     out.push('Q3 “It’s on your cash path. Doesn’t it pass?” Only if cash comes sooner.',
       'Walking less doesn’t do that. The rule wants cash days, not a tick.');
-    var c = null;
-    try { c = CM && CM.counts ? CM.counts() : null; } catch (err) { c = null; }
+    var c = null, pricedRows = null;
+    try {
+      c = CM && CM.counts ? CM.counts() : null;
+      pricedRows = CM && CM.priced ? CM.priced() : null;
+    } catch (err) { c = null; pricedRows = null; }
     var meta = (window.BENCHLM && window.BENCHLM.meta) || {};
-    if (c && c.rows && meta.retrieved) {
+    if (c && c.rows && pricedRows && pricedRows.length && meta.retrieved) {
+      // both counts: the whole file, and the priced models the cost slide plotted
+      var pricedEst = pricedRows.filter(function (m) { return m.estimated; }).length;
       out.push('Q4 “Prices change every quarter. Stale?” One export, ' + meta.retrieved + '.',
-        c.estimated + ' of ' + c.rows + ' scores estimated: tiers, not ranks. The lessons hold.');
+        c.estimated + ' of the file’s ' + c.rows + ' scores are estimated; ' + pricedEst + ' of the ' + pricedRows.length + ' that have a price. Tiers, not ranks. The lessons hold.');
     }
     out.push('Q5 “How do I keep my numbers honest?” Set house rules before you score.',
       'Then hold every win to all four Waypoint boxes.');
+    out.push('Q6 “So what was the bigger return on the warehouse project?”',
+      'YOUR STORY: the bigger return, in one sentence you can defend. If you have not put a number on it yet, say so: ' +
+      '"I haven\'t put a number on it that I can show you all four Waypoint boxes for. The move had to happen; the question was guess or calculate."');
     return out.join('\n      ');
   }
 
@@ -899,7 +962,9 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
       ${lastLineHtml}
       <p class="say is-l a5-ty">Thank you.</p>
       <p class="voice a5-questions">Questions.</p>
+      <p class="catalogue a5-cat">${esc(catalogue)}</p>
       ${qrHtml}
+      ${mondayHtml}
       <div class="a5-sign">
         <p class="credit a5-credit"><b>${esc(name)}</b><span>${esc(roleLine)}</span></p>
         ${linkHtml}
