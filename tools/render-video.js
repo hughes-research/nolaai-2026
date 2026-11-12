@@ -14,7 +14,6 @@
  *   --preset slow         x264 preset (default slow)
  *   --audio silent        add a silent stereo AAC track (default: no audio track at all).
  *                         Only for an upload form that refuses a file with no audio.
- *   --workers 4           browser pages rendering in parallel (default: up to 4)
  *   --from 10 --to 20     render only this stretch of the film, in seconds
  *
  *   Looking instead of rendering (no MP4 is written unless --out is also given):
@@ -31,18 +30,26 @@
  *
  * HOW IT WORKS
  *   Headless Chromium (Playwright) opens the page at exactly the frame size.
- *   For each frame it calls __setTime(frame / fps), takes a lossless PNG
- *   screenshot and pipes it to ffmpeg, which encodes H.264 (libx264, High
- *   profile, yuv420p, BT.709, +faststart): it plays in QuickTime, in Windows
- *   and in every browser. Several pages render in parallel, which is safe
- *   because every frame is a pure function of its time; the frames are put
- *   back in order before they reach ffmpeg.
+ *   For each frame, in order, it calls __setTime(frame / fps), takes a
+ *   lossless PNG screenshot and pipes it to ffmpeg, which encodes H.264
+ *   (libx264, High profile, yuv420p, BT.709, +faststart): it plays in
+ *   QuickTime, in Windows and in every browser. The page's <title> is
+ *   written into the file as its title.
+ *
+ *   One page, one frame at a time, on purpose. Rendering on several pages at
+ *   once was tried and is only a third faster here, and Chromium then reuses
+ *   its raster tiles differently from frame to frame, so the same frame comes
+ *   out with different anti-aliasing on a few glyph edges (about 70 dB PSNR:
+ *   invisible, but not the same bytes). In order, the output is repeatable.
  *
  *   Then it checks its own work:
  *     - ffprobe: codec, pixel format, size, frame count and duration must match
  *     - the moov atom must come before mdat (faststart: plays while downloading)
- *     - three frames are drawn again, out of order, and must match byte for byte
- *     - a contact sheet of 12 evenly spaced frames goes to out/video/ for a human to look at
+ *     - the 12 contact-sheet frames are drawn a second time, out of order, and
+ *       each must be the same picture as the first time (identical bytes, or
+ *       at least 55 dB PSNR, which allows anti-aliasing noise and nothing else:
+ *       a frame from the wrong moment scores under 40)
+ *     - a contact sheet of those 12 evenly spaced frames goes to out/video/ for a human to look at
  *
  * Needs ffmpeg and ffprobe on the PATH, and Playwright installed globally
  * (see tools/README.md). Nothing is installed into this repository.
@@ -53,7 +60,6 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const crypto = require('crypto');
 const { spawn, spawnSync } = require('child_process');
 const { pathToFileURL } = require('url');
 
@@ -73,7 +79,7 @@ function requirePlaywright() {
 
 function usage(code) {
   console.log('Usage: node tools/render-video.js <page.html> [--fps 30] [--size 1920x1080] [--out file.mp4]\n' +
-    '       [--poster file.png] [--poster-at s] [--crf 14] [--preset slow] [--audio silent] [--workers n]\n' +
+    '       [--poster file.png] [--poster-at s] [--crf 14] [--preset slow] [--audio silent]\n' +
     '       [--from s] [--to s] [--stills s,s,...|marks] [--strip from:to:count]');
   process.exit(code);
 }
@@ -86,7 +92,7 @@ function fail(message) {
 function parseArgs(argv) {
   const o = {
     page: null, fps: 30, width: 1920, height: 1080, out: null, poster: null, posterAt: null,
-    crf: 14, preset: 'slow', audio: 'none', workers: Math.max(1, Math.min(4, os.cpus().length)),
+    crf: 14, preset: 'slow', audio: 'none',
     from: null, to: null, stills: null, strip: null
   };
   for (let i = 0; i < argv.length; i++) {
@@ -107,7 +113,6 @@ function parseArgs(argv) {
     else if (a === '--crf') { o.crf = Number(value()); }
     else if (a === '--preset') { o.preset = value(); }
     else if (a === '--audio') { o.audio = value(); }
-    else if (a === '--workers') { o.workers = Math.max(1, Math.floor(Number(value())) || 1); }
     else if (a === '--from') { o.from = Number(value()); }
     else if (a === '--to') { o.to = Number(value()); }
     else if (a === '--stills') { o.stills = value(); }
@@ -162,11 +167,12 @@ async function openPage(browser, o, problems) {
   return page;
 }
 
-/* Draw the frame at t and return it as a PNG. */
+/* Draw the frame at t and return it as a PNG. Two animation frames pass
+ * between drawing and the screenshot, so what is captured has been painted. */
 async function shoot(page, t) {
   const ok = await page.evaluate((s) => {
     const drawn = window.__setTime(s);
-    return new Promise((resolve) => requestAnimationFrame(() => resolve(drawn !== false)));
+    return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(drawn !== false))));
   }, t);
   if (!ok) { throw new Error('__setTime(' + t + ') said the page was not ready'); }
   return page.screenshot({ type: 'png' });
@@ -209,6 +215,23 @@ function probe(file) {
   const j = JSON.parse(r.stdout);
   const audio = spawnSync('ffprobe', ['-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=codec_name', '-of', 'csv=p=0', file], { encoding: 'utf8' });
   return { video: j.streams[0], format: j.format, audio: (audio.stdout || '').trim() };
+}
+
+/* How alike are two PNGs? Infinity when every pixel is equal, otherwise the PSNR in dB. */
+function likeness(a, b) {
+  if (a.equals(b)) { return Infinity; }
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'render-video-'));
+  try {
+    const fa = path.join(dir, 'a.png'), fb = path.join(dir, 'b.png');
+    fs.writeFileSync(fa, a);
+    fs.writeFileSync(fb, b);
+    const r = spawnSync('ffmpeg', ['-hide_banner', '-i', fa, '-i', fb, '-lavfi', '[0:v]format=gbrp[a];[1:v]format=gbrp[b];[a][b]psnr', '-f', 'null', '-'], { encoding: 'utf8' });
+    const m = /average:(inf|[\d.]+)/.exec(r.stderr || '');
+    if (!m) { return 0; }
+    return m[1] === 'inf' ? Infinity : Number(m[1]);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 /* faststart: the index (moov) sits before the picture data (mdat), so a browser can start playing at once */
@@ -255,12 +278,16 @@ function moovFirst(file) {
     const first = await openPage(browser, o, problems);
     const info = await first.evaluate(() => ({
       duration: window.__duration,
+      title: document.title || '',
       marks: window.__marks || [],
       film: window.__film || null,
       inner: [window.innerWidth, window.innerHeight]
     }));
     if (!(info.duration > 0)) { throw new Error('window.__duration must be a positive number of seconds'); }
-    if (info.film && info.film.fontsOk === false) { throw new Error('The page says its fonts did not load. Not rendering a film in a fallback face.'); }
+    if (info.film && info.film.fontsOk === false) {
+      throw new Error('The page says its fonts did not load or its type did not fit. Not rendering a film in a fallback face.' +
+        (info.film.misfits && info.film.misfits.length ? '\n  ' + info.film.misfits.join('\n  ') : ''));
+    }
     if (info.film && info.film.width && (info.film.width !== o.width || info.film.height !== o.height)) {
       console.log('note: the page is designed at ' + info.film.width + 'x' + info.film.height + ' and is being scaled to ' + o.width + 'x' + o.height);
     }
@@ -309,10 +336,6 @@ function moovFirst(file) {
       const out = o.out || path.join(path.dirname(o.page), base + '.mp4');
       fs.mkdirSync(path.dirname(out), { recursive: true });
 
-      const pages = [first];
-      const workers = Math.min(o.workers, frames);
-      while (pages.length < workers) { pages.push(await openPage(browser, o, problems)); }
-
       const args = ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(o.fps), '-c:v', 'png', '-i', '-'];
       if (o.audio === 'silent') { args.push('-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000'); }
       args.push(
@@ -320,70 +343,41 @@ function moovFirst(file) {
         '-vf', 'scale=in_range=full:out_range=tv:out_color_matrix=bt709:flags=lanczos+accurate_rnd+full_chroma_int,format=yuv420p',
         '-c:v', 'libx264', '-preset', o.preset, '-crf', String(o.crf), '-profile:v', 'high', '-pix_fmt', 'yuv420p',
         '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv',
-        '-r', String(o.fps), '-movflags', '+faststart');
+        // a keyframe every two seconds, so dragging the playhead lands cleanly
+        '-g', String(Math.round(o.fps * 2)), '-r', String(o.fps), '-movflags', '+faststart');
+      if (info.title) { args.push('-metadata', 'title=' + info.title); }
       if (o.audio === 'silent') { args.push('-c:a', 'aac', '-b:a', '96k', '-shortest'); } else { args.push('-an'); }
       args.push(out);
 
       const ff = spawn('ffmpeg', args, { stdio: ['pipe', 'inherit', 'pipe'] });
       let ffErr = '';
+      let ffExited = false;
       ff.stderr.on('data', (d) => { ffErr += d; });
-      const ffDone = new Promise((resolve) => ff.on('close', resolve));
+      const ffDone = new Promise((resolve) => ff.on('close', (code) => { ffExited = true; resolve(code); }));
       ff.stdin.on('error', () => { /* reported through the exit code */ });
 
-      // which frames to keep for looking at afterwards
+      // the frames kept for looking at afterwards, and for drawing a second time
       const sheetAt = new Set();
       for (let k = 0; k < 12; k++) { sheetAt.add(Math.round(k * (frames - 1) / 11)); }
       const posterT = o.posterAt != null ? clampT(o.posterAt) : (info.film && typeof info.film.poster === 'number' ? clampT(info.film.poster) : info.duration);
-      const checkAt = [Math.floor(frames * 0.31), Math.floor(frames * 0.62), Math.floor(frames * 0.93)].filter((i, k, a) => a.indexOf(i) === k);
-      const kept = new Map();       // frame -> png (contact sheet)
-      const hashes = new Map();     // frame -> sha1 (determinism)
-
-      // frames are drawn out of order by several pages and written in order
-      const done = new Map();
-      let nextToTake = 0;
-      let nextToWrite = 0;
-      let failed = null;
-      const started = Date.now();
-      const sha1 = (buf) => crypto.createHash('sha1').update(buf).digest('hex');
-
-      async function flush() {
-        while (done.has(nextToWrite)) {
-          const png = done.get(nextToWrite);
-          done.delete(nextToWrite);
-          if (!ff.stdin.write(png)) { await new Promise((resolve) => ff.stdin.once('drain', resolve)); }
-          nextToWrite++;
-          if (nextToWrite % o.fps === 0 || nextToWrite === frames) {
-            const rate = nextToWrite / ((Date.now() - started) / 1000);
-            process.stdout.write('\r' + nextToWrite + ' / ' + frames + ' frames  (' + rate.toFixed(1) + ' per second)   ');
-          }
-        }
-      }
-      let flushing = Promise.resolve();
-
-      async function work(page) {
-        while (!failed) {
-          const i = nextToTake++;
-          if (i >= frames) { return; }
-          // do not run far ahead of the writer: frames are big
-          while (!failed && i - nextToWrite > workers * 6) { await new Promise((resolve) => setTimeout(resolve, 5)); }
-          let png;
-          try { png = await shoot(page, timeOf(i)); } catch (e) { failed = e; return; }
-          if (sheetAt.has(i)) { kept.set(i, png); }
-          if (checkAt.includes(i)) { hashes.set(i, sha1(png)); }
-          done.set(i, png);
-          flushing = flushing.then(flush);
-          await flushing;
-        }
-      }
+      const kept = new Map();       // frame -> png
 
       console.log('Rendering ' + relative(o.page) + '  ' + o.width + 'x' + o.height + ' at ' + o.fps + ' fps, ' +
-        (to - from).toFixed(2) + ' s, ' + frames + ' frames, ' + workers + ' page' + (workers > 1 ? 's' : '') + ' ...');
-      await Promise.all(pages.map(work));
-      await flushing;
+        (to - from).toFixed(2) + ' s, ' + frames + ' frames ...');
+      const started = Date.now();
+      for (let i = 0; i < frames; i++) {
+        if (ffExited) { break; }
+        const png = await shoot(first, timeOf(i));
+        if (sheetAt.has(i)) { kept.set(i, png); }
+        if (!ff.stdin.write(png)) { await new Promise((resolve) => ff.stdin.once('drain', resolve)); }
+        if ((i + 1) % o.fps === 0 || i + 1 === frames) {
+          const rate = (i + 1) / ((Date.now() - started) / 1000);
+          process.stdout.write('\r' + (i + 1) + ' / ' + frames + ' frames  (' + rate.toFixed(1) + ' per second)   ');
+        }
+      }
       ff.stdin.end();
       const code = await ffDone;
       process.stdout.write('\n');
-      if (failed) { throw failed; }
       if (code !== 0) { throw new Error('ffmpeg failed (' + code + '): ' + ffErr.trim()); }
 
       /* ---- check the result ---- */
@@ -400,15 +394,21 @@ function moovFirst(file) {
       if (o.audio === 'none' && p.audio) { bad.push('there is an audio track (' + p.audio + ') and there should be none'); }
       if (o.audio === 'silent' && !p.audio) { bad.push('the silent audio track is missing'); }
 
-      // the same frame, drawn again in another order, must be the same bytes
-      let repeatable = true;
-      for (const i of checkAt.slice().reverse()) {
-        const again = sha1(await shoot(first, timeOf(i)));
-        if (again !== hashes.get(i)) { repeatable = false; bad.push('frame ' + i + ' (' + timeOf(i).toFixed(3) + ' s) was different when drawn a second time'); }
+      // the same frames, drawn again in another order, must be the same pictures
+      const order = Array.from(kept.keys()).sort((a, b) => a - b);
+      let identical = 0;
+      let worst = Infinity;
+      for (const i of order.slice().reverse()) {
+        const db = likeness(kept.get(i), await shoot(first, timeOf(i)));
+        if (db === Infinity) { identical++; }
+        worst = Math.min(worst, db);
+        if (db < 55) { bad.push('frame ' + i + ' (' + timeOf(i).toFixed(3) + ' s) was a different picture when drawn a second time (' + db.toFixed(1) + ' dB)'); }
       }
+      const repeat = identical === order.length
+        ? order.length + ' of ' + order.length + ' frames identical when redrawn out of order'
+        : identical + ' of ' + order.length + ' frames identical when redrawn out of order, the rest within ' + worst.toFixed(0) + ' dB (anti-aliasing noise)';
 
       const sheet = path.join(lookDir, tag + '-contact.png');
-      const order = Array.from(kept.keys()).sort((a, b) => a - b);
       await writeSheet(browser, order.map((i) => ({ png: kept.get(i), label: labelFor(timeOf(i), info.marks) })), sheet, 4);
 
       if (o.poster) {
@@ -420,7 +420,8 @@ function moovFirst(file) {
       console.log(relative(out));
       console.log('  ' + v.codec_name + ' ' + v.profile + ', ' + v.pix_fmt + ', ' + v.width + 'x' + v.height + ', ' + v.r_frame_rate + ' fps, ' +
         v.nb_read_frames + ' frames, ' + duration.toFixed(3) + ' s, ' + mb + ' MB, ' + (p.audio ? 'audio: ' + p.audio + ' (silence)' : 'no audio track (silent)') +
-        ', faststart ' + (moovFirst(out) ? 'yes' : 'NO') + ', repeatable ' + (repeatable ? 'yes' : 'NO'));
+        ', faststart ' + (moovFirst(out) ? 'yes' : 'NO'));
+      console.log('  ' + repeat);
       console.log(relative(sheet) + '   (12 frames: look at it)');
       if (o.poster) { console.log(relative(o.poster) + '   (poster, from ' + posterT.toFixed(2) + ' s)'); }
       if (bad.length) {

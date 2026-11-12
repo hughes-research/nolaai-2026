@@ -7,6 +7,8 @@
  *                                             into out/handouts/ (or --shots some/dir)
  *   node tools/build-handouts.js --check      write nothing; exit 1 if handouts/worksheet.html is not
  *                                             what the current numbers would produce (it is stale)
+ *   node tools/build-handouts.js --out dir    write worksheet.html and worksheet.pdf into another folder
+ *                                             (to try a change without touching the real handout)
  *
  * WHY A BUILD STEP
  *   The sheet is paper: it cannot recalculate. So every figure printed on it is
@@ -49,8 +51,7 @@ const { pathToFileURL } = require('url');
 const { execFileSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
-const OUT_HTML = path.join(ROOT, 'handouts', 'worksheet.html');
-const OUT_PDF = path.join(ROOT, 'handouts', 'worksheet.pdf');
+let OUT_DIR = path.join(ROOT, 'handouts');
 const CSS_FONTS = path.join(ROOT, 'deck', 'theme', 'fonts.css');
 const CSS_TOKENS = path.join(ROOT, 'deck', 'theme', 'tokens.css');
 const CSS_HANDOUT = path.join(ROOT, 'handouts', 'handout.css');
@@ -413,6 +414,11 @@ function blockHead(o) {
     '</div></td></tr>';
 }
 
+/* A stylesheet's address as seen from the folder the page is written to. */
+function href(file) {
+  return path.relative(OUT_DIR, file).split(path.sep).join('/');
+}
+
 function render(f, fit) {
   const ev = f.event;
   const sp = f.speaker;
@@ -614,7 +620,7 @@ function render(f, fit) {
     '</tr>' +
     '<tr class="is-pick"><td class="lab"><span class="gate-name">The math picks</span>' +
       '<span class="fine">More than one left? The highest two-year value wins: (return' + minus + 'cost)' + x + '(1 ' + o('+') + ' growth)' + minus + 'one-time' + minus + '2' + x + 'upkeep.</span></td>' +
-      '<td class="ex">' + esc(dollars(r.twoYearValue)) + small('two-year value') + '</td>' +
+      '<td class="ex">' + (r.verdict === 'YES' ? esc(dollars(r.twoYearValue)) + small('two-year value') : 'out' + small('a NO ends it')) + '</td>' +
       '<td class="w" colspan="3" data-write></td></tr>' +
     '</tbody></table>' +
     '<p class="fine star">* List prices for one run of ' + esc(num(f.tokens.in)) + ' tokens in and ' + esc(num(f.tokens.out)) + ' out (' + esc(COPY.taskSize) + '). ' +
@@ -651,9 +657,9 @@ function render(f, fit) {
     '  widths of the title are baked in. To change the words or the layout, edit the\n' +
     '  tool or handouts/handout.css, then run:  node tools/build-handouts.js\n' +
     '-->\n' +
-    '<link rel="stylesheet" href="../deck/theme/fonts.css">\n' +
-    '<link rel="stylesheet" href="../deck/theme/tokens.css">\n' +
-    '<link rel="stylesheet" href="handout.css">\n' +
+    '<link rel="stylesheet" href="' + esc(href(CSS_FONTS)) + '">\n' +
+    '<link rel="stylesheet" href="' + esc(href(CSS_TOKENS)) + '">\n' +
+    '<link rel="stylesheet" href="' + esc(href(CSS_HANDOUT)) + '">\n' +
     '</head>\n<body>\n' +
     '<p class="screen-note">Print handouts/worksheet.pdf on US Letter, both sides (flip on the long edge), black and white, at actual size (100%, not "fit to page").</p>\n' +
     side1 + '\n' + side2 + '\n' +
@@ -795,11 +801,9 @@ async function checkPage(page) {
       const side = 'side ' + (si + 1);
       const box = sheet.getBoundingClientRect();
       // nothing runs past the edge of the side (the sheet clips, so this would be lost ink)
-      let lowest = box.top;
       sheet.querySelectorAll('*').forEach((el) => {
         const r = el.getBoundingClientRect();
         if (r.width === 0 && r.height === 0) { return; }
-        lowest = Math.max(lowest, r.bottom);
         if (r.left < box.left - 1.3 || r.right > box.right + 1.3 || r.top < box.top - 1.3 || r.bottom > box.bottom + 1.3) {
           problems.push(side + ': ' + name(el) + ' runs outside the printable area by ' +
             mm(Math.max(box.left - r.left, r.right - box.right, box.top - r.top, r.bottom - box.bottom)) + ' mm');
@@ -879,9 +883,13 @@ function have(cmd) {
     const a = args[i];
     if (a === '--check') { checkOnly = true; }
     else if (a === '--shots') { shots = (args[i + 1] && args[i + 1].indexOf('--') !== 0) ? path.resolve(args[++i]) : path.join(ROOT, 'out', 'handouts'); }
-    else if (a === '--help' || a === '-h') { console.log('Usage: node tools/build-handouts.js [--check] [--shots [dir]]'); return; }
+    else if (a === '--out') { OUT_DIR = path.resolve(args[++i] || ''); }
+    else if (a === '--help' || a === '-h') { console.log('Usage: node tools/build-handouts.js [--check] [--shots [dir]] [--out dir]'); return; }
     else { console.error('Unknown option: ' + a); process.exit(2); }
   }
+
+  const OUT_HTML = path.join(OUT_DIR, 'worksheet.html');
+  const OUT_PDF = path.join(OUT_DIR, 'worksheet.pdf');
 
   /* ---- the figures, and the proof that the paper method is the deck's ---- */
   const f = facts();

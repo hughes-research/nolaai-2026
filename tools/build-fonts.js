@@ -18,6 +18,19 @@
  *   Fraunces  (c) The Fraunces Project Authors                 OFL 1.1
  *             italic only. Axes used: wght, opsz, SOFT, WONK.
  *
+ * WONK IS PINNED OFF IN THE FACE. The Fraunces file's own default is WONK 1
+ * (the swash h, b, d, l, w), which docs/DIRECTION.md Part 1 section 4 forbids.
+ * DOM text can switch it off with font-variation-settings, but a canvas
+ * cannot set a variation axis at all, so canvas text (THEME.draw.label with
+ * kind 'voice', the cost scene's deadpan line) would come out in the swash
+ * forms and the deck would have two different italics. The @font-face rule
+ * therefore carries font-variation-settings itself: every use of the family,
+ * canvas included, starts from opsz 72, SOFT 0, WONK 0. An element's own
+ * font-variation-settings still wins, axis by axis (the huge italic sets
+ * opsz 144). node tools/check-theme.js fails if this line goes missing.
+ * (A browser that ignores the descriptor still gets clean DOM text; only its
+ * canvas italics fall back to the swash forms. Chromium honours it.)
+ *
  * Only these two files are embedded: the deck uses no other weight files, no
  * upright Fraunces and no italic Archivo. The result must stay under 1.5 MB.
  */
@@ -50,7 +63,9 @@ var FACES = [
     css: [
       'font-style: italic;',
       'font-weight: 100 900;',
-      'font-display: block;'
+      'font-display: block;',
+      // keep in step with --voice-settings in deck/theme/tokens.css
+      'font-variation-settings: "opsz" 72, "SOFT" 0, "WONK" 0;'
     ]
   }
 ];

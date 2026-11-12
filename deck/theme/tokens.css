@@ -42,7 +42,7 @@
   --c-no-ink: #F4EDDE;
   --c-pass: #050505;
   --c-pass-ink: #F4EDDE;
-  --c-warn: #050505;          /* caution is a hatch pattern in the base ink (.hatch, THEME.draw.hatch) */
+  --c-warn: #050505;          /* caution is a hatch pattern in the base ink (--hatch, .hatch, THEME.draw.hatch) */
 
   --c-before: #8A8275;        /* before is the lighter, hollow or dashed one */
   --c-after: #050505;         /* after is solid Lampblack (it takes Flare only when it is the point) */
@@ -57,17 +57,17 @@
   --c-data-5: #D3CBB9;
 
   /* Sequential ramp, cold (rarely picked) to hot (picked constantly):
-     a heavier and heavier screen of Lampblack on Card (30% to 100% in even
-     steps of lightness). Monotonic. The cold end is still a visible mark on
-     Card (2.2 : 1), so a slow part does not vanish; encode by dot size first
-     and ink second. The single hottest thing may take Flare when it is the
-     point of the slide. On a Lampblack field use THEME.heat(v, 'ink'),
-     which mirrors the ramp. */
-  --c-heat-0: #ACA79D;
-  --c-heat-1: #8B877F;
-  --c-heat-2: #696660;
-  --c-heat-3: #484642;
-  --c-heat-4: #272623;
+     a heavier and heavier screen of Lampblack on Card, in even steps of
+     lightness (11 L* apart). Monotonic. The cold end is 3 : 1 on Card, so a
+     slow part is still a mark when the projector washes the slide out (the
+     check fails under 3); encode by dot size first and ink second. The single
+     hottest thing may take Flare when it is the point of the slide. On a
+     Lampblack field use THEME.heat(v, 'ink'), which mirrors the ramp. */
+  --c-heat-0: #8B877F;
+  --c-heat-1: #6F6C65;
+  --c-heat-2: #53514C;
+  --c-heat-3: #393834;
+  --c-heat-4: #21201E;
   --c-heat-5: #050505;
 
   /* ---- type ------------------------------------------------------------ */
@@ -174,9 +174,11 @@
   --t-name: 48px;             /* the speaker's name */
   --t-body-l: 44px;
 
-  /* note values */
-  --beat: 500ms;
-  --eighth: 250ms;
+  /* note values. The beat, the eighth and the two-beat hold ARE the canonical
+     --d-base, --d-fast and --d-slow: retime those and everything here, the
+     stylesheet and THEME.motion (which reads these tokens) move together. */
+  --beat: var(--d-base);
+  --eighth: var(--d-fast);
   --sixteenth: 125ms;
   --swing: 333ms;             /* the swung off-beat. Stagger is long-short, never even */
   --bar: 2000ms;
@@ -186,23 +188,24 @@
   --d-lift: var(--beat);            /* a gate opening */
   --d-drop: 375ms;                  /* a gate shutting: three sixteenths */
   --d-jolt: 375ms;                  /* the recoil after a drop */
-  --d-hold: 1000ms;                 /* stop-time after a NO: two beats */
+  --d-hold: var(--d-slow);          /* stop-time after a NO: two beats */
   --d-sleeve: var(--beat);          /* the slide transition */
   --d-count: 1500ms;                /* counters: twelve sixteenth-note ticks */
 
-  --e-arrive: cubic-bezier(0.16, 1, 0.3, 1);
+  --e-arrive: var(--e-out);                    /* fast in, dead stop: the canonical "out" curve */
   --e-lift: cubic-bezier(0.2, 0.8, 0.2, 1);
   --e-drop: cubic-bezier(0.55, 0, 1, 0.45);    /* gravity. No bounce, no overshoot */
-  --e-cut: steps(1, end);
+  --e-cut: var(--e-snap);                      /* on or off: the canonical "snap" */
   --e-tick: steps(12, end);
 
   --d-hold-before: 800ms;           /* nothing moves before a NO lands */
   --d-hold-after: 900ms;            /* ...and nothing moves after it */
 
-  /* hatch: the caution pattern (ladder levels, "estimated"). 45 degrees, 4 on 12.
-     Components build it from --c-ink where they use it (see .hatch), so it
-     swaps with the inks on a Lampblack slide; this token is the Card version. */
-  --hatch: repeating-linear-gradient(135deg, var(--c-ink) 0 4px, transparent 4px 12px);
+  /* hatch: the caution pattern (ladder levels, "estimated"). 45 degrees, 4 on 12,
+     in --c-warn. This is what caution looks like, because there is no third
+     ink. A Lampblack slide swaps --c-warn with the other inks, and components
+     rebuild the pattern where they use it (.hatch), so it swaps too. */
+  --hatch: repeating-linear-gradient(135deg, var(--c-warn) 0 4px, transparent 4px 12px);
 
   /* the quiet register */
   --t-say: 108px;             /* one line of Archivo at normal width, on Card */

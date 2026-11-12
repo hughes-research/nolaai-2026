@@ -6,25 +6,31 @@
  *              to merely SHOWN (a reload, a jump, stepping back from the next
  *              slide, the overview, the PDF).
  *
- *     <i hidden data-scene="a5-cue" data-opts='{"at": 2, "for": 4.5}'></i>
+ *     <i hidden data-scene="a5-cue" data-opts='{"at": 1, "for": 1.25}'></i>
+ *     <i hidden data-scene="a5-cue" data-opts='{"at": [2, 3], "for": [2.5, 2.1]}'></i>
  *
  *   opts
- *     at     the step whose arrival is the cue (default 1)
- *     for    seconds the cue stays up (default 2). It only has to outlast the
- *            choreography; when it comes down the slide is in its final state.
+ *     at     the step whose arrival is a cue (default 1), or a list of steps
+ *     for    seconds the cue stays up (default 2), or a list with one entry per
+ *            step in "at". It only has to outlast the choreography; when it
+ *            comes down the slide is in its final state for that step.
  *
- *   While the cue is up the slide root carries class "is-playing" and
- *   data-playing="<step>". The slides in slides/a5-close.js hang two moves on it:
- *     the-objection   the quote recoils when the answer block lands on the slide
- *     close           the stop-time hold in negative between the two last sentences
+ *   While a cue is up the slide root carries class "is-playing" and
+ *   data-playing="<step>". The slides in slides/a5-close.js hang their played
+ *   moves on it:
+ *     the-objection    the answer block drops onto the slide and the quote recoils
+ *     share-the-gain   the Flare block drops in behind the third beat
+ *     close            the last sentence, one half per click, with a stop-time
+ *                      hold in negative after the first half
  *
  *   Why a scene and not a step() hook: the engine calls step(n, 0) on mount
  *   (dir 0: shown, not played), step(n, +1 | -1) on every change, and destroy()
- *   when the slide has left, so the cue can never be left hanging.
+ *   when the slide has left, so a cue can never be left hanging. A new cue, a
+ *   step back, or leaving the slide takes the old one down at once.
  *
  *   If this file fails to load, nothing breaks: every build on those slides is
- *   plain data-step markup and still lands in the right place. Only the two
- *   flourishes above are lost.
+ *   plain data-step markup and still lands in the right place, as a cut. Only
+ *   the played moves above are lost.
  *
  *   Time: the cue is held on the Motion clock (so ?fast drops it 20 times
  *   sooner and the test suite sees no stray timers). The moves it gates are
@@ -34,11 +40,22 @@
   'use strict';
   if (!window.Scenes) { return; }
 
+  function list(value, fallback) {
+    var items = Array.isArray(value) ? value : [value == null ? fallback : value];
+    return items.map(Number);
+  }
+
   window.Scenes.define('a5-cue', function (host, opts, api) {
     var Motion = api && api.motion;
-    var at = Number(opts.at);
-    if (!(at >= 0)) { at = 1; }
-    var hold = Number(opts['for']) > 0 ? Number(opts['for']) : 2;
+    var steps = list(opts.at, 1).filter(function (n) { return n >= 0; });
+    if (!steps.length) { steps = [1]; }
+    var holds = list(opts['for'], 2);
+
+    // seconds the cue for this step stays up: its own entry, or the last one given
+    function holdFor(step) {
+      var seconds = holds[Math.min(steps.indexOf(step), holds.length - 1)];
+      return seconds > 0 ? seconds : 2;
+    }
 
     // the element that carries the class: the slide itself
     var root = host.closest ? (host.closest('.slide') || host.parentNode) : host.parentNode;
@@ -57,6 +74,7 @@
     function up(step) {
       down();
       if (!root) { return; }
+      var hold = holdFor(step);
       void root.offsetWidth;                 // a second press restarts the move from the top
       root.classList.add('is-playing');
       root.setAttribute('data-playing', String(step));
@@ -69,7 +87,7 @@
 
     return {
       step: function (n, dir) {
-        if (dir > 0 && n === at) { up(n); } else { down(); }
+        if (dir > 0 && steps.indexOf(n) >= 0) { up(n); } else { down(); }
       },
       destroy: down
     };

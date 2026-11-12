@@ -8,16 +8,11 @@ Generated from the deck by `node tools/build-run-of-show.js`. Do not edit by han
 |---|---|---|
 | 0. Walk-in | 0 min | 0 min |
 | 1. The Bandwagon | 10 min | 10 min |
-| 2. The Four Gates | 15 min | 7 min |
+| 2. The Four Gates | 15 min | 15 min |
 | 3. Your Turn | 35 min | 35 min |
 | 4. Build the Winner | 20 min | 19.5 min |
 | 5. Who Owns the Minutes? | 10 min | 10 min |
-| **Total** | **90 min** | **81.5 min** |
-
-> **Timing does not add up:**
-> - Act 2 (The Four Gates): slides add up to 7 min, budget is 15 min
-> - Act 4 (Build the Winner): slides add up to 19.5 min, budget is 20 min
-> - Whole session: 81.5 min, should be 90
+| **Total** | **90 min** | **89.5 min** |
 
 
 ## Act 0: Walk-in
@@ -46,43 +41,50 @@ Generated from the deck by `node tools/build-run-of-show.js`. Do not edit by han
 | 10 | 2:42:30 | Gate 1: Cost | 1.5 min | 1 |
 | 11 | 2:44 | Cost at people scale: 18 seconds | 1 min | 1 |
 | 12 | 2:45 | Cost at record scale: plain code wins | 2 min | 4 |
+| 13 | 2:47 | The ladder of tools | 1 min | 1 |
+| 14 | 2:48 | Gate 2: Return, product side | 2 min | 2 |
+| 15 | 2:50 | Gate 2: Return, service side | 1.5 min | 2 |
+| 16 | 2:51:30 | Does it touch the cash path? | 1 min | 3 |
+| 17 | 2:52:30 | Gate 3: Effort | 1 min | 2 |
+| 18 | 2:53:30 | Gate 4: Potential | 1 min | 3 |
+| 19 | 2:54:30 | Let the math pick | 30 sec | 2 |
 
-## Act 3: Your Turn (35 min, starts 2:47)
-
-| # | Clock | Slide | Time | Clicks |
-|---|---|---|---|---|
-| 13 | 2:47 | Exercise 1: Inventory two weeks | 10 min | 0 |
-| 14 | 2:57 | Exercise 2: Pick three | 5 min | 0 |
-| 15 | 3:02 | Worked example: three candidates, four gates | 5 min | 12 |
-| 16 | 3:07 | Exercise 3: Run your three through the gates | 10 min | 1 |
-| 17 | 3:17 | Share-out | 5 min | 1 |
-
-## Act 4: Build the Winner (20 min, starts 3:22)
+## Act 3: Your Turn (35 min, starts 2:55)
 
 | # | Clock | Slide | Time | Clicks |
 |---|---|---|---|---|
-| 18 | 3:22 | The winner: where the parts live | 1 min | 1 |
-| 19 | 3:23 | 6,493 parts. 7,110 slots. | 1.5 min | 1 |
-| 20 | 3:24:30 | The method, live (synthetic re-creation) | 6 min | 6 |
-| 21 | 3:30:30 | The real numbers | 2.5 min | 2 |
-| 22 | 3:33 | Seven attempts | 2.5 min | 3 |
-| 23 | 3:35:30 | What we said no to | 2 min | 4 |
-| 24 | 3:37:30 | What it costs to run: nothing | 2 min | 2 |
-| 25 | 3:39:30 | My own project, through my own gates | 2 min | 3 |
+| 20 | 2:55 | Exercise 1: Inventory two weeks | 10 min | 0 |
+| 21 | 3:05 | Exercise 2: Pick three | 5 min | 0 |
+| 22 | 3:10 | Worked example: three candidates, four gates | 5 min | 12 |
+| 23 | 3:15 | Exercise 3: Run your three through the gates | 10 min | 1 |
+| 24 | 3:25 | Share-out | 5 min | 1 |
 
-## Act 5: Who Owns the Minutes? (10 min, starts 3:41:30)
+## Act 4: Build the Winner (20 min, starts 3:30)
 
 | # | Clock | Slide | Time | Clicks |
 |---|---|---|---|---|
-| 26 | 3:41:30 | Who owns the minutes? | 30 sec | 1 |
-| 27 | 3:42 | The objection | 1.5 min | 1 |
-| 28 | 3:43:30 | Share the gain | 2 min | 4 |
-| 29 | 3:45:30 | The Waypoint standard | 1 min | 1 |
-| 30 | 3:46:30 | Monday morning | 1 min | 3 |
-| 31 | 3:47:30 | Close: say yes to the math | 1 min | 2 |
-| 32 | 3:48:30 | Thank you. Questions. | 3 min | 0 |
+| 25 | 3:30 | The winner: where the parts live | 1 min | 1 |
+| 26 | 3:31 | 6,493 parts. 7,110 slots. | 1.5 min | 1 |
+| 27 | 3:32:30 | The method, live (synthetic re-creation) | 6 min | 6 |
+| 28 | 3:38:30 | The real numbers | 2.5 min | 2 |
+| 29 | 3:41 | Seven attempts | 2.5 min | 3 |
+| 30 | 3:43:30 | What we said no to | 2 min | 4 |
+| 31 | 3:45:30 | What it costs to run: nothing | 2 min | 2 |
+| 32 | 3:47:30 | My own project, through my own gates | 2 min | 3 |
 
-Session ends at 3:51:30.
+## Act 5: Who Owns the Minutes? (10 min, starts 3:49:30)
+
+| # | Clock | Slide | Time | Clicks |
+|---|---|---|---|---|
+| 33 | 3:49:30 | Who owns the minutes? | 30 sec | 1 |
+| 34 | 3:50 | The objection | 1.5 min | 1 |
+| 35 | 3:51:30 | Share the gain | 2 min | 4 |
+| 36 | 3:53:30 | The Waypoint standard | 1 min | 1 |
+| 37 | 3:54:30 | Monday morning | 1 min | 3 |
+| 38 | 3:55:30 | Close: say yes to the math | 1 min | 3 |
+| 39 | 3:56:30 | Thank you. Questions. | 3 min | 0 |
+
+Session ends at 3:59:30.
 
 ## Still to fill in (`deck/content/your-numbers.js`)
 

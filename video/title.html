@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Most Valuable AI Skill Is Saying No · title film</title>
+<title>The Most Valuable AI Skill Is Saying No</title>
 <!--
   THE TITLE FILM. 42 seconds, silent. Double-click this file: it plays from
-  disk in real time, holds its last frame, and offers a replay control.
+  disk in real time and holds its last frame. Move the mouse for the replay
+  control.
 
     title.html                     1920 x 1080
     title.html?size=1080x1080      the square re-layout, for social posts
@@ -32,7 +33,7 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
   background: var(--lampblack); color: var(--card);
   font-family: var(--f-body); font-weight: var(--wght-text); font-stretch: var(--wdth-text);
   font-synthesis: none; font-kerning: normal; -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision;
-  cursor: default; user-select: none;
+  user-select: none;
 }
 :where(.film *) { margin: 0; padding: 0; box-sizing: border-box; font-style: normal; font-weight: inherit; }
 .film .a { position: absolute; }
@@ -146,7 +147,9 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
 .film-ui button:hover, .film-ui button:focus-visible { background: var(--card); color: var(--lampblack); outline: none; }
 .film-ui-time { min-width: 86px; font-variant-numeric: tabular-nums; }
 .film-ui-note { font-weight: 500; }
-.is-awake .film-ui, .is-ended .film-ui, .is-paused .film-ui { visibility: visible; }
+/* only while the mouse is moving: a film that has ended holds a clean last frame */
+.is-awake .film-ui { visibility: visible; }
+html:not(.is-awake) body { cursor: none; }
 .is-capture .film-ui { display: none; }
 </style>
 </head>

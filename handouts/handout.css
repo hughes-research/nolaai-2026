@@ -46,6 +46,9 @@
   --c-pass: #000;
   --c-pass-ink: #fff;
 
+  /* the desk behind the paper, on screen only: Rack, the deck's --c-muted */
+  --c-desk: #8A8275;
+
   /* the sheet: Letter less 0.4in all round */
   --sheet-w: 7.7in;
   --sheet-h: 10.2in;
@@ -124,7 +127,7 @@ i, em { font-style: normal; }
 .screen-note { display: none; }
 
 @media screen {
-  html { background: #8a8275; }
+  html { background: var(--c-desk); }
   body { background: none; padding: 0.3in 0 0.6in; }
   .sheet {
     box-sizing: content-box;
@@ -136,7 +139,7 @@ i, em { font-style: normal; }
     display: block;
     width: calc(var(--sheet-w) + 0.8in);
     margin: 0 auto 0.2in;
-    color: #fff;
+    color: var(--c-bg);
     font-size: 10pt;
     font-weight: 600;
   }

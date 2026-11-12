@@ -15,10 +15,11 @@
  *     window.__duration           length of the film in seconds
  *     window.__ready              true once the fonts are in and the stacks are fitted
  *     window.__marks              [{ t, name }] the beats worth looking at
- *     window.__film               { width, height, layout, fits, fontsOk, poster }
+ *     window.__film               { width, height, layout, fits, fontsOk, misfits, poster }
  *
  * Opened normally (video/title.html) it plays in real time on the Motion
- * clock, holds its last frame and offers a replay control.
+ * clock and holds its last frame. Moving the mouse brings up the replay
+ * control; Space pauses, R replays, the arrow keys step one beat.
  *
  * Two layouts from one score: 1920x1080, and a real re-layout for 1080x1080
  * (title.html?size=1080x1080). Any other size picks the nearer shape and
@@ -82,41 +83,46 @@
 
   var T = {
     shannon: 0,       // 1. Black. "1956." Shannon's sentence sets itself. Our edit.
-    pitches: 7.5,     // 2. The pitches, each hit by a NO: one, two, four, eight.
-    survivor: 17,     // 3. One dull line. The shutter comes down on it too, and lifts. PASS.
-    premise: 22,      // 4. "Your best AI idea is probably wrong." / "The boring one ..."
-    gates: 28,        // 5. The four gates shut, one to a beat.
+    pitches: 7,       // 2. The pitches, each hit by a NO: one, two, four, eight.
+    survivor: 16.5,   // 3. One dull line. The shutter comes down on it too, and lifts. PASS.
+    premise: 21.5,    // 4. "Your best AI idea is probably wrong." / "The boring one ..."
+    gates: 27.5,      // 5. The four gates shut, one to a beat.
     title: 31,        // 6. The title card. Three gates open. The fourth strains three times. NO.
     end: 42
   };
+
+  /* A thing that falls takes three sixteenths (DROP) and is timed by where it
+   * LANDS: lands(t) is when it has to let go to hit the floor at t. Every NO
+   * in the film lands on the grid. */
+  function lands(t) { return t - DROP; }
 
   var S1 = {
     yearIn: 0.5,                    // "1956." arrives behind a block
     yearOut: 1.5,                   // and leaves behind one
     kicker: 1.5 + SIX,              // the year cuts to a label as the block covers it
     lines: 1.5 + SWING,             // the sentence: lines wipe in, swung
-    attribution: 3.5,
-    strike: 4.5,                    // "Information theory" is struck through
-    edit: 5                         // "AI" drops in above it, flagged as our edit
+    attribution: 3.25,
+    strike: 4,                      // "Information theory" is struck through
+    edit: lands(5)                  // "AI" comes down above it, flagged as our edit
   };
 
   var S2 = {
     phase: [0, 3, 5, 7],            // one bay, two, four, eight
     lines: [EIGHTH, EIGHTH + SWING],
     drops: [
-      [1.75],                                         // 0.8 s of nothing first
-      [3.75, 4.25],                                   // a beat apart
-      [5.5, 5.75, 6, 6.25],                           // an eighth apart
-      [7.25, 7.375, 7.5, 7.625, 7.75, 7.875, 8, 8.125] // a sixteenth apart
+      [2].map(lands),                                              // a full second of nothing before it, and a second after
+      [4, 4.5].map(lands),                                         // a beat apart
+      [5.75, 6, 6.25, 6.5].map(lands),                             // an eighth apart
+      [7.5, 7.625, 7.75, 7.875, 8, 8.125, 8.25, 8.375].map(lands)  // a sixteenth apart
     ]
   };
 
   var S3 = {
-    line: 0.5,                      // after a beat of empty card stock
-    aside: 1,
-    frame: 1.5,                     // the gate stands up around it
-    shut: 2,                        // the shutter comes down on it too
-    lift: 3,                        // and goes back up: one beat
+    line: 0,                        // the cut is to the line itself, alone on the card
+    aside: 0.5,
+    frame: 1,                       // the gate stands up around it
+    shut: lands(2),                 // the shutter comes down on it too
+    lift: 3,                        // a second of that, and it goes back up: one beat
     pass: 3 + BEAT - SIX,           // PASS cuts in a sixteenth before it stops
     open: 3.5,                      // pull tab, through-arrow
     carried: 4
@@ -124,13 +130,13 @@
 
   var S4 = {
     lines: [SWING, BEAT + SWING, 2 * BEAT + SWING],
-    punch: 3 * BEAT + SWING,
-    note: 2.5,
+    punch: 2 - SIX,                 // the Flare block runs in for a sixteenth; the word cuts in on the beat
+    note: lands(2.5),
     voice: 3,
     worth: [4, 4 + SWING]
   };
 
-  var S5 = { drops: [0.5, 1, 1.5, 2] };
+  var S5 = { drops: [1, 1.5, 2, 2.5].map(lands) };   // one to a beat
 
   var S6 = {
     cover: 0,                       // the sleeve covers the stage in an eighth
@@ -142,9 +148,9 @@
     role: 3 + SWING,
     lifts: [3.5, 4, 4.5],           // one, two, three: on the beat
     strains: [5, 5.5, 6],           // the fourth tries, and slams shut on the next beat. Three times.
-    drop: 7.5,                      // a full second of nothing, then the slab
-    land: 7.5 + DROP,
-    positive: 9,                    // stop-time in negative until here
+    drop: lands(8),                 // more than a second of nothing, then the slab
+    land: 8,
+    positive: 9,                    // stop-time in negative for two beats
     fine: [9, 9 + SWING / 2, 9 + SWING]
   };
 
@@ -164,14 +170,15 @@
   var YEAR = (/\d{4}/.exec(SHANNON_SOURCE) || [''])[0] + '.';
 
   /* Generic pitch phrases anyone has heard in a meeting. Invented, and kept
-   * generic on purpose: no brands, no products, no numbers. The first three
-   * are the brief's own examples. */
+   * generic on purpose: no brands, no products, no numbers, no claims. The
+   * first three are the storyboard's own examples. A "|" forces a line break
+   * (only the first pitch, which is set as a fitted stack on the square stage). */
   var PITCHES = [
     'An AI|chatbot',
     'An AI agent for everything',
     'AI strategy offsite',
-    'AI meeting notes',
-    'An AI roadmap',
+    'AI on the homepage',
+    'An AI podcast',
     'Our own AI model',
     'AI press release',
     'AI vision statement',
@@ -334,6 +341,7 @@
     return s;
   }
   var stacks = [];
+  var misfits = [];       // lines that did not land on their measure (there should be none)
 
   function barOver(size) { return Math.max(4, Math.round(size * 0.024)); }
 
@@ -344,6 +352,15 @@
     if (!f) { throw new Error('Could not fit the stack "' + (o.name || o.lines.join(' / ')) + '"'); }
     s.fit = f;
     if (o.name) { fits[o.name] = { size: f.size, pitch: Math.round(f.pitch * 100) / 100, widths: f.widths, measure: f.measure }; }
+    // Proof that the stack is justified: every line's box must sit on the measure
+    // (its ink is flush; the box adds only side bearings and tracking). In a
+    // fallback face the width axis does nothing and this fails, loudly.
+    s.lines.forEach(function (ln) {
+      var w = ln.getBoundingClientRect().width;
+      if (w < f.measure - 3 || w > f.measure + 0.24 * f.size) {
+        misfits.push((o.name || o.lines.join(' / ')) + ': "' + ln.textContent + '" is ' + Math.round(w) + 'px on a ' + f.measure + 'px measure');
+      }
+    });
     if (o.bars !== false) {
       s.lines.forEach(function (ln, k) {
         // a little taller than the cap-height box: round letters and figures overshoot it
@@ -559,6 +576,16 @@
     shapes.forEach(function (shape, k) {
       var host = el('div', 'a ph', sc, box(0, 0, W, H));
       var ph = { el: host, bays: [], docks: [], stack: null };
+      if (k > 0) {
+        // one size for the whole phase, and never so big that its longest word leaves the bay
+        var count = shape.cols * shape.rows.length;
+        var room = (DOCK_W - LINE) / shape.cols - 3 * LINE - 2 * shape.pad;
+        var longest = 0;
+        PITCHES.slice(next, next + count).forEach(function (text) {
+          text.replace(/\|/g, ' ').split(' ').forEach(function (word) { longest = Math.max(longest, width100(word.toUpperCase(), 't-display')); });
+        });
+        shape.fs = Math.min(shape.fs, Math.floor(room / (longest / 100)));
+      }
       shape.rows.forEach(function (row) {
         var d = dock(host, { x: DOCK_X, y: row.y, w: DOCK_W, h: row.h, n: shape.cols, through: row.through });
         ph.docks.push(d);
@@ -797,17 +824,18 @@
     var noMeasure = pick(906, 600);
     p.catalogue = el('p', 'a catalogue', p.slab, box(sx, pick(64, 36)), esc(w.catalogue));
     p.no = makeStack(p.slab, { name: 'no', x: sx, y: noTop, measure: noMeasure, lines: [w.slab], bars: false });
-    p.rule = el('i', 'a lamp', p.slab, box(sx, pick(847, 80), pick(906, W - spineW - 2 * sx), 6) + 'transform-origin:0 50%');
+    var innerW = pick(906, W - x - 64);                    // the slab's measure: on the square card, the title's own
+    p.rule = el('i', 'a lamp', p.slab, box(sx, pick(847, 80), innerW, 6) + 'transform-origin:0 50%');
     p.cols = [];
     p.fine = [['When', w.when], ['Time', w.time], ['Room', w.room]];
-    p.slabInner = { sx: sx, noTop: noTop, noMeasure: noMeasure };
+    p.slabInner = { sx: sx, noTop: noTop, noMeasure: noMeasure, w: innerW };
 
     // ---- the left field
     p.left = el('div', 'a lgroup', sc, box(0, 0, W, H));
     p.kicker = el('p', 'a t-label', p.left, box(x, pick(64, 56)), esc(w.kicker));
     // on the wide card the four lines are spaced to stand exactly as tall as the NO, as on the deck's title slide
     p.title = makeStack(p.left, {
-      name: 'title', x: x, y: pick(150, 122), measure: pick(750, W - x - 64), lines: pick(w.four, w.two),
+      name: 'title', x: x, y: pick(150, 122), measure: pick(750, innerW), lines: pick(w.four, w.two),
       leading: pick(null, 0.83), height: pick(function () { return CAP * p.no.fit.size; }, null)
     });
     p.titleLines = pick(S6.lines, [S6.lines[0], S6.lines[2]]);
@@ -850,7 +878,7 @@
     }
 
     // ---- the count-in dock stands exactly where the NO will land
-    var dk = dock(sc, { x: slabLeft + s.sx, y: slabTop + s.noTop, w: pick(906, W - p.spineW - 2 * s.sx), h: capH + LINE, n: 4, through: 0 });
+    var dk = dock(sc, { x: slabLeft + s.sx, y: slabTop + s.noTop, w: s.w, h: capH + LINE, n: 4, through: 0 });
     p.dock = dk;
     var longest = 0;
     GATES.forEach(function (g) { longest = Math.max(longest, width100(g.toUpperCase(), 't-display')); });
@@ -1009,14 +1037,14 @@
   window.__duration = DURATION;
   window.__ready = false;
   window.__marks = [
-    { t: 0.02, name: 'black' }, { t: 1.2, name: '1956' }, { t: 4.2, name: 'shannon as written' },
-    { t: 7.2, name: 'our edit' }, { t: T.pitches + 1.5, name: 'pitch 1' }, { t: T.pitches + 2.6, name: 'no 1' },
+    { t: 0.02, name: 'black' }, { t: 1.2, name: '1956' }, { t: 3.9, name: 'shannon as written' },
+    { t: 6.6, name: 'our edit' }, { t: T.pitches + 1.4, name: 'pitch 1' }, { t: T.pitches + 2.6, name: 'no 1' },
     { t: T.pitches + 4.9, name: 'two' }, { t: T.pitches + 6.9, name: 'four' }, { t: T.pitches + 9.2, name: 'eight' },
-    { t: T.survivor + 1.45, name: 'the dull line' }, { t: T.survivor + 2.8, name: 'shut' }, { t: T.survivor + 4.6, name: 'pass' },
-    { t: T.premise + 2.4, name: 'wrong' }, { t: T.premise + 5.8, name: 'worth thousands' },
-    { t: T.gates + 2.8, name: 'four gates' }, { t: T.title + 3.45, name: 'title built' },
-    { t: T.title + 4.95, name: 'three open' }, { t: T.title + 6.3, name: 'the fourth strains' },
-    { t: T.title + 7.2, name: 'held' }, { t: T.title + 8.5, name: 'negative' }, { t: DURATION, name: 'title card' }
+    { t: T.survivor + 0.95, name: 'the dull line' }, { t: T.survivor + 2.6, name: 'shut' }, { t: T.survivor + 4.6, name: 'pass' },
+    { t: T.premise + 2.3, name: 'wrong' }, { t: T.premise + 5.8, name: 'worth thousands' },
+    { t: T.gates + 3.2, name: 'four gates' }, { t: T.title + 3.45, name: 'title built' },
+    { t: T.title + 4.95, name: 'three open' }, { t: T.title + 6.33, name: 'the fourth strains' },
+    { t: T.title + 7.3, name: 'held' }, { t: T.title + 8.5, name: 'negative' }, { t: DURATION, name: 'title card' }
   ];
 
   /** Draw exactly the frame at `seconds`. Freezes the clock: no real time passes after this. */
@@ -1121,7 +1149,7 @@
     }
     var fontsOk = !doc.fonts || !doc.fonts.check || (doc.fonts.check('900 100px Archivo') && doc.fonts.check('italic 600 60px Fraunces'));
     window.__film = {
-      width: W, height: H, layout: wide ? 'wide' : 'square', fits: fits, fontsOk: fontsOk,
+      width: W, height: H, layout: wide ? 'wide' : 'square', fits: fits, fontsOk: fontsOk && !misfits.length, misfits: misfits,
       poster: DURATION, scenes: T
     };
     ready = true;

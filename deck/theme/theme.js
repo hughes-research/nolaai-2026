@@ -70,7 +70,7 @@
     '--c-no': '#050505', '--c-no-ink': '#F4EDDE', '--c-pass': '#050505', '--c-pass-ink': '#F4EDDE',
     '--c-warn': '#050505', '--c-before': '#8A8275', '--c-after': '#050505',
     '--c-data-1': '#050505', '--c-data-2': '#4B4640', '--c-data-3': '#7F786C', '--c-data-4': '#ADA595', '--c-data-5': '#D3CBB9',
-    '--c-heat-0': '#ACA79D', '--c-heat-1': '#8B877F', '--c-heat-2': '#696660', '--c-heat-3': '#484642', '--c-heat-4': '#272623', '--c-heat-5': '#050505'
+    '--c-heat-0': '#8B877F', '--c-heat-1': '#6F6C65', '--c-heat-2': '#53514C', '--c-heat-3': '#393834', '--c-heat-4': '#21201E', '--c-heat-5': '#050505'
   };
 
   function tokenName(name) {
@@ -146,7 +146,8 @@
    * rarely picked) to 1 (hot: picked constantly). Interpolates --c-heat-0 …
    * --c-heat-5: a heavier and heavier screen of Lampblack, monotonic in
    * lightness, so it survives a washed-out projector. The cold end is still
-   * a visible mark. Pair it with size:
+   * a visible mark (3 : 1 on Card). Pair it with size, and keep the coldest
+   * dot at a radius of 5 or more:
    *
    *     ctx.fillStyle = THEME.heat(velocity);
    *     THEME.draw.dot(ctx, x, y, THEME.heatRadius(velocity, 4, 14), { fill: THEME.heat(velocity) });
@@ -161,11 +162,12 @@
     if (!heatStops) {
       heatStops = [];
       for (i = 0; i <= 5; i++) { heatStops.push(parseColor(color('--c-heat-' + i))); }
-      // mirrored for a Lampblack ground: the four mid screens, lightest last, then on to Card
+      // mirrored for a Lampblack ground: three screens, lightest last, then on to Card in
+      // two even steps. The cold end (--c-heat-2) is still a mark on Lampblack.
       var card = parseColor(color('--c-bg'));
       var h0 = heatStops[0];
-      heatStopsInk = [heatStops[3], heatStops[2], heatStops[1], h0,
-        [(h0[0] + card[0]) / 2, (h0[1] + card[1]) / 2, (h0[2] + card[2]) / 2], card];
+      var mix = function (t) { return [h0[0] + (card[0] - h0[0]) * t, h0[1] + (card[1] - h0[1]) * t, h0[2] + (card[2] - h0[2]) * t]; };
+      heatStopsInk = [heatStops[2], heatStops[1], h0, mix(1 / 3), mix(2 / 3), card];
     }
     var dark = ground === 'ink' || ground === 'dark' || ground === 'lampblack';
     var stops = dark ? heatStopsInk : heatStops;
@@ -209,11 +211,11 @@
   var KINDS = {
     display: { weight: 900, stretch: 'extra-condensed', family: 'Archivo', upper: true, track: 0, floor: 28 },
     num:     { weight: 900, stretch: 'extra-condensed', family: 'Archivo', upper: false, track: 0, floor: 28 },
-    label:   { weight: 700, stretch: 'expanded', family: 'Archivo', upper: true, track: 0.1, floor: 28 },
+    label:   { weight: 700, stretch: 'expanded', family: 'Archivo', upper: true, track: 0.1, floor: 32 },
     body:    { weight: 500, stretch: 'normal', family: 'Archivo', upper: false, track: 0, floor: 28 },
     strong:  { weight: 700, stretch: 'normal', family: 'Archivo', upper: false, track: 0, floor: 28 },
     small:   { weight: 600, stretch: 'normal', family: 'Archivo', upper: false, track: 0, floor: 28 },
-    voice:   { weight: 600, stretch: 'normal', family: 'Fraunces', italic: true, upper: false, track: 0, floor: 28 }
+    voice:   { weight: 600, stretch: 'normal', family: 'Fraunces', italic: true, upper: false, track: 0, floor: 54 }
   };
   var FALLBACK_FAMILY = { Archivo: '"Archivo", "Arial Narrow", Arial, sans-serif', Fraunces: '"Fraunces", Georgia, serif' };
 
@@ -222,12 +224,22 @@
    * kind: 'display' (Archivo 900, condensed, caps) · 'num' (same, for figures)
    *       'label' (wide caps) · 'body' · 'strong' · 'small' (source lines)
    *       'voice' (Fraunces italic).
-   * Sizes under 28 are raised to 28: nothing on stage is smaller.
+   * The floors of docs/DIRECTION.md Part 1 are built in, the same ones the
+   * stylesheet keeps: nothing under 28; a label (wide caps: legends, axis
+   * labels, gate names, anything that carries meaning) is raised to 32; the
+   * Fraunces voice is raised to 54. Only 'small' (source lines) is meant
+   * for 28.
    *
    *     ctx.font = THEME.font('body', 40);
    *
    * The string carries the width keyword, but only THEME.setFont() also sets
    * the tracking that labels need. Prefer THEME.draw.label() for text.
+   *
+   * The italic: a canvas cannot set a variation axis, so the clean (wonk off)
+   * forms of Fraunces are pinned in the @font-face rule itself (theme/fonts.css,
+   * written by tools/build-fonts.js). Canvas and DOM italics are the same
+   * letters. For a line that matters, DOM text laid over the canvas is still
+   * the safer choice.
    */
   function font(kind, sizePx) {
     var k = KINDS[kind] || KINDS.body;
