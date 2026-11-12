@@ -952,8 +952,11 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
     out.push('Q5 “How do I keep my numbers honest?” Set house rules before you score.',
       'Then hold every win to all four Waypoint boxes.');
     out.push('Q6 “So what was the bigger return on the warehouse project?”',
-      'YOUR STORY: the bigger return, in one sentence you can defend. If you have not put a number on it yet, say so: ' +
-      '"I haven\'t put a number on it that I can show you all four Waypoint boxes for. The move had to happen; the question was guess or calculate."');
+      'Not the minutes. On minutes alone it fails my own screen. The return was the move: every part was going to a new building anyway, ' +
+      'so putting each one in the right slot cost nothing extra. Ladder picks went from 23% to 0.6%. That number is real. ' +
+      'The dollar figures on the scorecard were changed to protect company data. They show how I ran it, not what we made. ' +
+      'The move was free. The build was not.',
+      'YOUR STORY: one sentence on what the real return looked like, in words, no figures.');
     return out.join('\n      ');
   }
 

@@ -27,6 +27,7 @@ A mouse click on a slide does not advance it, because several slides have live c
 ## The day before
 
 - [ ] Fill in your numbers (next section).
+- [ ] Read `docs/REHEARSAL.md` (one page: the through-line, the lines to land word for word, a 20-minute run-through for tonight).
 - [ ] Run through it once with the presenter view open and its window maximised (the last slide's notes hold five likely questions and need the room). `docs/SPEAKER-NOTES.md` has every note in order; `docs/RUN-OF-SHOW.md` has the clock time of every slide and a cut plan for running late.
 - [ ] Nine slides have a `YOUR STORY` note: a place where only you know what to say. Decide each one before you walk on.
 - [ ] Print **`handouts/worksheet.pdf`**, one sheet per person, two-sided, black and white. Bring pens.
@@ -39,7 +40,7 @@ A mouse click on a slide does not advance it, because several slides have live c
 
 Everything you may want to change is in one file: **`deck/content/your-numbers.js`**. It is written to be edited by hand and every value has a plain-language comment.
 
-- **`slotting.biggerReturn`, `slotting.effort`, `slotting.potential`**: the scorecard for your own project. While they are empty the scorecard stops at the Return gate's NO ("$462 on minutes alone"), shows no placeholder to the room, and the notes give you the words to say. Once you fill them in, the slide completes itself and the Act 4 headline changes from "The one we built" to "The winner". The deck never makes a figure up. `docs/RUN-OF-SHOW.md` ends with a list of what is still unfilled.
+- **`slotting.biggerReturn`, `slotting.effort`, `slotting.potential`**: the scorecard for your own project (slide 32). **The dollar figures there now are made up to protect company data**, and `slotting.illustrative: true` puts an "ILLUSTRATIVE · CHANGED TO PROTECT COMPANY DATA" tag on the slide wherever they show. The percentages, hours and counts are real. Replace the figures with real ones and set the flag to `false`, or leave both as they are. If you empty them, the slide stops at the Return gate's NO ($462 on minutes alone) and the headline goes back to "The one we built".
 - **`slotting.results`**: the real project figures. Check them against your records.
 - **`story.howWeBuiltIt`**: a few lines in your own words. The slide is skipped while the list is empty.
 - **`rates`, `company`, `houseRules`, `examples`, `candidates`**: the example hourly rate, the example company, the pass/fail thresholds, and the three example candidates. All are labeled "Example" on screen.
@@ -79,7 +80,7 @@ Nothing on screen is typed by hand except the real project results, which live i
 ## Other pieces
 
 - **`screener/index.html`**: the four-gate screener as a stand-alone page that works on a phone.
-- **`video/title-sequence.mp4`**: a silent 40-second title film in the deck's style, with a square cut for social posts.
+- **`video/title-sequence.mp4`**: a 46-second title film with an original synthesized soundtrack: three ideas run the four gates, two get NO, the boring one passes. `title-square.mp4` is the square cut and `title-silent.mp4` has no audio, for rooms without sound.
 - **`handouts/worksheet.pdf`**: the two-sided attendee worksheet.
 
 ## For anyone changing the deck

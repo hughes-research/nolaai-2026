@@ -4944,8 +4944,10 @@ var YOUR = {
    * are made up. Swap in your real three if you have them.
    *
    * None of the three is the warehouse-slotting project. That one is real, so
-   * its numbers are never made up: they live in the WAREHOUSE SLOTTING section
-   * at the bottom of this file and are shown in Act 4.
+   * its results are never made up: they live in the WAREHOUSE SLOTTING section
+   * at the bottom of this file and are shown in Act 4. (Its "bigger return",
+   * effort and potential are the exception: made up on purpose to protect
+   * company data, and tagged as illustrative on screen.)
    *
    * Type the numbers plain: 240, not '$240 a month'. If a value cannot be read
    * as a number, the deck does not guess: that candidate gets a NO with a
@@ -5098,8 +5100,9 @@ var YOUR = {
    * the ONLY place these numbers are typed; every slide reads them from here.
    * Check them before the talk and correct any that have moved.
    *
-   * A value of null means "not filled in". The deck shows a visible
-   * "YOUR NUMBER" slot for it and never makes a figure up.
+   * A value of null means "not filled in". The deck shows nothing for it and
+   * never makes a figure up. (The bigger return, effort and potential further
+   * down are the one exception: they are made up on purpose, and say so.)
    * ------------------------------------------------------------------------ */
   slotting: {
     results: {
@@ -5177,26 +5180,69 @@ var YOUR = {
       run: { starts: 10, stepsPerStart: 1000000, minutes: 3.5, cores: 10 }
     },
 
-    // "The bigger return": the value beyond the walking minutes. YOURS TO FILL
-    // IN. Each line is { label, value, note }. `value` is what is printed large
-    // (for example '$48,000' or '6 weeks'); `note` is one short line under it.
-    // While the list is empty the slide shows a "YOUR NUMBER" slot.
+    // =======================================================================
+    // !!  THE FIGURES BELOW ARE MADE UP.  !!
+    // biggerReturn, effort and potential are NOT Laborde numbers. They were
+    // invented to protect company data, and built only from things the real
+    // results above already show (every part was moving anyway; ladder picks
+    // went from 23% to 0.6%). The dollars, the counts, the minutes, the build
+    // hours, the upkeep and the growth are all examples.
     //
-    //   biggerReturn: [
-    //     { label: 'Planning time not spent', value: '6 weeks', note: 'placing 6,493 parts by hand' }
-    //   ],
-    biggerReturn: [],
+    // While `illustrative` is true, slide 32 shows the tag
+    // "ILLUSTRATIVE · CHANGED TO PROTECT COMPANY DATA" next to them.
+    // EITHER replace them with your real figures and set illustrative to
+    // false, OR leave them and keep illustrative true. Never set it to false
+    // while any made-up figure is left here.
+    //
+    // To empty the slide again (it then stops at the NO on minutes), set
+    // biggerReturn to []  and the effort and potential values to null.
+    // =======================================================================
+    illustrative: true,            // true while ANY figure below is made up
 
-    // What the project took to build and keep alive. YOURS TO FILL IN.
+    // "The bigger return": the value beyond the walking minutes. Each line can
+    // be written two ways.
+    //
+    //   WORKED OUT BY THE DECK (what is used now): count x minutes each, at the
+    //   loaded hourly rate in RATES above. count is a number, or the words
+    //   'every part' for the real part count in results (6,493). per is 'once'
+    //   or 'year'. Only 'year' lines count toward the yearly return the gates
+    //   test; a 'once' line is shown, but the yearly rule never counts it.
+    //
+    //   TYPED AS WORDS: { label, value, note }, for example
+    //     { label: 'Planning time not spent', value: '6 weeks', note: 'placing 6,493 parts by hand' }
+    //   A typed line is shown as it is, but the gates cannot run on it.
+    //
+    // Do not count the same minutes twice: the 15.4 pick hours above already
+    // include the ladder on a pick. The ladder line here is the climbs to put
+    // stock away, which the pick hours do not count.
+    biggerReturn: [
+      {
+        label: 'The one free re-slot',          // MADE UP (the mechanism is real)
+        count: 'every part',                    // the real 6,493: every part was moving anyway
+        minutesEach: 6,                         // MADE UP: minutes to re-slot one part later, as its own job
+        per: 'once',
+        note: 'every part was moving anyway; re-slotting later would be its own job'
+      },
+      {
+        label: 'Ladder climbs avoided',         // MADE UP (ladder picks 23% to 0.6% is real)
+        count: 2500,                            // MADE UP: ladder climbs to restock, avoided each year
+        minutesEach: 6,                         // MADE UP: minutes per climb (fetch, climb, put away)
+        per: 'year',
+        note: 'restocking climbs a year; ladder picks went from 23% to 0.6%'
+      }
+    ],
+
+    // What the project took to build and keep alive.
     effort: {
-      buildHours: null,            // total hours across everyone, start to now
-      upkeepHoursPerMonth: null    // hours a month to keep it running
+      buildHours: 40,              // MADE UP: total hours across everyone, start to now
+      upkeepHoursPerMonth: 1       // MADE UP: hours a month to keep it running
     },
 
-    // How far it grows from here. YOURS TO FILL IN.
+    // How far it grows from here.
     potential: {
-      growth: null,                // a multiple, for example 3 for "three locations"
-      note: null                   // one short line, for example 'the other two locations'
+      growth: 2,                   // MADE UP: a multiple, for example 3 for "three locations"
+      note: 'every future re-slot, every building',   // MADE UP
+      ownerNamed: true             // MADE UP: true if a named person owns the time it frees
     },
 
     // Settings of the animated re-creation (synthetic data). Leave empty to use

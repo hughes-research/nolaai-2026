@@ -412,13 +412,13 @@ NOBODY VOLUNTEERS: Use the worked example: the exciting one died at Effort. Ask:
 
 # Act 4: The One We Built
 
-## 25. The one we built: where the parts live
+## 25. The winner: where the parts live
 
 *3:30 · 1 min · 1 click · id `the-winner`*
 
-**SAY:** Here is the one we built at my place: warehouse slotting.  
-Slotting is deciding which shelf each part lives on. Nobody pitches this.  
-I'll run it through my own gates at the end, and it doesn't pass the way you'd expect.  
+**SAY:** Here's the winner at my place: warehouse slotting. Nobody pitches this.  
+Slotting is deciding which shelf each part lives on.  
+On minutes alone it fails my own screen. It wins on the move. I'll show you both at the end.  
   
 **YOUR STORY:** how slotting came up, and who brought it up.  
   
@@ -476,7 +476,7 @@ DO, step 7: Click. Read the headline, then the block. Stop.
 
 *3:37:30 · 2.5 min · 2 clicks · id `slotting-results`*
 
-**SAY:** That was a re-creation on made-up data. These are the real numbers, from the runs of Oct 27–28, 2026.  
+**SAY:** These are the real numbers, from the runs of Oct 27–28, 2026.  
 Left: the as-is move, every part carried across in today's order. Right: the layout the tool chose.  
   
 **DO:** Click once. Read each result as it lands.  
@@ -563,33 +563,29 @@ Plain code: the electricity.
 
 ## 32. My own project, through my own gates
 
-*3:46:30 · 2.5 min · 2 clicks · id `slotting-scorecard`*
+*3:46:30 · 2.5 min · 4 clicks · id `slotting-scorecard`*
 
-**NOT FILLED IN:** the bigger return, the effort and the growth are empty in your-numbers.js, so this slide stops at the NO.  
-  
-**SAY:** Now the uncomfortable part. My own favorite project, through my own four gates.  
+**SAY:** My own project. My own four gates.  
   
 **DO:** Click: Cost.  
   
-**SAY:** $0 to run. No model runs when it runs. Pass.  
+**SAY:** $0 to run. Pass.  
   
 **DO:** Click: Return. Let the NO land before you speak.  
   
-**SAY:** On minutes alone it saves 15.4 pick hours a year. At $30 an hour, $462.  
-My rule: under $5,000 a year, and no days off the cash cycle, is a no.  
-Picking is on my cash path. But walking less doesn't bring cash in any sooner. So: no.  
-And any no ends it. Effort and Potential never get asked.  
+**SAY:** On minutes alone my own project fails my own screen. $462 a year, and no cash sooner. No.  
   
-**DO:** Nothing more to click here. The line under the gates lands on its own.  
+**DO:** Click: the bigger return. Point at the tag, bottom left.  
   
-**SAY:** So on minutes alone my own project fails my own screen. $462 a year.  
-I'm not going to put a number up here that I can't show you all four Waypoint boxes for.  
-My rule says stop at the first no. We built it anyway, and I'm telling you that in the open.  
-What made it worth doing: every part was moving anyway. The choice was never automate or not.  
-It was guess or calculate. And calculating took ladder picks from 23% to 0.6%.  
+**SAY:** The dollar figures you're about to see are changed to protect company data. The percentages are real.  
+Every part was moving anyway, so the choice was guess or calculate. Calculate, and the re-slot is free. Ladder picks: 23% to 0.6%.  
+  
+**DO:** Click: run it again. Let all three gates land.  
+  
+**SAY:** Same rule, run again with every yearly dollar: $7,962. The re-slot doesn't even count; it's once. Pays back in about 22 weeks. Pass, pass, pass.  
 The move was free. The build was not.  
   
-**YOUR STORY:** why you built it anyway, in one sentence you can defend.  
+IF ASKED HOW: 6,493 × 6 min × $30/h = $19,479 once. 2,500 × 6 min × $30/h = $7,500 a year. $462 + $7,500 = $7,962. Dollars made up; percentages and parts real.  
   
 **NEXT:** Mine was never about the minutes. Yours might be. Look at the one you kept.
 
@@ -702,6 +698,7 @@ Q4 “Prices change every quarter. Stale?” One export, November 2026.
 Q5 “How do I keep my numbers honest?” Set house rules before you score.  
 Then hold every win to all four Waypoint boxes.  
 Q6 “So what was the bigger return on the warehouse project?”  
-**YOUR STORY:** the bigger return, in one sentence you can defend. If you have not put a number on it yet, say so: "I haven't put a number on it that I can show you all four Waypoint boxes for. The move had to happen; the question was guess or calculate."  
+Not the minutes. On minutes alone it fails my own screen. The return was the move: every part was going to a new building anyway, so putting each one in the right slot cost nothing extra. Ladder picks went from 23% to 0.6%. That number is real. The dollar figures on the scorecard were changed to protect company data. They show how I ran it, not what we made. The move was free. The build was not.  
+**YOUR STORY:** one sentence on what the real return looked like, in words, no figures.  
   
 **NEXT:** Q&A until 4:00. Then stop on time.

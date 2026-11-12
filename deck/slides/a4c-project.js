@@ -5,7 +5,7 @@
  *   seven-attempts       2.5 min   seven bars from a zero line, then the experiment log
  *   said-no              2 min     the four refusals: the title of the talk
  *   slotting-cost        2 min     three facts, then "if every try were a model call"
- *   slotting-scorecard   2 min     the project through its owner's own four gates
+ *   slotting-scorecard   2 min     the project through its owner's own four gates, run twice
  *   how-we-built-it      0.5 min   the speaker's own list; skipped while it is empty
  *
  * WHERE THE NUMBERS COME FROM
@@ -15,15 +15,21 @@
  *   BenchLM file, the "minutes alone" screen by Gates.evaluate with the live
  *   rate and house rules. Nothing here is typed but copy.
  *
- * WHAT THE SPEAKER HAS NOT SUPPLIED
- *   YOUR.slotting.biggerReturn, .effort and .potential start empty. Nothing
- *   empty is ever drawn for the audience: while the bigger return has no
- *   value the scorecard stops at the NO on minutes (two steps, and the notes
- *   open with a NOT FILLED IN line and give the speaker his words). Once it
- *   has one, a third step adds it, any effort and potential values he has
- *   given (each simply absent while empty), and the closing line. Nothing is
- *   ever invented in their place, and no PASS is raised that the deck cannot
- *   compute.
+ * THE BIGGER RETURN, THE EFFORT AND THE POTENTIAL
+ *   YOUR.slotting.biggerReturn, .effort and .potential are the speaker's.
+ *   They are currently MADE-UP figures (YOUR.slotting.illustrative is true),
+ *   chosen to protect company data, and the scorecard tags them on screen
+ *   whenever they show. Nothing empty is ever drawn for the audience:
+ *     - empty: the scorecard stops at the NO on minutes (two steps; the notes
+ *       open with a NOT FILLED IN line and give the speaker his words);
+ *     - typed as words: a third step shows them and the closing line, and
+ *       raises no verdict on them;
+ *     - worked out by the deck (count x minutes x rate): a third step shows
+ *       the bigger return, and a fourth runs the SAME four gates again through
+ *       Gates.evaluate with every yearly dollar added. Every PASS on that run
+ *       is Gates' own verdict; a 'once' figure is never counted, because the
+ *       RETURN rule is yearly.
+ *   No PASS is ever raised that the deck cannot compute.
  *
  * The motion lives in scenes/project.js; the html below is the finished
  * picture of each slide.
@@ -119,7 +125,7 @@
         ${P.driver('results')}
       `,
       notes: `
-        SAY: That was a re-creation on made-up data. These are the real numbers, from the runs of ${R.asOf}.
+        SAY: These are the real numbers, from the runs of ${R.asOf}.
         Left: the as-is move, every part carried across in today's order. Right: the layout the tool chose.
 
         DO: Click once. Read each result as it lands.
@@ -421,7 +427,16 @@
     var filled = sup.filled;
     var returnPass = ma.pass === true;
     var costPass = ma.costPass !== false;
-    var showClose = filled && ma.pass === false;
+    /* The second run (Gates, with every yearly dollar added): only when the
+       minutes said NO and every number it needs was worked out by the deck. */
+    var run2 = (filled && !returnPass && P.secondRun) ? P.secondRun() : null;
+    var r2 = run2 ? run2.pass : null;
+    var r2Effort = run2 && r2['return'];                     // Effort is asked only if Return passed
+    var r2Potential = r2Effort && r2.effort;                 // Potential only if Effort passed
+    var lastStep = filled ? (run2 ? 4 : 3) : 2;
+    var showClose = filled && ma.pass === false && (!run2 || run2.verdict === 'YES');
+    var showTag = filled && sup.illustrative;
+    var TAG_TEXT = 'Illustrative · changed to protect company data';
     var costText = (ma.ok && M) ? M.formatNumber(ma.costPerYear, '$,d') : money(0);
     var minutesMoney = ma.ok ? money(ma.value) : '';
     var floorMoney = ma.ok ? money(ma.limit) : '';
@@ -453,10 +468,12 @@
       var cls = n === 1 ? 'is-one' : (n === 2 ? 'is-many' : 'is-many is-three');
       return '<div class="px-br ' + cls + '">' + bigger.map(function (b, i) {
         var text = typeof b.value === 'number' ? num(b.value) : String(b.value);
-        var cap = n === 1 ? 104 : (i === 0 && n === 2 ? 72 : 56);
+        var cap = n === 1 ? 104 : (i === 0 && n === 2 ? 88 : 56);
         var size = Math.max(48, Math.min(cap, Math.floor(362 / (0.46 * Math.max(1, text.length)))));
-        return '<div class="px-br-item">' +
-          '<b class="num px-br-v" data-brv="' + size + '" style="--brv:' + size + 'px">' + esc(text) + '</b>' +
+        var fig = '<b class="num px-br-v" data-brv="' + size + '" style="--brv:' + size + 'px">' + esc(text) + '</b>';
+        // a worked-out line says beside its figure whether it comes once or every year
+        if (b.computed) { fig = '<span class="px-br-vrow">' + fig + '<span class="px-br-per">' + esc(b.per) + '</span></span>'; }
+        return '<div class="px-br-item">' + fig +
           (isFilled(b.label) ? '<span class="px-br-l">' + esc(b.label) + '</span>' : '') +
           // with more than one entry the notes go to the speaker notes, not the bay
           (n === 1 && isFilled(b.note) ? '<span class="px-br-n">' + esc(b.note) + '</span>' : '') +
@@ -473,7 +490,13 @@
     }
 
     var verdictMark = function (pass) { return T ? T.verdict(pass ? 'pass' : 'no') : (pass ? 'Pass' : 'No'); };
-    var notYet = (!returnPass && T) ? '<p class="px-notyet" data-step="2" data-px>' + T.verdict('notyet') + '</p>' : '';
+    /* NOT YET under a gate the first run never asked. It gives way at the
+       second run's step to the gate's own verdict, if that run reaches it. */
+    function notYetHtml(judgedInRun2) {
+      if (returnPass || !T) { return ''; }
+      // (static copies hide it once the gate's second-run finding is printed: see .px-r2)
+      return '<p class="px-notyet" data-step="2" data-px>' + T.verdict('notyet') + '</p>';
+    }
     // the reason, in the rule's own two parts: under the floor, and cash comes in no sooner
     var returnWhy = returnPass ? 'carried forward'
       : esc('under ' + floorMoney + ',') + '<br>and no cash sooner';
@@ -488,6 +511,56 @@
       sup.upkeepHoursPerMonth != null ? (typeof sup.upkeepHoursPerMonth === 'number' ? num(sup.upkeepHoursPerMonth) + ' hours a month to keep alive' : 'Upkeep: ' + sup.upkeepHoursPerMonth) : ''
     ].filter(Boolean).join(', ');
     var potentialSay = [growthText != null ? 'Growth: ' + growthText : '', sup.potentialNote != null ? String(sup.potentialNote) : ''].filter(Boolean).join(', ');
+
+    /* ---- the second run, as the slide prints it ---- */
+    var run2Money = run2 ? money(run2.value) : '';
+    var effortGate = run2 ? run2.ev.gates.effort : null;
+    var paybackText = effortGate ? String(effortGate.metricText).replace(/ to pay back$/, '') : '';
+    var payback = (function () {
+      var m = /^(about |just over |just under )?([\d.,]+) (weeks?)$/.exec(paybackText);
+      return m ? { lead: 'Pays back in', pre: m[1] ? m[1].trim() : '', n: m[2], unit: m[3] } : { lead: 'Payback', pre: '', n: paybackText, unit: '' };
+    }());
+    function hoursWords(h, one, many) { return num(h) + ' ' + (h === 1 ? one : many); }
+    var effortParts = [
+      sup.buildHours != null ? hoursWords(sup.buildHours, 'hour', 'hours') + ' to build' : '',
+      sup.upkeepHoursPerMonth != null ? hoursWords(sup.upkeepHoursPerMonth, 'hour', 'hours') + ' a month upkeep' : ''
+    ].filter(Boolean);
+    var effortNote = effortParts.join(', ');
+    function run2Why(id) {
+      if (!run2) { return ''; }
+      if (run2.pass[id]) { return 'carried forward'; }
+      if (id === 'effort') { return 'pays back too slowly'; }
+      return sup.ownerNamed ? 'it does not grow' : 'nobody owns the time';
+    }
+    function gateClass(id, judged) {
+      if (!run2 || !judged) { return ''; }
+      return 'px-r2 ' + (run2.pass[id] ? 'is-pass' : 'is-no');
+    }
+
+    var effortFind = '';
+    if (filled && run2 && r2Effort) {
+      effortFind = '<div class="px-find" data-step="4">' +
+        '<div class="px-kv" data-px><p class="label">' + esc(payback.lead) + '</p>' +
+        '<p class="px-kv-v">' + (payback.pre ? '<span>' + esc(payback.pre) + '</span>' : '') + '<b class="num">' + esc(payback.n) + '</b>' + (payback.unit ? '<span>' + esc(payback.unit) + '</span>' : '') + '</p></div>' +
+        (effortParts.length ? '<p class="px-kv-note is-lines" data-px>' + effortParts.map(esc).join('<br>') + '</p>' : '') +
+        '</div>';
+    } else if (filled && !run2 && hasEffort) {
+      effortFind = '<div class="px-find" data-step="3">' + kv('Build', sup.buildHours, 'hours') + kv('Upkeep', sup.upkeepHoursPerMonth, 'hours a month') + '</div>';
+    }
+    var potentialFind = '';
+    if (filled && hasPotential && (run2 ? r2Potential : true)) {
+      potentialFind = '<div class="px-find" data-step="' + (run2 ? 4 : 3) + '">' +
+        kv('Growth', growthText, '') +
+        (sup.potentialNote != null ? '<p class="px-kv-note" data-px>' + esc(sup.potentialNote) + '</p>' : '') +
+        '</div>';
+    }
+
+    /* ---- the notes ---- */
+    var onceLine = bigger.filter(function (b) { return b.computed && !b.yearly; })[0] || null;
+    var yearLines = sup.bigger.filter(function (b) { return b.computed && b.yearly; });
+    function workedOut(b) {
+      return num(b.count) + ' × ' + num(b.minutesEach) + ' min × ' + money(b.rate) + '/h = ' + b.value + (b.yearly ? ' a year' : ' once');
+    }
 
     var notesHead = `
         ${empty.length ? 'NOT FILLED IN: ' + andList(empty) + (empty.length > 1 ? ' are' : ' is') + ' empty in your-numbers.js' + (filled ? '. Nothing empty is shown.' : ', so this slide stops at the NO.') : ''}
@@ -532,6 +605,35 @@
         YOUR STORY: the bigger return, in a sentence or two.
 ${later}`;
 
+    /* The turn: the NO on minutes, then the bigger return, then the same gates
+       run a second time. About 90 words of SAY. */
+    var run2Verdicts = run2 ? ['return', 'effort', 'potential'].filter(function (id) {
+      return id === 'return' || (id === 'effort' ? r2Effort : r2Potential);
+    }).map(function (id) { return run2.pass[id] ? 'pass' : 'no'; }).join(', ') : '';
+    run2Verdicts = P.upperFirst(run2Verdicts);
+    var notesRun2 = run2 ? `
+        SAY: My own project. My own four gates.
+
+        DO: Click: Cost.
+
+        SAY: ${costText} to run. Pass.
+
+        DO: Click: Return. Let the NO land before you speak.
+
+        SAY: On minutes alone my own project fails my own screen. ${minutesMoney} a year, and no cash sooner. No.
+
+        DO: Click: the bigger return.${showTag ? ' Point at the tag, bottom left.' : ''}
+
+        SAY: ${sup.illustrative ? "The dollar figures you're about to see are changed to protect company data. The percentages are real.\n        " : ''}Every part was moving anyway, so the choice was guess or calculate. Calculate, and the re-slot is free. Ladder picks: ${ladderFrom} to ${ladderTo}.
+
+        DO: Click: run it again. Let all three gates land.
+
+        SAY: Same rule, run again with every yearly dollar: ${run2Money}.${onceLine ? " The re-slot doesn't even count; it's once." : ''}${run2.verdict === 'YES' ? ' Pays back in ' + paybackText + '.' : ''} ${run2Verdicts}.
+        ${run2.verdict === 'YES' ? 'The move was free. The build was not.' : sentence(run2.ev.gates[run2.firstNo].reason) + ' So it stays a no.'}
+
+        IF ASKED HOW: ${[onceLine ? workedOut(onceLine) + '.' : '', yearLines.map(function (b) { return workedOut(b) + '.'; }).join(' '), [minutesMoney].concat(yearLines.map(function (b) { return b.value; })).join(' + ') + ' = ' + run2Money + '.'].filter(Boolean).join(' ')}${sup.illustrative ? ' Dollars made up; percentages and parts real.' : ''}
+` : '';
+
     Deck.slide({
       id: 'slotting-scorecard',
       act: 4,
@@ -539,7 +641,7 @@ ${later}`;
       // how-we-built-it carries half a minute only while it is in the running order
       minutes: storyLines.length ? 2 : 2.5,
       layout: 'px-score-slide',
-      steps: filled ? 3 : 2,
+      steps: lastStep,
       html: `
         <h2 class="headline px-h4 px-sc-head">My own project,<br>through my own gates.</h2>
         <p class="source-line px-sc-src">${label}<br>${num(ma.hours)} hours = ${num(R.pickHoursAsIs)} − ${num(R.pickHoursOptimized)} pick hours a year${ma.ok ? '<br>valued at ' + money(ma.rate) + ' an hour, an example rate' : ''}</p>
@@ -552,7 +654,7 @@ ${later}`;
             </div>
             <p class="gate-why">${costPass ? 'carried forward' : 'over the cost limit'}</p>
           </article>
-          <article class="gate px-g-return is-still ${returnPass ? 'is-pass is-minutes-pass' : 'is-no is-flare has-tell'}">
+          <article class="gate px-g-return is-still ${returnPass ? 'is-pass is-minutes-pass' : 'is-no is-flare has-tell'}${run2 ? ' has-run2' : ''}">
             <i class="gate-shutter"></i>
             <h3 class="gate-name">Return</h3>
             <div class="px-find px-find-min${returnPass ? ' is-blend' : ''}" data-step="2">
@@ -562,38 +664,45 @@ ${later}`;
             </div>
             ${filled ? `
             <div class="px-find px-find-rec2" data-step="3">
-              <p class="px-find-rec" data-px="rec"><b class="num">${minutesMoney}</b><span class="px-per">on minutes alone</span>${verdictMark(returnPass)}</p>
+              <p class="px-find-rec" data-px="rec">${verdictMark(returnPass)}<b class="num">${minutesMoney}</b><span class="px-per">on minutes alone</span></p>
             </div>
             <div class="px-brx is-point" data-step="3" data-px>
               <p class="label">The bigger return</p>
               ${biggerHtml()}
             </div>` : ''}
+            ${run2 ? `
+            <div class="px-find px-run2${r2['return'] ? ' is-pass' : ''}" data-step="4">
+              <p class="px-find-rec" data-px="run2">${verdictMark(r2['return'])}<b class="num">${run2Money}</b><span class="px-per">a year, second run</span></p>
+            </div>` : ''}
             <p class="gate-why">${returnWhy}</p>
           </article>
-          <article class="gate px-g-effort is-still">
+          <article class="gate px-g-effort is-still ${gateClass('effort', r2Effort)}">
             <i class="gate-shutter"></i>
             <h3 class="gate-name">Effort</h3>
-            ${filled && hasEffort ? `<div class="px-find" data-step="3">
-              ${kv('Build', sup.buildHours, 'hours')}
-              ${kv('Upkeep', sup.upkeepHoursPerMonth, 'hours a month')}
-            </div>` : ''}
-            ${notYet}
+            ${effortFind}
+            ${run2 && r2Effort ? '<p class="gate-why">' + run2Why('effort') + '</p>' : ''}
+            ${notYetHtml(!!(run2 && r2Effort))}
           </article>
-          <article class="gate px-g-potential is-still">
+          <article class="gate px-g-potential is-still ${gateClass('potential', r2Potential)}">
             <i class="gate-shutter"></i>
             <h3 class="gate-name">Potential</h3>
-            ${filled && hasPotential ? `<div class="px-find" data-step="3">
-              ${kv('Growth', growthText, '')}
-              ${sup.potentialNote != null ? '<p class="px-kv-note" data-px>' + esc(sup.potentialNote) + '</p>' : ''}
-            </div>` : ''}
-            ${notYet}
+            ${potentialFind}
+            ${run2 && r2Potential ? '<p class="gate-why">' + run2Why('potential') + '</p>' : ''}
+            ${notYetHtml(!!(run2 && r2Potential))}
           </article>
         </div>
+        ${showTag ? '<p class="px-sc-tag" data-step="3" data-px><span class="tag is-example is-s">' + esc(TAG_TEXT) + '</span></p>' : ''}
         <p class="voice is-l px-sc-close px-sc-reslot" data-step="2" data-px>The move was the<br>one free re-slot.</p>
-        ${showClose ? '<p class="voice is-l px-sc-close" data-step="3" data-px>The minutes said no.<br>The move said yes.</p>' : ''}
-        ${P.driver('scorecard', { costPass: costPass, returnPass: returnPass, filled: filled })}
+        ${showClose ? '<p class="voice is-l px-sc-close" data-step="' + lastStep + '" data-px>The minutes said no.<br>The move said yes.</p>' : ''}
+        ${P.driver('scorecard', {
+          costPass: costPass, returnPass: returnPass, filled: filled,
+          run2: !!run2, r2Return: !!(run2 && r2['return']), r2Effort: !!r2Effort, r2EffortPass: !!(r2Effort && run2.pass.effort),
+          r2Potential: !!r2Potential, r2PotentialPass: !!(r2Potential && run2.pass.potential)
+        })}
       `,
-      notes: notesHead + '\n' + (filled ? notesFilled : notesEmpty) + `
+      notes: (run2
+        ? notesRun2
+        : notesHead + '\n' + (filled ? notesFilled : notesEmpty)) + `
         NEXT: ${nextAfterScorecard}
       `
     });
