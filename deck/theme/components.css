@@ -1,0 +1,2389 @@
+/*
+ * components.css: the SLEEVE slide kit.
+ * "The Most Valuable AI Skill Is Saying No" · NOAI 2026
+ *
+ * Everything here is driven by theme/tokens.css. Nothing hard-codes a colour,
+ * a font family or a duration. Open deck/index.html?kit to see every layout
+ * and component on a slide, with the markup to copy (deck/slides/_kit.js).
+ *
+ * THE HOUSE RULES (docs/DIRECTION.md, Part 1), which this file enforces
+ * where a stylesheet can:
+ *   - Card is the ground. Lampblack fields are rationed: add class "on-ink"
+ *     to a slide for one, at most a handful of times in the deck.
+ *   - Flare is THE POINT OF THE SLIDE, once per slide, always a block that
+ *     carries Lampblack type (.punch, .is-point, .plate.is-accent). Never
+ *     text on Card, never a thin line on Card, never "good" or "bad".
+ *   - NO and PASS are shapes and words in the base inks (.gate, .verdict).
+ *   - Running text 36px+, labels 32px+, source lines 28px semibold, nothing
+ *     smaller. Fraunces italic 54px+ at weight 600+, wonk off.
+ *   - Nothing fades and nothing overshoots. Things cut, hide behind a block,
+ *     lift, or drop. Small type never animates.
+ *   - Radii are zero. Shadows are none. The only circles are dots.
+ *
+ * Style ".slide", never ".deck-stage .slide": the overview and the presenter
+ * view reuse the same markup outside the stage.
+ *
+ * CONTENTS
+ *    1. The slide, the spine, the grounds
+ *    2. Type: kicker, headline, say, sub / voice, body, label, source-line,
+ *       footnote, deadpan, stack (fitted), punch, num
+ *    3. Layouts: title, statement, quote, figure, split, list, chart, table,
+ *       exercise, scene
+ *    4. Gates: dock, gate, verdict, gate-strip, gate-glyph
+ *    5. Honesty: tag, slot-yours, edit-mark
+ *    6. Figures: counter, pair, ladder, beats, table, qr, plate, panel, rule
+ *    7. Controls: btn, seg, slider, field, chip, stepper
+ *    8. Motion: reveals, the sleeve pull, how a NO lands
+ *    9. Engine chrome: spine tracker, overview, notes, presenter view, timer
+ *   10. Print
+ */
+
+/* ==========================================================================
+   1. The slide, the spine, the grounds
+   ========================================================================== */
+
+.slide {
+  display: flex;
+  flex-direction: column;
+  padding: var(--m-y) var(--m-right) var(--m-foot) var(--m-x);
+  background: var(--c-bg);
+  color: var(--c-ink);
+  font-family: var(--f-body);
+  font-size: var(--t-body);
+  font-weight: var(--wght-text);
+  font-stretch: var(--wdth-text);
+  line-height: var(--lh-text);
+  font-synthesis: none;
+  font-kerning: normal;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+  /* no cross-fade: slides cut, and the sleeve pull covers the cut (section 8) */
+  opacity: 1;
+  transition: none;
+}
+
+/* The spine: the edge of the record sleeve, on every slide. It is part of the
+   slide (so thumbnails and the PDF have it); the engine's progress parts are
+   laid over it on stage (section 9). */
+.slide:not(.layout-demo)::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--spine-w);
+  z-index: 3;                 /* a field that bleeds left stops at the spine */
+  background: var(--c-ink);
+}
+
+.slide :where(h1, h2, h3, h4, p, ul, ol, li, dl, dd, figure, figcaption, blockquote, table) {
+  margin: 0;
+  padding: 0;
+}
+
+.slide :where(ul, ol) { list-style: none; }
+.slide :where(b, strong) { font-weight: var(--wght-strong); }
+.slide :where(em, i) { font-style: normal; }
+.slide :where(small) { font-size: inherit; }
+.slide :where(s, ins) { text-decoration: none; }
+
+/* ---- a Lampblack slide. Rationed: the cold open, a hero moment or two. ----
+   Every component reads the semantic tokens, so swapping them here flips the
+   whole slide. Flare stays Flare and still carries Lampblack type. */
+.slide.on-ink,
+.on-ink {
+  --c-bg: var(--lampblack);
+  --c-bg-alt: var(--lampblack-alt);
+  --c-ink: var(--card);
+  --c-ink-soft: var(--soft-on-ink);
+  --c-line: var(--card);
+  --c-no: var(--card);
+  --c-no-ink: var(--lampblack);
+  --c-pass: var(--card);
+  --c-pass-ink: var(--lampblack);
+  --c-warn: var(--card);
+  --c-after: var(--card);
+}
+
+/* a Card block on a Lampblack slide (the note beside a statement) */
+.on-card {
+  --c-bg: var(--card);
+  --c-bg-alt: var(--card-alt);
+  --c-ink: var(--lampblack);
+  --c-ink-soft: var(--soft-on-card);
+  --c-line: var(--lampblack);
+  --c-no: var(--lampblack);
+  --c-no-ink: var(--card);
+  --c-pass: var(--lampblack);
+  --c-pass-ink: var(--card);
+  --c-warn: var(--lampblack);
+  --c-after: var(--lampblack);
+  background: var(--c-bg);
+  color: var(--c-ink);
+}
+
+/* ==========================================================================
+   2. Type
+   ========================================================================== */
+
+/* ---- kicker and label: wide caps. 32px is the floor. ---- */
+.kicker,
+.label {
+  font-family: var(--f-mono);
+  font-size: var(--t-label);
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-label);
+  line-height: 1;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+.kicker { margin-bottom: 28px; white-space: nowrap; }
+.label.is-tight,
+.kicker.is-tight { font-stretch: var(--wdth-label-tight); }
+
+/* ---- headline: Archivo at width 62, weight 900, caps. ----
+   Default 108px (--t-h1): the normal headline and every chart headline.
+   .is-hero is 150px, for the loud slide in four. The negative margin puts the
+   cap-top exactly on the box top whatever the leading, so a headline starts
+   on the grid line (y = 60 with no kicker). */
+.headline {
+  --lh: var(--lh-headline);
+  font-family: var(--f-display);
+  font-size: var(--t-h1);
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  line-height: var(--lh);
+  letter-spacing: 0;
+  text-transform: uppercase;
+  margin-top: calc((var(--lh-cap) - var(--lh)) * 0.5em);
+  margin-bottom: calc((var(--lh-cap) - var(--lh)) * 0.5em + var(--s-5));
+  max-width: 1700px;
+  text-wrap: balance;
+}
+
+.headline.is-hero { font-size: var(--t-hero); }
+.headline.is-s { font-size: 96px; }
+
+/* ---- say: the quiet line. One sentence of Archivo at normal width on Card,
+        with a lot of empty stock around it. ---- */
+.say {
+  font-family: var(--f-display);
+  font-size: var(--t-say);
+  font-weight: var(--wght-strong);
+  font-stretch: var(--wdth-text);
+  line-height: 1.04;
+  letter-spacing: -0.012em;
+  max-width: 1560px;
+  text-wrap: balance;
+}
+
+.say.is-l { font-size: 120px; }
+.say.is-s { font-size: 96px; }
+
+/* ---- sub and voice: Fraunces italic, the human voice. Never under 54px,
+        never lighter than 600, wonk and swash forms off. ---- */
+.sub,
+.voice,
+.deadpan,
+.quote {
+  font-family: var(--f-voice);
+  font-style: italic;
+  font-weight: var(--wght-voice);
+  font-stretch: normal;
+  font-variation-settings: var(--voice-settings);
+  font-optical-sizing: none;
+  line-height: var(--lh-voice);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.sub { font-size: var(--t-h2); max-width: 1500px; text-wrap: balance; }
+.voice { font-size: var(--t-voice); }
+.voice.is-l { font-size: var(--t-voice-l); }
+.voice.is-xl { font-size: var(--t-quote); }
+
+/* once per act: one lowercase word, huge */
+.voice.is-huge {
+  font-size: var(--t-voice-huge);
+  font-variation-settings: "opsz" 144, "SOFT" 0, "WONK" 0;
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+}
+
+/* the deadpan line: one true, dry sentence per data slide, in a fixed slot
+   (bottom right, above the source line). Never a claim. */
+.deadpan {
+  font-size: var(--t-voice);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.slide > .deadpan {
+  position: absolute;
+  right: var(--m-right);
+  bottom: 112px;
+}
+
+/* ---- body ---- */
+.body { font-size: var(--t-body); font-weight: var(--wght-text); line-height: var(--lh-text); max-width: 1500px; }
+.body.is-l { font-size: var(--t-body-l); }
+.body.is-strong { font-weight: 600; }
+
+/* ---- source line and footnote: 28px semibold, the floor ---- */
+.source-line,
+.footnote {
+  font-family: var(--f-mono);
+  font-size: var(--t-small);
+  font-weight: 600;
+  font-stretch: var(--wdth-text);
+  line-height: 1.25;
+  letter-spacing: 0.005em;
+  font-variant-numeric: tabular-nums;
+  max-width: 1736px;
+}
+
+/* the source line sits at the foot of the slide, whatever is above it */
+.slide > .source-line {
+  margin-top: auto;
+  padding-top: var(--s-3);
+}
+
+.footnote { padding-top: var(--s-2); border-top: var(--w-hair) solid var(--c-line); }
+
+/* ---- numerals in the display face ---- */
+.num {
+  font-family: var(--f-display);
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--lh-cap);
+  letter-spacing: 0;
+}
+
+/* ---- stack: lines justified on Archivo's width axis by THEME.fitStack().
+        Add data-fit and a width; the theme fits it when the slide enters,
+        when the window is resized and when the fonts have loaded.
+
+        <h2 class="stack" data-fit style="width: 1088px">
+          <span class="ln">Your best</span>
+          <span class="ln">AI idea is</span>
+          <span class="ln">probably</span>
+          <span class="ln is-punch">wrong.</span>
+        </h2>
+   ---- */
+.stack {
+  font-family: var(--f-display);
+  font-size: var(--t-hero);
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  line-height: var(--lh-cap);
+  letter-spacing: 0;
+  text-transform: uppercase;
+  font-kerning: normal;
+}
+
+.stack .ln {
+  display: block;
+  width: max-content;
+  white-space: nowrap;
+}
+
+/* ---- punch: the word a statement exists for. Lampblack on a Flare block,
+        never Flare type. On a stack line the block is a field: it starts at
+        the spine and runs one margin past the measure. ---- */
+.punch {
+  display: inline-block;
+  padding: 0 0.08em;
+  background: var(--c-accent);
+  color: var(--c-accent-ink);
+  box-shadow: 0 0 0 0.075em var(--c-accent);
+}
+
+.stack .ln.is-punch {
+  position: relative;
+  z-index: 0;
+  margin-top: 0.15em;
+  color: var(--c-accent-ink);
+}
+.stack .ln.is-punch::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: calc((var(--m-x) - var(--spine-w)) * -1 - 12px);
+  right: calc((var(--m-x) - var(--spine-w)) * -1);
+  top: -0.075em;
+  bottom: -0.075em;
+  background: var(--c-accent);
+}
+
+/* ==========================================================================
+   3. Layouts
+   --------------------------------------------------------------------------
+   Deck.slide({ layout: 'chart' }) adds class "layout-chart" to the slide.
+   Every layout is a column: kicker, headline, the thing, source line.
+   Content starts at x = 128 (the 88px spine plus 40) and stops 56 from the
+   right edge. A headline's cap-top is at y = 60 (120 under a kicker).
+   ========================================================================== */
+
+/* a scene fills whatever room the slide has left */
+.scene {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+}
+
+.scene > canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* helpers for one field that breaks the frame */
+.bleed-r { margin-right: calc(var(--m-right) * -1); }
+.bleed-l { margin-left: calc((var(--m-x) - var(--spine-w)) * -1); }
+.bleed-b { margin-bottom: calc(var(--m-foot) * -1); }
+.grow { flex: 1 1 0; min-height: 0; }
+.push-down { margin-top: auto; }
+.row { display: flex; align-items: center; gap: var(--s-4); }
+.row.is-top { align-items: flex-start; }
+.row.is-base { align-items: baseline; }
+.row.is-wrap { flex-wrap: wrap; }
+.row.is-apart { justify-content: space-between; }
+.col-stack { display: flex; flex-direction: column; gap: var(--s-3); }
+
+/* ---- title: the stack plus the slab (reference frame f1) -----------------
+   <p class="kicker">A 90-minute workshop</p>
+   <h1 class="stack title-stack" data-fit data-fit-h="622.6"> four .ln lines </h1>
+   <p class="sub">Screening AI use cases<br>for real return.</p>
+   <p class="credit"><b>Dustin T Hughes</b><span>VP of Technology, Laborde Products</span></p>
+   <div class="slab">
+     <p class="catalogue">WAYPOINT · NOAI 2026 · NEW ORLEANS</p>
+     <div class="mega">No</div>
+     <dl class="slab-fine"><div><dt>When</dt><dd>Friday<br>Nov 13, 2026</dd></div> ... </dl>
+   </div>
+   -------------------------------------------------------------------------- */
+.layout-title { display: block; padding: 0; }
+.layout-title > * { position: absolute; }
+.layout-title > .kicker { left: var(--m-x); top: 64px; margin: 0; }
+.layout-title > .title-stack { left: var(--m-x); top: 150px; width: 750px; }
+.layout-title > .sub { left: var(--m-x); top: 800px; font-size: var(--t-voice); line-height: 1.1; white-space: nowrap; }
+
+.credit { font-size: var(--t-small); line-height: 1; white-space: nowrap; }
+.credit b {
+  display: block;
+  font-size: var(--t-name);
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-text);
+  letter-spacing: -0.005em;
+  margin-bottom: 14px;
+}
+.credit span { display: block; font-size: 36px; font-weight: 600; font-stretch: var(--wdth-tight); }
+.layout-title > .credit { left: var(--m-x); top: 938px; }
+
+/* the slab: the one Flare field of a slide. It may bleed off the stage. */
+.slab {
+  background: var(--c-accent);
+  color: var(--c-accent-ink);
+  --c-ink: var(--c-accent-ink);
+  --c-line: var(--c-accent-ink);
+}
+.layout-title > .slab { left: 926px; top: 0; width: 994px; height: 1080px; }
+.slab > * { position: absolute; }
+
+/* the catalogue line: record-sleeve style, in a fixed slot on the title and
+   walk-in slides */
+.catalogue {
+  left: 44px;
+  top: 64px;
+  font-family: var(--f-mono);
+  font-size: var(--t-label);
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-text);
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.mega {
+  font-family: var(--f-display);
+  font-size: 905px;
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  line-height: var(--lh-cap);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.slab > .mega { left: 7.8px; top: 150px; }
+
+.slab-fine {
+  left: 44px;
+  top: 847px;
+  width: 906px;
+  display: grid;
+  grid-template-columns: 326px 326px 254px;
+  padding-top: 24px;
+  border-top: var(--w-rule) solid var(--c-line);
+}
+.slab-fine dt {
+  font-size: var(--t-label);
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-label);
+  line-height: 1;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+.slab-fine dd {
+  font-family: var(--f-display);
+  font-size: 58px;
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  line-height: 0.92;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ---- statement ------------------------------------------------------------
+   Quiet (three slides in four): one .say line on Card, maybe a .sub.
+   Loud (one in four): a fitted .stack, with the punch on a Flare block.
+     <p class="kicker">The premise</p>
+     <p class="say">Excitement is not a business case.</p>
+   -------------------------------------------------------------------------- */
+.layout-statement > .say { margin-top: auto; margin-bottom: auto; }
+.layout-statement > .say + .sub { margin-top: calc(var(--s-5) * -1 + var(--s-2)); margin-bottom: auto; }
+.layout-statement > .say:has(+ .sub) { margin-bottom: var(--s-6); }
+.layout-statement > .stack { margin-top: 7px; }
+.layout-statement > .stack + .sub { margin-top: var(--s-6); }
+
+/* the Card note beside a statement stack (reference frame f2) */
+.note {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 656px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: var(--s-5) var(--m-right) var(--s-7) 52px;
+  background: var(--c-bg);
+  color: var(--c-ink);
+}
+
+/* ---- quote: the Fraunces-led aside --------------------------------------
+     <p class="kicker">1956.</p>
+     <blockquote class="quote">“Seldom do more than a few of nature’s secrets give way at one time.”</blockquote>
+     <p class="attribution">Claude Shannon, The Bandwagon, 1956</p>
+   -------------------------------------------------------------------------- */
+.quote {
+  font-size: var(--t-quote);
+  line-height: 1.2;
+  max-width: 1560px;
+  /* the opening quotation mark hangs into the margin, but never further than
+     24px, so it clears the 88px spine by 16px or more at any size. is-flush
+     sets it on the margin with no hang. */
+  --quote-hang: min(0.3em, 24px);
+  text-indent: calc(var(--quote-hang) * -1);
+  padding-left: var(--quote-hang);
+  margin-left: calc(var(--quote-hang) * -1);
+}
+.quote.is-flush { --quote-hang: 0px; }
+.quote.is-l { font-size: 104px; line-height: 1.14; }
+
+.attribution {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  font-size: var(--t-label);
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-label-tight);
+  line-height: 1;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.attribution::before { content: ""; flex: none; width: 96px; height: var(--w-rule); background: var(--c-line); }
+
+.layout-quote > .quote { margin-top: auto; }
+.layout-quote > .attribution { margin-top: var(--s-6); margin-bottom: auto; }
+.layout-quote > .quote + .sub,
+.layout-quote > .quote + .say { margin-top: var(--s-6); margin-bottom: auto; }
+
+/* ---- figure: one huge number with a caption -----------------------------
+     <p class="kicker">Gate 1 · Cost</p>
+     <h2 class="headline is-s">For one person, cost almost never says no.</h2>
+     <div class="counter is-mega"> ... </div>
+     <p class="sub">what the dearest model has to save to pay for itself</p>
+   -------------------------------------------------------------------------- */
+.layout-figure > .counter { margin-top: auto; }
+.layout-figure > .counter + .sub { margin-top: var(--s-5); margin-bottom: auto; max-width: 1300px; }
+.layout-figure > .counter:last-child,
+.layout-figure > .counter:has(+ .source-line) { margin-bottom: auto; }
+
+/* ---- split: two fields that meet on a hard vertical ------------------------
+     <h2 class="headline">Does it touch the cash path?</h2>
+     <div class="cols">
+       <section class="col"> ... </section>
+       <section class="col is-point"> ... </section>
+     </div>
+   -------------------------------------------------------------------------- */
+.cols {
+  flex: 1 1 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: var(--w-rule) solid var(--c-line);
+}
+.cols.is-3 { grid-template-columns: 1fr 1fr 1fr; }
+.cols.is-wide-left { grid-template-columns: 3fr 2fr; }
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-5) var(--s-5) var(--s-4) 0;
+  min-width: 0;
+}
+.col + .col { padding-left: var(--s-5); border-left: var(--w-rule) solid var(--c-line); }
+.col:last-child { padding-right: 0; }
+.col.is-point {
+  background: var(--c-accent);
+  color: var(--c-accent-ink);
+  --c-ink: var(--c-accent-ink);
+  --c-line: var(--c-accent-ink);
+  --c-bg: var(--c-accent);
+  --c-no: var(--c-accent-ink);
+  --c-pass: var(--c-accent-ink);
+  --c-no-ink: var(--c-accent);
+  --c-pass-ink: var(--c-accent);
+  padding-right: var(--s-5);
+}
+.col.is-point:last-child { margin-right: calc(var(--m-right) * -1); padding-right: var(--m-right); }
+.col.is-point:first-child {
+  margin-left: calc((var(--m-x) - var(--spine-w)) * -1);
+  padding-left: calc(var(--m-x) - var(--spine-w));
+}
+.col-title {
+  font-family: var(--f-display);
+  font-size: 96px;
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  line-height: var(--lh-cap);
+  text-transform: uppercase;
+  margin-bottom: var(--s-2);
+}
+.layout-split > .cols + .sub { margin-top: var(--s-4); font-size: var(--t-voice); }
+
+/* ---- list: a small headline and three lines of body ---------------------
+     <h2 class="headline">Monday morning.</h2>
+     <ol class="list">
+       <li>Inventory two weeks.</li> ...
+     </ol>
+   -------------------------------------------------------------------------- */
+.list {
+  counter-reset: item;
+  display: flex;
+  flex-direction: column;
+  max-width: 1500px;
+}
+.list > li {
+  counter-increment: item;
+  display: flex;
+  align-items: center;
+  gap: var(--s-5);
+  min-height: 132px;
+  padding: var(--s-3) 0;
+  border-top: var(--w-hair) solid var(--c-line);
+  font-size: var(--t-body-l);
+  font-weight: 600;
+  line-height: 1.15;
+}
+.list > li:first-child { border-top: var(--w-rule) solid var(--c-line); }
+.list > li:last-child { border-bottom: var(--w-hair) solid var(--c-line); }
+ol.list > li::before {
+  content: counter(item);
+  flex: none;
+  width: 72px;
+  font-family: var(--f-display);
+  font-size: 120px;
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  line-height: var(--lh-cap);
+  font-variant-numeric: tabular-nums;
+}
+.list.is-l > li { font-size: 56px; font-weight: 700; min-height: 150px; }
+.layout-list > .list { margin-top: var(--s-2); }
+.layout-list > .list + .sub { margin-top: var(--s-5); font-size: var(--t-voice); }
+
+/* prompts: the questions of an exercise */
+.prompts { display: flex; flex-direction: column; }
+.prompts > li {
+  position: relative;
+  padding: 22px 0 22px 56px;
+  border-top: var(--w-hair) solid var(--c-line);
+  font-size: var(--t-body-l);
+  font-weight: 600;
+  line-height: 1.15;
+}
+.prompts > li:first-child { border-top: var(--w-rule) solid var(--c-line); }
+.prompts > li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: calc(22px + 0.575em - 14px);
+  width: 28px;
+  height: 28px;
+  border: var(--w-rule) solid var(--c-line);
+}
+
+/* ---- chart: the chart leads ------------------------------------------------
+     <p class="kicker">Gate 1 · Cost</p>
+     <h2 class="headline">100,000 records. Same task.</h2>
+     <p class="label axis-note">Cost to run the whole batch · US dollars · bars drawn to scale</p>
+     <div class="plot scene" data-scene="cost-showdown"></div>
+     <p class="deadpan">No bar to draw.</p>
+     <p class="source-line">Source: BenchLM leaderboard export, Nov 2026 · assumes ...</p>
+   The plot runs to the right edge of the stage (one field may break the frame).
+   -------------------------------------------------------------------------- */
+.plot {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  margin-right: calc(var(--m-right) * -1);
+}
+.plot.is-contained { margin-right: 0; }
+.plot.is-full { margin-left: calc((var(--m-x) - var(--spine-w)) * -1); }
+.plot > canvas,
+.plot > svg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+.layout-chart > .headline { margin-bottom: calc((var(--lh-cap) - var(--lh)) * 0.5em + var(--s-4)); }
+.layout-chart > .axis-note { margin-bottom: var(--s-3); }
+.layout-chart > .source-line { padding-top: var(--s-4); }
+
+/* band: the row that matters gets a full-bleed Flare band. When its value is
+   zero there is no bar, and the band says so.
+     <div class="band"><b class="band-name">Plain code</b>
+       <span class="band-v">about $0</span></div>                           */
+.band {
+  display: flex;
+  align-items: center;
+  gap: var(--s-5);
+  flex: none;
+  min-height: 176px;
+  margin: 0 calc(var(--m-right) * -1) 0 calc((var(--m-x) - var(--spine-w)) * -1);
+  padding: var(--s-3) var(--m-right) var(--s-3) calc(var(--m-x) - var(--spine-w));
+  background: var(--c-accent);
+  color: var(--c-accent-ink);
+  --c-ink: var(--c-accent-ink);
+  --c-line: var(--c-accent-ink);
+}
+.band-name,
+.band-v {
+  font-family: var(--f-display);
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  line-height: var(--lh-cap);
+  text-transform: uppercase;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.band-name { font-size: 96px; }
+.band-v { font-size: 150px; text-transform: none; }
+.band > .voice,
+.band > .deadpan { margin-left: auto; }
+
+/* ---- table -------------------------------------------------------------- */
+.layout-table > .table { margin-top: var(--s-2); }
+
+/* ---- exercise: headline, prompts, big timer ---------------------------------
+     <p class="kicker">Exercise 1 · 10 minutes</p>
+     <h2 class="headline">Inventory two weeks of real work.</h2>
+     <div class="exercise">
+       <ul class="prompts"> <li>What did you do more than twice?</li> ... </ul>
+       <div class="scene timer-host" data-scene="timer" data-opts='{"minutes": 10}'></div>
+     </div>
+   -------------------------------------------------------------------------- */
+.exercise {
+  flex: 1 1 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 760px;
+  gap: var(--s-6);
+  align-items: stretch;
+  margin-right: calc(var(--m-right) * -1);
+  margin-bottom: calc(var(--m-foot) * -1);
+}
+.exercise > .prompts { align-self: start; }
+.timer-host {
+  --timer-size: 330px;
+  border-left: var(--w-rule) solid var(--c-line);
+  border-top: var(--w-rule) solid var(--c-line);
+}
+
+/* ---- scene: a full-bleed live scene with minimal chrome -------------------
+     <div class="scene" data-scene="warehouse"></div>
+     <p class="kicker">Build the winner</p>
+     <span class="tag is-synthetic">Animated re-creation · synthetic data</span>
+   The scene fills the stage to the right of the spine. Anything else is laid
+   over it: the kicker top left, a tag top right, the source line at the foot.
+   Text over a drawing sits on a plate of the ground so it stays readable.
+   -------------------------------------------------------------------------- */
+.layout-scene { display: block; padding: 0; }
+.layout-scene > .scene { position: absolute; left: var(--spine-w); top: 0; right: 0; bottom: 0; }
+.layout-scene > .kicker,
+.layout-scene > .headline,
+.layout-scene > .tag,
+.layout-scene > .source-line { position: absolute; z-index: 2; margin: 0; }
+.layout-scene > .kicker { left: var(--m-x); top: 44px; padding: 16px 20px; margin-left: -20px; background: var(--c-bg); }
+.layout-scene > .headline { left: var(--m-x); top: var(--m-y); }
+.layout-scene > .tag { right: var(--m-right); top: 44px; }
+.layout-scene > .source-line { left: var(--m-x); bottom: 28px; padding: 10px 20px; margin-left: -20px; background: var(--c-bg); }
+
+/* ==========================================================================
+   4. Gates
+   --------------------------------------------------------------------------
+   A gate is a loading-dock door seen from the front: two posts and a lintel,
+   a floor line, and a shutter that hangs just inside the frame.
+
+     <div class="dock">
+       <article class="gate is-pass">
+         <i class="gate-shutter"></i>
+         <p class="gate-n">Gate 1</p>
+         <h3 class="gate-name">Cost</h3>
+         <p class="gate-q">What does it cost to run?</p>
+         <p class="gate-why">carried forward</p>
+       </article>
+       ...
+     </div>
+
+   State is a class on .gate, and the word is printed by the stylesheet, so
+   every gate in the deck says the same thing the same way:
+     (none) / is-idle   NOT YET: the frame only, the bay visibly vacant
+     is-shut            the gate being examined: shutter down to the floor
+     is-pass            shutter raised to the top fifth, PASS on it, the open
+                        bay below with a through-arrow at floor level
+     is-no              shutter dropped THROUGH the floor line, NO at its foot
+   Add is-flare to a NO only when that NO is the point of the slide.
+
+   Gate logic (binding): after a NO, every later gate stays idle, never PASS.
+   A NO holds still for 0.8s before it drops, and its fine print (.gate-why)
+   cuts in 0.9s after it lands; both delays are built in. The word NO is
+   printed on impact, never while the shutter is falling.
+   A gate that was under examination (is-shut) when it turns is-no keeps its
+   shutter down through the hold and then punches the rest of the way through
+   the floor: one continuous move, never a blink. THEME marks that gate
+   is-from-shut for you (theme.js watches every .gate), so any scene or slide
+   gets it by changing the class.
+   Changing the class plays the move. Add is-still to .dock (or .gate) to
+   place gates with no motion. Stepping back is a cut: when a slide steps
+   back, or is entered going back or at a later step, put is-still on the
+   gates you change (the kit's dock, setGates() in deck/slides/_kit.js, shows
+   the pattern: only the gates whose state changes are touched).
+
+   Size: set --gw (bay width) and --gh (bay height, lintel to floor) on .dock
+   or .gate. Type scales with --gw. .gate.is-s is the small gate: name and
+   verdict only.
+   ========================================================================== */
+
+.dock {
+  --gw: 464px;
+  --gh: 780px;
+  display: flex;
+  align-items: flex-start;
+}
+
+.gate {
+  --gl: var(--w-bold);                               /* posts, lintel, floor */
+  --gcap: 96px;                                      /* room under the floor for the fine print */
+  --gthrough: var(--gcap);                           /* how far a NO goes past the floor */
+  --gfull: calc(var(--gh) - var(--gl) * 3);          /* a shutter that just reaches the floor */
+  --graised: calc(var(--gfull) * 0.2);
+  --gpad: calc(var(--gw) * 0.052);
+  --gy-n: calc(var(--gl) * 2 + var(--graised) + var(--gh) * 0.062);                        /* "Gate 1" */
+  --gy-name: calc(var(--gy-n) + max(var(--t-label), var(--gw) * 0.07) + var(--gw) * 0.038);   /* the name */
+  --gy-q: calc(var(--gy-n) + max(var(--t-label), var(--gw) * 0.07) + var(--gw) * 0.3);        /* the question */
+  --gy-arrow: calc(var(--gh) * 0.868);                                                       /* the through-arrow */
+  position: relative;
+  flex: none;
+  width: var(--gw);
+  height: calc(var(--gh) + var(--gcap));
+  isolation: isolate;
+  background: var(--c-bg);
+  color: var(--c-ink);
+}
+
+.dock > .gate + .gate { margin-left: calc(var(--w-bold) * -1); }      /* neighbours share a post */
+
+/* the frame */
+.gate::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: var(--gh);
+  border: var(--gl) solid var(--c-line);
+}
+
+/* the shutter. Its word is printed on it and never moves on its own. */
+.gate-shutter {
+  position: absolute;
+  left: calc(var(--gl) * 2);
+  right: calc(var(--gl) * 2);
+  top: calc(var(--gl) * 2);
+  height: 0;
+  overflow: hidden;
+  background: var(--c-pass);
+  color: var(--c-pass-ink);
+  font-family: var(--f-display);
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  font-style: normal;
+  line-height: var(--lh-cap);
+  text-transform: uppercase;
+}
+
+.gate.is-shut > .gate-shutter { height: var(--gfull); }
+.gate.is-pass > .gate-shutter { height: var(--graised); }
+.gate.is-no > .gate-shutter {
+  height: calc(var(--gfull) + var(--gl) + var(--gthrough));
+  background: var(--c-no);
+  color: var(--c-no-ink);
+}
+.gate.is-no.is-flare > .gate-shutter { background: var(--c-accent); color: var(--c-accent-ink); }
+
+/* PASS rides high */
+.gate.is-pass > .gate-shutter::after {
+  content: "Pass";
+  position: absolute;
+  left: var(--gpad);
+  top: calc((var(--graised) - var(--gw) * 0.254 * var(--cap)) / 2);
+  font-size: calc(var(--gw) * 0.254);
+  letter-spacing: 0.01em;
+}
+
+/* the pull tab on a raised shutter */
+.gate.is-pass::after {
+  content: "";
+  position: absolute;
+  left: calc(50% - var(--gw) * 0.078);
+  top: calc(var(--gl) * 2 + var(--graised));
+  width: calc(var(--gw) * 0.156);
+  height: calc(var(--gl) * 1.75);
+  background: var(--c-pass);
+}
+
+/* NO sits low, on the floor line */
+.gate.is-no > .gate-shutter::after {
+  content: "No";
+  position: absolute;
+  left: calc(var(--gpad) * 0.5);
+  bottom: calc(var(--gl) + var(--gthrough) + var(--gw) * 0.04);
+  font-size: calc(var(--gw) * 0.64);
+}
+
+/* the gate's own text. It is set in the difference of the ground, so it reads
+   in the bay AND on a shutter that has come down over it: a shut gate still
+   says which gate it is. */
+.gate-n,
+.gate-name,
+.gate-q {
+  position: absolute;
+  left: calc(var(--gl) * 2 + var(--gpad));
+  right: calc(var(--gl) * 2 + var(--gpad));
+  z-index: 1;
+}
+
+@supports (mix-blend-mode: difference) {
+  .gate-n,
+  .gate-name,
+  .gate-q {
+    color: var(--card);
+    mix-blend-mode: difference;
+  }
+  .gate.is-flare > :is(.gate-n, .gate-name, .gate-q) {
+    color: var(--c-accent-ink);
+    mix-blend-mode: normal;
+  }
+}
+
+.gate-n {
+  top: var(--gy-n);
+  font-size: max(var(--t-label), calc(var(--gw) * 0.07));
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-label);
+  line-height: 1;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.gate-name {
+  top: var(--gy-name);
+  font-family: var(--f-display);
+  font-size: calc(var(--gw) * 0.2);
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  line-height: var(--lh-cap);
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.gate-q {
+  top: var(--gy-q);
+  font-size: var(--t-body);
+  font-weight: var(--wght-text);
+  line-height: 1.15;
+}
+
+/* the fine print under the bay: "carried forward" under a PASS, the reason
+   under a NO (printed on the part of the shutter that went through the floor) */
+.gate-why {
+  position: absolute;
+  left: calc(var(--gl) * 2 + var(--gpad));
+  right: calc(var(--gl) * 2);
+  top: var(--gh);
+  height: var(--gcap);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  font-size: var(--t-label);           /* a verdict's reason carries meaning: the 32px label floor */
+  font-weight: 700;
+  font-stretch: var(--wdth-text);
+  line-height: 1.1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-wrap: balance;
+  visibility: hidden;
+}
+.gate.is-pass > .gate-why,
+.gate.is-no > .gate-why { visibility: visible; }
+.gate.is-no > .gate-why { color: var(--c-no-ink); }
+.gate.is-no.is-flare > .gate-why { color: var(--c-accent-ink); }
+
+/* carried forward: the through-arrow at floor level in an open bay. It hangs
+   off the gate's name, so it is drawn in the same ink. */
+.gate.is-pass > .gate-name::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--gy-arrow) - var(--gy-name) - var(--gl) * 3.5);
+  height: calc(var(--gl) * 7);
+  background: currentColor;
+  clip-path: polygon(0 calc(50% - var(--gl) / 2), calc(100% - var(--gl) * 6) calc(50% - var(--gl) / 2), calc(100% - var(--gl) * 6) 0, 100% 50%, calc(100% - var(--gl) * 6) 100%, calc(100% - var(--gl) * 6) calc(50% + var(--gl) / 2), 0 calc(50% + var(--gl) / 2));
+}
+
+/* the tell-tale: where a NO hit, the floor stays cut and dropped */
+.gate.has-tell::after {
+  content: "";
+  position: absolute;
+  left: calc(var(--gl) * 2);
+  right: calc(var(--gl) * 2);
+  top: calc(var(--gh) - var(--gl));
+  height: calc(var(--gl) * 2);
+  background: linear-gradient(var(--c-bg) 50%, var(--c-line) 50%);
+}
+
+/* ---- the moves ---- */
+@keyframes gate-lift { from { height: var(--gfull); } }
+@keyframes gate-drop { from { height: 0; } }
+@keyframes gate-shut { from { height: 0; } }
+@keyframes gate-punch { from { height: var(--gfull); } }     /* shut -> NO: already down, through the floor */
+@keyframes cut-in { from { visibility: hidden; } }
+
+.gate.is-shut > .gate-shutter { animation: gate-shut var(--d-drop) var(--e-drop) backwards; }
+.gate.is-pass > .gate-shutter { animation: gate-lift var(--d-lift) var(--e-lift) backwards; }
+.gate.is-pass > .gate-shutter::after { animation: cut-in calc(var(--d-lift) - var(--sixteenth)) steps(1, end) backwards; }
+.gate.is-pass::after,
+.gate.is-pass > .gate-name::after,
+.gate.is-pass > .gate-why { animation: cut-in var(--d-lift) steps(1, end) backwards; }
+.gate.is-no > .gate-shutter { animation: gate-drop var(--d-drop) var(--e-drop) var(--d-hold-before) backwards; }
+.gate.is-no.is-from-shut > .gate-shutter { animation-name: gate-punch; }
+.gate.is-no > .gate-shutter::after { animation: cut-in calc(var(--d-hold-before) + var(--d-drop)) steps(1, end) backwards; }
+.gate.is-no > .gate-why { animation: cut-in calc(var(--d-hold-before) + var(--d-drop) + var(--d-hold-after)) steps(1, end) backwards; }
+
+.gate.is-still::after,
+.gate.is-still > .gate-shutter,
+.gate.is-still > .gate-shutter::after,
+.gate.is-still > .gate-name::after,
+.gate.is-still > .gate-why,
+.is-still .gate::after,
+.is-still .gate > .gate-shutter,
+.is-still .gate > .gate-shutter::after,
+.is-still .gate > .gate-name::after,
+.is-still .gate > .gate-why { animation: none; }
+
+/* ---- the small gate: name and verdict only ---- */
+.gate.is-s {
+  --gw: 216px;
+  --gh: 300px;
+  --gl: var(--w-rule);
+  --gcap: 0px;
+  --gthrough: 28px;
+  --graised: calc(var(--gfull) * 0.3);
+  margin-bottom: 28px;
+}
+.gate.is-s > .gate-q,
+.gate.is-s > .gate-n,
+.gate.is-s > .gate-why { display: none; }
+.gate.is-s > .gate-name {
+  top: auto;
+  bottom: calc(var(--gl) * 3);
+  font-size: calc(var(--gw) * 0.2);
+}
+.gate.is-s > .gate-name::after { content: none; }
+.gate.is-s.is-no > .gate-name { bottom: auto; top: calc(var(--gl) * 4); }
+.gate.is-s.is-pass > .gate-shutter::after { font-size: calc(var(--gw) * 0.3); top: calc((var(--graised) - var(--gw) * 0.3 * var(--cap)) / 2); }
+.gate.is-s.is-no > .gate-shutter::after { font-size: calc(var(--gw) * 0.62); bottom: calc(var(--gl) + var(--gthrough) + var(--gw) * 0.05); }
+.dock > .gate.is-s + .gate.is-s { margin-left: calc(var(--w-rule) * -1); }
+
+/* ---- verdict: the small mark for tables, lists and legends ---------------
+     <span class="verdict is-no">No</span>
+     <span class="verdict is-pass">Pass</span>
+     <span class="verdict is-notyet">Not yet</span>
+   NO is a solid block. PASS is a hollow frame with a raised lintel. NOT YET
+   is the frame alone. Shape and word, in the base inks.
+   -------------------------------------------------------------------------- */
+.verdict {
+  --vh: 72px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  height: var(--vh);
+  min-width: calc(var(--vh) * 1.5);
+  padding: 0 calc(var(--vh) * 0.3);
+  font-family: var(--f-display);
+  font-size: calc(var(--vh) * 0.82);
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  font-style: normal;
+  line-height: var(--lh-cap);
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.verdict.is-no { background: var(--c-no); color: var(--c-no-ink); }
+.verdict.is-no.is-flare { background: var(--c-accent); color: var(--c-accent-ink); }
+.verdict.is-pass {
+  border: calc(var(--vh) * 0.07) solid var(--c-pass);
+  border-top-width: calc(var(--vh) * 0.26);
+  color: var(--c-pass);
+  font-size: calc(var(--vh) * 0.6);
+}
+.verdict.is-notyet {
+  border: calc(var(--vh) * 0.07) solid var(--c-line);
+  font-family: var(--f-mono);
+  font-size: max(var(--t-label), calc(var(--vh) * 0.4));   /* a verdict carries meaning: 32px floor */
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-label-tight);
+  line-height: 1;
+  letter-spacing: 0.08em;
+}
+.verdict.is-l { --vh: 120px; }
+.verdict.is-xl { --vh: 200px; }
+
+/* ---- gate glyph: the gate at legend size (24 x 48). Shape only. ----------
+     <i class="gate-glyph is-pass"></i>
+   -------------------------------------------------------------------------- */
+.gate-glyph {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: 24px;
+  height: 48px;
+  border: 4px solid var(--c-line);
+  vertical-align: middle;
+}
+.gate-glyph.is-pass::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 14px; background: var(--c-pass); }
+.gate-glyph.is-no { background: var(--c-no); height: 60px; margin-bottom: -12px; }
+.gate-glyph.is-no.is-flare { background: var(--c-accent); border-color: var(--c-accent-ink); }
+.gate-glyph.is-shut { background: var(--c-pass); }
+
+/* ---- gate strip: where we are among the four gates ----------------------
+   On every slide that belongs to a gate, in the same place: top right.
+     <nav class="gate-strip" data-now="1">
+       <b>Cost</b><b>Return</b><b>Effort</b><b>Potential</b>
+     </nav>
+   data-now="1".."4" marks the gate being discussed (a solid plate). A gate
+   that has given its verdict takes is-pass or is-no on its <b>: PASS is a
+   raised lintel over the word, NO is a block dropped through the strip's
+   floor line. THEME.gateStrip({ now: 2 }) writes the markup for you.
+   -------------------------------------------------------------------------- */
+.gate-strip {
+  position: absolute;
+  right: var(--m-right);
+  top: 36px;
+  z-index: 3;
+  display: flex;
+  align-items: stretch;
+  height: 72px;
+  border-bottom: var(--w-rule) solid var(--c-line);
+  font-family: var(--f-mono);
+  font-size: var(--t-label);
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-label-tight);
+  line-height: 1;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.gate-strip > b {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0 18px 0 20px;
+  font-weight: inherit;
+  border-top: var(--w-hair) solid var(--c-line);
+  border-left: var(--w-hair) solid var(--c-line);
+}
+.gate-strip > b:last-child { border-right: var(--w-hair) solid var(--c-line); }
+.gate-strip > b.is-pass { box-shadow: inset 0 11px 0 var(--c-pass); }
+.gate-strip > b.is-no {
+  background: var(--c-no);
+  color: var(--c-no-ink);
+  margin-bottom: -20px;
+  padding-bottom: 20px;
+}
+.gate-strip > b.is-now,
+.gate-strip[data-now="1"] > b:nth-child(1),
+.gate-strip[data-now="2"] > b:nth-child(2),
+.gate-strip[data-now="3"] > b:nth-child(3),
+.gate-strip[data-now="4"] > b:nth-child(4) {
+  background: var(--c-ink);
+  color: var(--c-bg);
+}
+.gate-strip > b.is-now::after,
+.gate-strip[data-now="1"] > b:nth-child(1)::after,
+.gate-strip[data-now="2"] > b:nth-child(2)::after,
+.gate-strip[data-now="3"] > b:nth-child(3)::after,
+.gate-strip[data-now="4"] > b:nth-child(4)::after {
+  content: "";
+  position: absolute;
+  left: calc(50% - 14px);
+  bottom: -26px;
+  border: 14px solid transparent;
+  border-top: 16px solid var(--c-ink);
+  border-bottom: 0;
+}
+/* a slide with a strip keeps its kicker clear of it */
+.slide:has(> .gate-strip) > .kicker { max-width: 820px; overflow: hidden; text-overflow: clip; }
+
+/* ==========================================================================
+   5. Honesty
+   ========================================================================== */
+
+/* ---- tag: the honesty label. Wording lives in THEME.tags. -----------------
+     <span class="tag is-example">Example</span>            hollow frame
+     <span class="tag is-synthetic">Synthetic data</span>   solid block
+     <span class="tag is-laborde">Laborde results, Oct 2026</span>   solid block, double rule: a real figure
+     <span class="tag is-estimated">estimated</span>        hatched edge
+   -------------------------------------------------------------------------- */
+.tag {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  height: 56px;
+  padding: 0 20px;
+  border: 4px solid var(--c-ink);
+  background: var(--c-bg);
+  color: var(--c-ink);
+  font-family: var(--f-mono);
+  font-size: var(--t-label);
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-label-tight);
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.tag.is-synthetic,
+.tag.is-laborde { background: var(--c-ink); color: var(--c-bg); }
+.tag.is-laborde { margin-bottom: 10px; }
+.tag.is-laborde::after {
+  content: "";
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  bottom: -14px;
+  height: 5px;
+  background: var(--c-ink);
+}
+.tag.is-estimated { padding-left: 52px; }
+.tag.is-estimated::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 32px;
+  border-right: 4px solid var(--c-ink);
+  background: repeating-linear-gradient(135deg, var(--c-ink) 0 4px, transparent 4px 11px);
+}
+.tag.is-s { height: 48px; padding: 0 16px; font-size: var(--t-label); }
+.tag.is-s.is-estimated { padding-left: 44px; }
+.tag.is-s.is-estimated::before { width: 28px; }
+
+/* hatch: the caution pattern. It is what "careful" looks like here (ladder
+   levels, estimated values), because there is no third ink. */
+.hatch { background-image: repeating-linear-gradient(135deg, var(--c-ink) 0 4px, transparent 4px 12px); }
+
+/* ---- slot-yours: a value the speaker has not supplied -------------------
+     <span class="slot-yours">Your number</span>
+   Never print an invented figure where one of these belongs.
+   -------------------------------------------------------------------------- */
+.slot-yours {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  min-width: 380px;
+  min-height: 112px;
+  padding: 0 var(--s-4);
+  border: var(--w-rule) dashed var(--c-ink);
+  background: repeating-linear-gradient(135deg, var(--c-bg-alt) 0 16px, transparent 16px 32px);
+  color: var(--c-ink);
+  font-family: var(--f-mono);
+  font-size: var(--t-label);
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-label);
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.slot-yours.is-l { min-width: 560px; min-height: 200px; font-size: 44px; }
+.slot-yours.is-s { min-width: 300px; min-height: 80px; }
+
+/* ---- edit-mark: OUR edit of someone else's sentence ------------------------
+     <span class="edit-mark"><s>Information theory</s><ins>AI<small>our edit</small></ins></span>
+   (the flag inside the <ins>, or right after it: both are supported)
+   The original words stay, struck through. The replacement is written in a
+   different hand (Archivo caps on a Flare block) and carries its own
+   "our edit" flag, so nobody takes it for the author's.
+
+   Two placements:
+     (default)   the replacement follows the struck words on the line
+     is-above    the replacement is written ABOVE the struck words, the way a
+                 proofreader does it. Nothing else on the line moves. Use it
+                 when the struck words are on the first line of the quote.
+
+   To build it in steps, put data-step (and data-anim="stamp") on the <ins>:
+   the strike is drawn as the replacement lands.
+   -------------------------------------------------------------------------- */
+.edit-mark { white-space: nowrap; text-indent: 0; }
+.edit-mark > s {
+  position: relative;
+  display: inline-block;
+  text-indent: 0;
+}
+.edit-mark > s::after {
+  content: "";
+  position: absolute;
+  left: -0.06em;
+  right: -0.06em;
+  top: 53%;
+  height: max(var(--w-rule), 0.085em);
+  background: var(--c-ink);
+  transform-origin: 0 50%;
+  transition: scale var(--eighth) var(--e-arrive);
+}
+.edit-mark > ins {
+  display: inline-flex;
+  align-items: stretch;
+  margin-left: 0.2em;
+  padding: 0.12em 0 0.1em 0.16em;
+  background: var(--c-accent);
+  color: var(--c-accent-ink);
+  font-family: var(--f-display);
+  font-size: 1.02em;
+  font-style: normal;
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  line-height: var(--lh-cap);
+  letter-spacing: 0;
+  text-transform: uppercase;
+  text-indent: 0;
+  vertical-align: baseline;
+}
+/* the flag: two lines of wide caps, as tall as the plate it is attached to.
+   0.333em of the replacement is 28px at the 84px quote size; never smaller. */
+.edit-mark > ins > small {
+  display: flex;
+  align-items: center;
+  width: min-content;
+  margin: -0.36em 0 -0.3em 0.48em;       /* covers the plate's own padding (in the flag's smaller em) */
+  padding: 0 0.42em;
+  background: var(--c-ink);
+  color: var(--c-bg);
+  font-family: var(--f-mono);
+  font-size: max(var(--t-small), 0.333em);
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-label-tight);
+  line-height: 1;
+  letter-spacing: 0.08em;
+  white-space: normal;
+}
+
+/* The flag may also be written as a sibling of the replacement:
+     <span class="edit-mark"><s>…</s><ins>AI</ins><small>our edit</small></span>
+   It then sits right after the plate, on the same line, at the same height. */
+.edit-mark > ins:not(:has(> small)) { padding-right: 0.16em; }
+.edit-mark > small {
+  display: inline-block;
+  width: min-content;
+  margin-left: 0;
+  padding: 0.392em 0.42em;
+  background: var(--c-ink);
+  color: var(--c-bg);
+  font-family: var(--f-mono);
+  font-size: max(var(--t-small), 0.34em);
+  font-style: normal;
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-label-tight);
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-indent: 0;
+  white-space: normal;
+  vertical-align: 0.198em;
+}
+.edit-mark:has(> ins[data-step]:not(.is-visible)) > small { display: none; }
+
+/* written above */
+.edit-mark.is-above { position: relative; display: inline-block; }
+.edit-mark.is-above > ins {
+  position: absolute;
+  left: -0.06em;
+  bottom: calc(100% - 0.1em);
+  margin: 0;
+}
+
+/* built in steps: until the edit is made, the sentence reads as its author
+   wrote it. The strike is drawn as the replacement lands. */
+.edit-mark:has(> ins[data-step]:not(.is-visible)) > s::after { scale: 0 1; transition: none; }
+.edit-mark:not(.is-above) > ins[data-step]:not(.is-visible) { display: none; }
+
+/* ==========================================================================
+   6. Figures
+   ========================================================================== */
+
+/* ---- counter: big numerals plus a unit ------------------------------------
+     <div class="counter">
+       <p class="label">Walk per pick run</p>
+       <p class="counter-v"><b data-count-to="91.1" data-count-format=".1f">91.1</b><small>ft</small></p>
+       <p class="voice">31.8% less</p>
+     </div>
+   Before and after are set at the SAME size: the comparison is in the
+   numbers, not the typography. is-mega is the one-number slide.
+   -------------------------------------------------------------------------- */
+.counter { --cs: 200px; display: flex; flex-direction: column; align-items: flex-start; }
+.counter.is-mega { --cs: var(--t-mega); }
+.counter.is-s { --cs: 120px; }
+.counter > .label { margin-bottom: calc(var(--cs) * 0.12 + 8px); }
+.counter-v {
+  display: flex;
+  align-items: baseline;
+  gap: calc(var(--cs) * 0.05);
+  font-family: var(--f-display);
+  font-size: var(--cs);
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  line-height: var(--lh-cap);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.counter-v > b { font-weight: inherit; }
+.counter-v > small {
+  font-size: max(var(--t-body), calc(var(--cs) * 0.37));
+  font-weight: var(--wght-display);
+  text-transform: none;
+}
+.counter > .voice { margin-top: calc(var(--cs) * 0.1 + 10px); }
+/* the figure that is the point of the slide sits on Flare */
+.counter.is-point {
+  padding: var(--s-4) var(--s-5) var(--s-4);
+  background: var(--c-accent);
+  color: var(--c-accent-ink);
+}
+/* a double rule under a final figure marks a total */
+.is-total { border-bottom: 18px double var(--c-ink); padding-bottom: 14px; }
+
+/* ---- pair: before to after ---------------------------------------------
+     <div class="pair">
+       <p class="pair-what">Walk per pick run</p>
+       <p class="pair-v is-before"><span class="label">As-is move</span><b>133.6</b><small>ft</small></p>
+       <i class="pair-arrow"></i>
+       <p class="pair-v is-after"><span class="label">Optimized</span><b>91.1</b><small>ft</small></p>
+       <p class="pair-note">31.8% less</p>
+     </div>
+   Told apart by position (before, an arrow, after) and by label, never by
+   colour alone. Add is-point to the pair whose "after" is the point.
+   -------------------------------------------------------------------------- */
+.pair {
+  --ps: 112px;
+  display: grid;
+  /* fixed columns, so the arrows of a run of pairs line up: set --pair-what and
+     --pair-col on the parent if your labels or figures are wider */
+  grid-template-columns: var(--pair-what, 440px) var(--pair-col, 400px) 96px var(--pair-col, 400px) 1fr;
+  align-items: end;
+  column-gap: var(--s-4);
+  padding: 20px 0 22px;
+  border-top: var(--w-hair) solid var(--c-line);
+}
+.pair:first-of-type { border-top: var(--w-rule) solid var(--c-line); }
+.pair-what { align-self: center; font-size: var(--t-body); font-weight: 600; line-height: 1.12; }
+.pair-v {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 10px;
+  min-width: 0;
+  font-family: var(--f-display);
+  font-size: var(--ps);
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  line-height: var(--lh-cap);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.pair-v > .label { flex: 0 0 100%; margin-bottom: 16px; font-stretch: var(--wdth-label-tight); }
+.pair-v > b { font-weight: inherit; }
+.pair-v > small { font-size: max(var(--t-body), calc(var(--ps) * 0.42)); font-weight: var(--wght-display); text-transform: none; }
+/* a percent sign is part of the figure, not a unit beside it: set it tight */
+.pair-v > small.is-tight { margin-left: -8px; font-size: 0.6em; }
+/* Before and after are the same size and the same weight: the comparison is in
+   the numbers. is-hollow draws the "before" figure as an outline; keep it for
+   hero sizes (--ps 160px and up), where the outline survives the back row. */
+.pair-v.is-before.is-hollow > b { color: transparent; -webkit-text-stroke: max(4px, calc(var(--ps) * 0.035)) var(--c-ink); }
+.pair-arrow {
+  align-self: end;
+  width: 96px;
+  height: calc(var(--ps) * var(--cap));
+  background: var(--c-ink);
+  clip-path: polygon(0 calc(50% - 4px), calc(100% - 34px) calc(50% - 4px), calc(100% - 34px) calc(50% - 20px), 100% 50%, calc(100% - 34px) calc(50% + 20px), calc(100% - 34px) calc(50% + 4px), 0 calc(50% + 4px));
+}
+.pair-note {
+  align-self: end;
+  justify-self: end;
+  font-family: var(--f-voice);
+  font-size: var(--t-voice);
+  font-style: italic;
+  font-weight: var(--wght-voice);
+  font-variation-settings: var(--voice-settings);
+  font-optical-sizing: none;
+  line-height: 1;
+  white-space: nowrap;
+}
+.pair.is-point > .pair-v.is-after {
+  background: var(--c-accent);
+  color: var(--c-accent-ink);
+  box-shadow: 0 0 0 18px var(--c-accent);
+}
+.pair.is-l { --ps: 200px; }
+
+/* ---- ladder: climb only as far as the task makes you ----------------------
+     <ol class="ladder">
+       <li>Don’t automate</li>
+       <li>Spreadsheet formula</li>
+       <li class="is-here">Plain code <span>runs for about $0</span></li>
+       ...
+     </ol>
+   The first item is the bottom rung. is-here is the rung you stop on;
+   is-point makes it the Flare block of the slide.
+   -------------------------------------------------------------------------- */
+.ladder {
+  --rung: 100px;
+  counter-reset: rung;
+  position: relative;
+  display: flex;
+  flex-direction: column-reverse;
+  width: 1040px;
+  border-left: var(--w-bold) solid var(--c-line);
+  border-right: var(--w-bold) solid var(--c-line);
+}
+.ladder > li {
+  counter-increment: rung;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  height: var(--rung);
+  padding: 0 var(--s-4) 0 104px;
+  border-bottom: var(--w-rule) solid var(--c-line);
+  font-size: var(--t-body-l);
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+.ladder > li::before {
+  content: counter(rung);
+  position: absolute;
+  left: var(--s-4);
+  top: calc(50% - 0.344em);
+  font-family: var(--f-display);
+  font-size: 72px;
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  line-height: var(--lh-cap);
+}
+.ladder > li > span { font-size: var(--t-body); font-weight: var(--wght-text); }
+.ladder > li.is-here { background: var(--c-ink); color: var(--c-bg); }
+.ladder > li.is-point { background: var(--c-accent); color: var(--c-accent-ink); }
+
+/* ---- beats: a path of numbered steps -------------------------------------
+     <ol class="beats">
+       <li>Inventory two weeks of real work</li>
+       <li>Pick three</li>
+       ...
+       <li class="is-point">Build the winner</li>
+     </ol>
+   -------------------------------------------------------------------------- */
+.beats {
+  counter-reset: beat;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  column-gap: var(--s-4);
+  border-top: var(--w-rule) solid var(--c-line);
+}
+.beats > li {
+  counter-increment: beat;
+  position: relative;
+  padding: 216px 0 var(--s-4);
+  font-size: var(--t-body-l);
+  font-weight: 700;
+  line-height: 1.12;
+  text-wrap: balance;
+}
+.beats > li::before {
+  content: counter(beat);
+  position: absolute;
+  left: 0;
+  top: var(--s-5);
+  font-family: var(--f-display);
+  font-size: 190px;
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  line-height: var(--lh-cap);
+  font-variant-numeric: tabular-nums;
+}
+/* the arrow to the next beat, on the path */
+.beats > li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  right: calc(var(--s-4) * -0.5 - 14px);
+  top: -17px;
+  border: 14px solid transparent;
+  border-left: 20px solid var(--c-line);
+  border-right: 0;
+}
+/* The point is a Flare block that stays on the grid: it fills its own column
+   (no ear past the margin, no overlap into the gap), so the arrow before it
+   ends in the gap and the label before it keeps its room. Its type is inset
+   by --s-3. The arrowheads sit above any block that does reach under them. */
+.beats > li::after { z-index: 1; }
+.beats > li.is-point {
+  margin: 0;
+  padding: 216px var(--s-3) var(--s-5);
+  background: var(--c-accent);
+  color: var(--c-accent-ink);
+}
+.beats > li.is-point::before { left: var(--s-3); }
+
+/* ---- table -----------------------------------------------------------------
+     <table class="table">
+       <thead><tr><th>Measure</th><th class="is-num">As-is move</th> ... </tr></thead>
+       <tbody><tr><td>Walk per pick run</td><td class="is-num">133.6 ft</td> ... </tr></tbody>
+     </table>
+   One 6px rule under the head, 3px rules between rows, no box, no stripes.
+   tr.is-point is the Flare row; tr.is-total gets the double rule.
+   -------------------------------------------------------------------------- */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--t-body);
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.table th {
+  padding: 0 var(--s-4) 18px 0;
+  border-bottom: var(--w-rule) solid var(--c-line);
+  font-family: var(--f-mono);
+  font-size: var(--t-label);
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-label-tight);
+  line-height: 1;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  text-align: left;
+  vertical-align: bottom;
+  white-space: nowrap;
+}
+.table td {
+  padding: 20px var(--s-4) 20px 0;
+  border-bottom: var(--w-hair) solid var(--c-line);
+  font-weight: var(--wght-text);
+  vertical-align: middle;
+}
+.table td:first-child,
+.table th[scope="row"] { font-weight: 700; }
+.table :is(th, td):last-child { padding-right: 0; }
+.table .is-num { text-align: right; white-space: nowrap; }
+.table td.is-num {
+  font-family: var(--f-display);
+  font-size: 64px;
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  line-height: var(--lh-cap);
+}
+.table tr.is-point > td {
+  background: var(--c-accent);
+  color: var(--c-accent-ink);
+  border-bottom-color: var(--c-accent-ink);
+}
+.table tr.is-point > td:first-child { box-shadow: -40px 0 0 var(--c-accent); }
+.table tr.is-point > td:last-child { box-shadow: 56px 0 0 var(--c-accent); }
+.table tr.is-total > td { border-top: 18px double var(--c-line); font-weight: 800; }
+.table.is-compact td { padding-top: 14px; padding-bottom: 14px; }
+
+/* ---- qr: a frame for a QR code (drawn by lib/qr.js) -----------------------
+     <figure class="qr"><div class="qr-code"></div><figcaption>Open the screener</figcaption></figure>
+     el.querySelector('.qr-code').innerHTML = QR.toSVG(url, { dark: THEME.color('ink'), light: THEME.color('bg') });
+   The code always sits on Card with its quiet zone, whatever the slide.
+   -------------------------------------------------------------------------- */
+.qr { display: inline-flex; flex-direction: column; align-items: stretch; flex: none; width: 320px; }
+.qr-code {
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 8px;
+  border: var(--w-bold) solid var(--lampblack);
+  background: var(--card);
+}
+.qr-code > svg,
+.qr-code > canvas,
+.qr-code > img { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+.qr > figcaption {
+  padding: 14px 0 0;
+  font-family: var(--f-mono);
+  font-size: var(--t-small);
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-label-tight);
+  line-height: 1.15;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.qr.is-l { width: 440px; }
+
+/* ---- plate, panel, rule ---------------------------------------------------- */
+/* plate: text on a hard-edged block, so it can sit on a drawing */
+.plate {
+  display: inline-block;
+  padding: 0.18em 0.4em;
+  background: var(--c-ink);
+  color: var(--c-bg);
+}
+.plate.is-ground { background: var(--c-bg); color: var(--c-ink); }
+.plate.is-accent { background: var(--c-accent); color: var(--c-accent-ink); }
+
+/* panel: the second stock. It nearly vanishes on a weak projector, so it
+   always carries a rule as well. */
+.panel {
+  padding: var(--s-4) var(--s-5);
+  border-top: var(--w-rule) solid var(--c-line);
+  background: var(--c-bg-alt);
+}
+
+.rule { flex: none; height: var(--w-rule); border: 0; margin: 0; background: var(--c-line); }
+.rule.is-double { height: 18px; background: none; border-top: 6px solid var(--c-line); border-bottom: 6px solid var(--c-line); }
+
+/* ==========================================================================
+   7. Controls for interactive scenes
+   --------------------------------------------------------------------------
+   Big enough to hit while talking: every control is 72px tall (64 is the
+   floor). Put data-keys="own" only on real text fields.
+   ========================================================================== */
+
+.btn,
+.seg > button,
+.chip,
+.stepper > button {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+  border-radius: var(--r-1);
+  font-family: var(--f-mono);
+  font-size: var(--t-label);
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-label-tight);
+  line-height: 1;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---- btn ----
+     <button class="btn">Run the optimizer</button>
+     <button class="btn is-ghost">Reset</button>                             */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  flex: none;
+  height: 72px;
+  padding: 0 var(--s-4);
+  border: var(--w-rule) solid var(--c-ink);
+  background: var(--c-ink);
+  color: var(--c-bg);
+}
+.btn.is-ghost { background: var(--c-bg); color: var(--c-ink); }
+.btn.is-point { border-color: var(--c-accent-ink); background: var(--c-accent); color: var(--c-accent-ink); }
+.btn.is-l { height: 96px; padding: 0 var(--s-5); font-size: 40px; }
+.btn:active { background: var(--c-bg); color: var(--c-ink); }
+.btn.is-ghost:active { background: var(--c-ink); color: var(--c-bg); }
+.btn:disabled { border-style: dashed; background: var(--c-bg); color: var(--c-ink); cursor: default; }
+
+/* ---- seg: a segmented control ----
+     <div class="seg" role="group" aria-label="Lens">
+       <button aria-pressed="true">Product</button><button aria-pressed="false">Service</button>
+     </div>                                                                  */
+.seg { display: inline-flex; flex: none; }
+.seg > button {
+  height: 72px;
+  padding: 0 var(--s-4);
+  border: var(--w-rule) solid var(--c-ink);
+  background: var(--c-bg);
+  color: var(--c-ink);
+}
+.seg > button + button { margin-left: calc(var(--w-rule) * -1); }
+.seg > button[aria-pressed="true"],
+.seg > button.is-on { background: var(--c-ink); color: var(--c-bg); }
+
+/* ---- chip: a toggle ----
+     <button class="chip" aria-pressed="true">Touches the cash path</button>
+   Off is a hollow box, on is a filled box with the frame doubled: shape, not
+   colour, says which.                                                       */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 18px;
+  flex: none;
+  height: 72px;
+  padding: 0 var(--s-3) 0 18px;
+  border: var(--w-hair) solid var(--c-ink);
+  background: var(--c-bg);
+  color: var(--c-ink);
+}
+.chip::before {
+  content: "";
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border: var(--w-rule) solid var(--c-ink);
+}
+.chip[aria-pressed="true"],
+.chip.is-on { border-width: var(--w-rule); padding-left: 15px; padding-right: calc(var(--s-3) - 3px); }
+.chip[aria-pressed="true"]::before,
+.chip.is-on::before { background: var(--c-ink); box-shadow: inset 0 0 0 5px var(--c-bg); border-width: var(--w-rule); }
+
+/* ---- stepper ----
+     <div class="stepper"><button aria-label="less">−</button><output>3</output><button aria-label="more">+</button></div> */
+.stepper { display: inline-flex; align-items: stretch; flex: none; height: 72px; }
+.stepper > button {
+  width: 72px;
+  padding: 0 0 6px;
+  border: var(--w-rule) solid var(--c-ink);
+  background: var(--c-ink);
+  color: var(--c-bg);
+  font-family: var(--f-display);
+  font-size: 64px;
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-text);
+  letter-spacing: 0;
+}
+.stepper > button:active { background: var(--c-bg); color: var(--c-ink); }
+.stepper > output {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 132px;
+  padding: 0 var(--s-3);
+  border-top: var(--w-rule) solid var(--c-ink);
+  border-bottom: var(--w-rule) solid var(--c-ink);
+  font-family: var(--f-display);
+  font-size: 60px;
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  line-height: var(--lh-cap);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- field: a text or number input ----
+     <label class="field"><span class="label">Minutes per run</span>
+       <input type="number" value="20" data-keys="own"></label>              */
+.field { display: inline-flex; flex-direction: column; gap: 14px; flex: none; }
+.field > input,
+.field > select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
+  width: 320px;
+  height: 72px;
+  margin: 0;
+  padding: 0 var(--s-3);
+  border: var(--w-hair) solid var(--c-ink);
+  border-bottom-width: var(--w-rule);
+  border-radius: var(--r-1);
+  background: var(--c-bg);
+  color: var(--c-ink);
+  font-family: var(--f-display);
+  font-size: var(--t-body-l);
+  font-weight: 700;
+  font-stretch: var(--wdth-text);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  outline: 0;
+}
+.field > input::-webkit-outer-spin-button,
+.field > input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.field > input:focus,
+.field > select:focus { border-width: var(--w-rule); padding: 0 calc(var(--s-3) - 3px); }
+.field > input::placeholder { color: var(--c-ink-soft); opacity: 1; }
+.field.is-wide > input { width: 560px; }
+
+/* ---- slider: a styled range input ----
+     <label class="slider"><span class="label">Loaded hourly rate</span>
+       <input type="range" min="15" max="120" step="5" value="30">
+       <output>$30</output></label>
+   The part of the track that is "on" is drawn thick: the theme keeps it in
+   step with the value (THEME sets --fill on every range input).            */
+.slider { display: inline-grid; grid-template-columns: auto auto; align-items: center; column-gap: var(--s-4); row-gap: 6px; flex: none; }
+.slider > .label { grid-column: 1 / -1; }
+.slider > output {
+  min-width: 2.6em;
+  font-family: var(--f-display);
+  font-size: 72px;
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  line-height: var(--lh-cap);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.slider > input[type="range"],
+input[type="range"].slider {
+  --fill: 50%;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 520px;
+  height: 72px;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  background:
+    linear-gradient(var(--c-ink), var(--c-ink)) left center / var(--fill) 18px no-repeat,
+    linear-gradient(var(--c-ink), var(--c-ink)) left center / 100% var(--w-rule) no-repeat;
+  cursor: pointer;
+  outline: 0;
+}
+.slider > input[type="range"]::-webkit-slider-runnable-track { height: 72px; background: transparent; }
+.slider > input[type="range"]::-moz-range-track { height: 72px; background: transparent; }
+.slider > input[type="range"]::-webkit-slider-thumb,
+input[type="range"].slider::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 32px;
+  height: 72px;
+  border: 0;
+  border-radius: 0;
+  background: var(--c-ink);
+  box-shadow: 0 0 0 6px var(--c-bg);
+}
+.slider > input[type="range"]::-moz-range-thumb,
+input[type="range"].slider::-moz-range-thumb {
+  width: 32px;
+  height: 72px;
+  border: 0;
+  border-radius: 0;
+  background: var(--c-ink);
+}
+.slider.is-wide > input[type="range"] { width: 820px; }
+
+/* keyboard focus: a hard outline, never a glow */
+.btn:focus-visible,
+.seg > button:focus-visible,
+.chip:focus-visible,
+.stepper > button:focus-visible,
+.slider > input[type="range"]:focus-visible { outline: var(--w-rule) solid var(--c-ink); outline-offset: 6px; }
+
+/* ==========================================================================
+   8. Motion
+   --------------------------------------------------------------------------
+   120 BPM. Every duration is a note value. NOTHING FADES: there is no opacity
+   tween in the system. Things cut, hide behind a block, lift, or drop.
+
+   The engine's reveal variants, in the direction's language:
+     (no data-anim)     CUT. On or off, on the grid. Use it for all small type.
+     data-anim="fade"   CUT as well (the name is the engine's; nothing fades)
+     data-anim="rise"   LIFT: uncovered from the floor up, like a shutter going
+                        up. One beat.
+     data-anim="wipe"   VOICE WIPE: left to right in a swung beat. Fraunces lines.
+     data-anim="stamp"  DROP: comes down from the top with gravity and stops
+                        dead. Three sixteenths. Verdicts, blocks.
+     data-anim="pop"    BLOCK REVEAL: a bar of ink runs across the line in a
+                        sixteenth, then its left edge retreats in an eighth and
+                        leaves the line behind. Display lines.
+   Stagger with style="--delay: 333ms": long-short, never even.
+
+   The engine's own demo slides (layout "demo", shown only with ?demo) keep the
+   engine's default reveals and its default progress bar: they are the fixtures
+   tools/test-engine.js measures, so the theme leaves them alone.
+   ========================================================================== */
+
+/* every variant: no fade in, and stepping back is a cut */
+.slide:not(.layout-demo) :is([data-step], [data-step-only], [data-step-out]) { opacity: 1; }
+.slide:not(.layout-demo) :is([data-step], [data-step-only], [data-step-out]):not(.is-visible) {
+  opacity: 1;
+  translate: none;
+  scale: none;
+  rotate: none;
+}
+
+/* cut: the default, and "fade" */
+.slide:not(.layout-demo) :is([data-step], [data-step-only], [data-step-out]):not([data-anim]),
+.slide:not(.layout-demo) [data-anim="fade"] { transition-duration: 0s; }
+
+/* lift */
+.slide:not(.layout-demo) [data-anim="rise"].is-visible { clip-path: inset(-0.4em -0.4em -0.4em -2em); }
+.slide:not(.layout-demo) [data-anim="rise"]:not(.is-visible) { clip-path: inset(100% -0.4em -0.4em -2em); }
+
+/* voice wipe (the engine's wipe, on the direction's clock) */
+.slide:not(.layout-demo) [data-anim="wipe"].is-visible { clip-path: inset(-0.4em -0.4em -0.4em -2em); }
+.slide:not(.layout-demo) [data-anim="wipe"]:not(.is-visible) { clip-path: inset(-0.4em 100% -0.4em -2em); }
+
+/* drop: the element comes down from above its place, like a shutter, and is
+   only seen below its own top edge. Whatever is printed at its foot (a NO)
+   leads the way down and arrives with the weight of the block. */
+.slide:not(.layout-demo) [data-anim="stamp"].is-visible { clip-path: inset(-0.4em -0.4em -0.4em -2em); }
+.slide:not(.layout-demo) [data-anim="stamp"]:not(.is-visible) {
+  translate: 0 -100%;
+  clip-path: inset(100% -0.4em -0.4em -2em);
+}
+
+/* block reveal: the element is uncovered left to right in a sixteenth, with a
+   bar of its own ink lying exactly over the uncovered part; then the bar's
+   left edge retreats in an eighth. */
+:where(.slide:not(.layout-demo) [data-anim="pop"]) { position: relative; }
+/* --delay is registered by the engine with inherits: false, so the bar (a
+   pseudo-element) cannot read it. The line hands it on under a name that
+   inherits, and a staggered line keeps its bar until the line opens. */
+.slide:not(.layout-demo) [data-anim="pop"] { --pop-delay: var(--delay, 0s); }
+.slide:not(.layout-demo) [data-anim="pop"].is-visible { clip-path: inset(-0.12em -0.12em -0.12em -0.12em); }
+.slide:not(.layout-demo) [data-anim="pop"]:not(.is-visible) { clip-path: inset(-0.12em 100% -0.12em -0.12em); }
+.slide:not(.layout-demo) [data-anim="pop"]::after {
+  content: "";
+  position: absolute;
+  inset: -0.08em;
+  z-index: 5;
+  background: currentColor;
+  clip-path: inset(0 0 0 0);
+  pointer-events: none;
+}
+.slide:not(.layout-demo) [data-anim="pop"].is-visible::after {
+  clip-path: inset(0 0 0 100%);
+  transition: clip-path var(--d-block-out) var(--e-arrive) calc(var(--pop-delay, 0s) + var(--d-block-in));
+}
+.slide:not(.layout-demo) .punch[data-anim="pop"]::after,
+.slide:not(.layout-demo) .is-punch[data-anim="pop"]::after,
+.slide:not(.layout-demo) .is-point[data-anim="pop"]::after,
+.slide:not(.layout-demo) .plate.is-accent[data-anim="pop"]::after { background: var(--c-accent-ink); }
+
+/* ---- the sleeve pull: the slide transition ------------------------------
+   The spine widens to cover the stage, the slide changes under it, and the
+   spine retreats to 88px. The engine adds a fresh .deck-transition for each
+   change and keeps the old slide for --deck-slide-duration. */
+.deck-transition {
+  --sleeve-from: var(--lampblack);     /* the outgoing slide's spine */
+  --sleeve-to: var(--lampblack);       /* the incoming slide's spine */
+  display: block;
+  background: var(--sleeve-to);
+  /* two moves on one block: it runs across with gravity, holds, then pulls
+     back fast and stops dead. It covers in the outgoing spine's ink and cuts
+     to the incoming one under full cover, when the slides swap (44%). */
+  animation:
+    sleeve-cover calc(var(--deck-slide-duration) * 0.38) var(--e-drop) both,
+    sleeve-pull calc(var(--deck-slide-duration) * 0.5) var(--e-arrive) calc(var(--deck-slide-duration) * 0.5) forwards,
+    sleeve-ink calc(var(--deck-slide-duration) * 0.44) steps(1, end);
+}
+/* a Lampblack slide has a Card spine, so its sleeve is Card */
+.deck-stage:has(.slide.is-current.on-ink) > .deck-transition { --sleeve-to: var(--card); }
+.deck-stage:has(.slide.is-leaving.on-ink) > .deck-transition { --sleeve-from: var(--card); }
+@keyframes sleeve-ink { from, to { background-color: var(--sleeve-from); } }
+
+@keyframes sleeve-cover {
+  from { clip-path: inset(0 calc(100% - var(--spine-w)) 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+@keyframes sleeve-pull {
+  from { clip-path: inset(0 0 0 0); }
+  to { clip-path: inset(0 calc(100% - var(--spine-w)) 0 0); }
+}
+
+/* the new slide is put on stage only once the sleeve covers it */
+.deck-stage.is-transitioning .slide.is-current { animation: sleeve-swap var(--deck-slide-duration) linear both; }
+@keyframes sleeve-swap {
+  0%, 43.9% { visibility: hidden; }
+  44%, 100% { visibility: visible; }
+}
+
+/* ---- how a NO lands -------------------------------------------------------
+   On impact the rest of the slide recoils 14px and settles inside three
+   sixteenths, and the slide prints in negative (Card and Lampblack swap,
+   Flare stays) for a stop-time hold of two beats. Then it cuts back.
+   THEME.landNo(slideEl) runs the whole move; these are its two classes.
+   Use it for a real NO, a few times in 90 minutes. */
+@keyframes jolt {
+  0% { translate: 0 14px; }
+  100% { translate: 0 0; }
+}
+.is-jolt { animation: jolt var(--d-jolt) var(--e-arrive) both; }
+
+.slide.is-negative,
+.is-negative {
+  --c-bg: var(--lampblack);
+  --c-bg-alt: var(--lampblack-alt);
+  --c-ink: var(--card);
+  --c-ink-soft: var(--soft-on-ink);
+  --c-line: var(--card);
+  --c-no: var(--card);
+  --c-no-ink: var(--lampblack);
+  --c-pass: var(--card);
+  --c-pass-ink: var(--lampblack);
+  --c-warn: var(--card);
+  --c-after: var(--card);
+}
+.slide.on-ink.is-negative {
+  --c-bg: var(--card);
+  --c-bg-alt: var(--card-alt);
+  --c-ink: var(--lampblack);
+  --c-ink-soft: var(--soft-on-card);
+  --c-line: var(--lampblack);
+  --c-no: var(--lampblack);
+  --c-no-ink: var(--card);
+  --c-pass: var(--lampblack);
+  --c-pass-ink: var(--card);
+  --c-warn: var(--lampblack);
+  --c-after: var(--lampblack);
+}
+
+/* ==========================================================================
+   9. Engine chrome
+   ========================================================================== */
+
+/* P shows and hides the tracker: on or off, on the grid, like every cut here
+   (and so that it is really gone the moment it is switched off, in ?fast too) */
+.deck-progress { transition-property: none; }
+
+/* ---- the spine tracker (the engine's progress parts, laid over the spine) --
+   Slide number at the head, the act name down the side, and a tick ruler
+   with one tick per slide in the running order; the current one is the block. */
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress {
+  left: 0;
+  top: 0;
+  right: auto;
+  bottom: 0;
+  width: var(--spine-w);
+  color: var(--card);
+}
+.deck-stage:not([data-current-layout="demo"]):has(.slide.is-current.on-ink) > .deck-progress,
+.deck-stage:not([data-current-layout="demo"]):has(.slide.is-current.is-negative) > .deck-progress { color: var(--lampblack); }
+.deck-stage:not([data-current-layout="demo"]):has(.slide.is-current.on-ink.is-negative) > .deck-progress { color: var(--card); }
+/* during a slide change the spine keeps the outgoing slide's ink until the
+   sleeve covers the stage and the slides swap (44%, see sleeve-swap) */
+.deck-stage.is-transitioning:not([data-current-layout="demo"]) > .deck-progress {
+  --spine-from: var(--card);
+  animation: spine-hold calc(var(--deck-slide-duration) * 0.44) steps(1, end);
+}
+.deck-stage.is-transitioning:not([data-current-layout="demo"]):has(.slide.is-leaving.on-ink) > .deck-progress { --spine-from: var(--lampblack); }
+@keyframes spine-hold { from, to { color: var(--spine-from); } }
+
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-num {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 46px;
+  bottom: auto;
+  color: inherit;
+  font-family: var(--f-display);
+  font-size: 48px;
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  line-height: var(--lh-cap);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-sep,
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-total { display: none; }
+/* 1 to 9 are printed 01 to 09, record-sleeve style */
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress:is([data-index="1"], [data-index="2"], [data-index="3"], [data-index="4"], [data-index="5"], [data-index="6"], [data-index="7"], [data-index="8"], [data-index="9"]) .deck-progress-current::before { content: "0"; }
+
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-label {
+  display: block;
+  position: absolute;
+  left: 30px;
+  top: 128px;
+  width: 58px;
+  height: 900px;
+  writing-mode: vertical-rl;
+  font-family: var(--f-mono);
+  font-size: var(--t-label);
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-label-tight);
+  line-height: 52px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-actnum::before { content: "Act "; }
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-actnum::after { content: "\a0\b7\a0"; }
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-actname:empty { display: none; }
+
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-track {
+  position: absolute;
+  left: 0;
+  top: 132px;
+  bottom: 44px;
+  width: 30px;
+  height: auto;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 28px;                           /* the gap between acts reads as a gap */
+}
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-act {
+  flex-basis: 0;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  border: 0;
+}
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-fill { display: none; }
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-ticks {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  height: 100%;
+}
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-tick {
+  display: block;
+  flex: none;
+  width: 10px;
+  height: var(--w-rule);               /* a tick carries meaning: 6px */
+  background: currentColor;
+}
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-tick.is-done { width: 16px; }
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-tick.is-current { width: 26px; height: 12px; margin: -3px 0; }
+
+/* ---- overview (O) ---- */
+html.deck-on .deck-overview { font-family: var(--f-body); }
+html.deck-on .deck-overview-heading {
+  margin: 32px 0 16px;
+  font-size: 18px;
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-label);
+  letter-spacing: var(--track-label);
+  opacity: 1;
+}
+html.deck-on .deck-overview-item,
+html.deck-on .deck-thumb { border-radius: 0; }
+html.deck-on .deck-overview-item { outline-width: 4px; outline-offset: 4px; }
+html.deck-on .deck-overview-item:hover { outline-color: var(--c-muted); }
+html.deck-on .deck-overview-item.is-selected { outline-color: var(--card); }
+html.deck-on .deck-overview-item.is-current { outline-color: var(--c-accent); }
+html.deck-on .deck-overview-caption { font-size: 15px; font-weight: 600; }
+html.deck-on .deck-overview-num { font-weight: var(--wght-display); }
+html.deck-on .deck-overview-title { opacity: 1; }
+
+/* a scene in a thumbnail: say which one, in the deck's hand */
+.slide.is-static [data-scene]::after {
+  border: var(--w-rule) dashed currentColor;
+  font-family: var(--f-mono);
+  font-size: 64px;
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-label);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+}
+
+/* ---- notes overlay (N), the jump chip, the corner buttons ---- */
+html.deck-on .deck-notes-overlay {
+  border-top: 6px solid var(--card);
+  background: var(--lampblack);
+  color: var(--card);
+  font-family: var(--f-body);
+  font-weight: 500;
+}
+html.deck-on .deck-notes-head {
+  color: var(--card);
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-label);
+  letter-spacing: var(--track-label);
+}
+/* "YOUR STORY:" paragraphs: a Flare bar beside Card text (Flare is never small type) */
+html.deck-on .deck-notes-story,
+html.deck-on .deck-notes-unfilled {
+  padding-left: 0.7em;
+  border-left: 0.35em solid var(--c-accent);
+  color: var(--card);
+  font-weight: 700;
+}
+/* "NOT FILLED IN:" paragraphs: the same bar, dashed, like an empty slot */
+html.deck-on .deck-notes-unfilled { border-left-style: dashed; }
+html.deck-on .deck-notes-empty { color: var(--c-muted); }
+/* labels at the start of a notes line (deck.js notesHtml): wide caps chips.
+   SAY is a solid Card block; DO, NEXT and TIME are Card frames (TIME dashed);
+   YOUR STORY and NOT FILLED IN are Lampblack on a Flare block, a size up. */
+html.deck-on .deck-notes-label {
+  border: 0.09em solid var(--card);
+  border-radius: 0;
+  background: transparent;
+  color: var(--card);
+  font-family: var(--f-body);
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-label);
+  letter-spacing: var(--track-label);
+}
+html.deck-on .deck-notes-label-say { background: var(--card); color: var(--lampblack); }
+html.deck-on .deck-notes-label-time,
+html.deck-on .deck-notes-label-if-short-of-time { border-style: dashed; }
+html.deck-on .deck-notes-label-your-story,
+html.deck-on .deck-notes-label-not-filled-in {
+  border-color: var(--c-accent);
+  background: var(--c-accent);
+  color: var(--c-accent-ink);
+}
+html.deck-on .deck-notes-more {
+  border-top: 2px solid var(--card);
+  background: var(--lampblack);
+  color: var(--card);
+  font-family: var(--f-body);
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-label);
+  letter-spacing: var(--track-label);
+}
+html.deck-on .deck-jump {
+  border-radius: 0;
+  background: var(--lampblack);
+  color: var(--card);
+  font-family: var(--f-body);
+  font-weight: 700;
+  outline: 3px solid var(--card);
+}
+html.deck-on .deck-nav {
+  border-radius: 0;
+  background: var(--lampblack);
+  color: var(--card);
+  outline: 3px solid var(--card);
+  transition: none;
+}
+html.deck-on .deck-blackout { transition: none; }
+
+/* ---- presenter view (S): the same inks, off stage ---- */
+html.mode-presenter .deck-presenter { font-family: var(--f-body); font-weight: 500; }
+html.mode-presenter .deck-pv-num,
+html.mode-presenter .deck-pv-elapsed,
+html.mode-presenter .deck-pv-clock {
+  font-family: var(--f-display);
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-tight);
+}
+html.mode-presenter .deck-pv-act,
+html.mode-presenter .deck-pv-label {
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-label);
+  letter-spacing: var(--track-label);
+}
+html.mode-presenter .deck-pv-title,
+html.mode-presenter .deck-pv-next-title { font-weight: var(--wght-strong); }
+html.mode-presenter .deck-pv-top,
+html.mode-presenter .deck-pv-bar,
+html.mode-presenter .deck-pv-side { border-color: var(--card); border-width: 2px; }
+html.mode-presenter .deck-pv-thumb { border: 2px solid var(--card); border-radius: 0; }
+html.mode-presenter .deck-pv-btn {
+  border: 2px solid var(--card);
+  border-radius: 0;
+  background: var(--lampblack);
+  color: var(--card);
+  font-family: var(--f-body);
+  font-weight: 700;
+}
+html.mode-presenter .deck-pv-btn:hover,
+html.mode-presenter .deck-pv-go { background: var(--card); color: var(--lampblack); }
+html.mode-presenter .deck-pv-blackout { border-radius: 0; color: var(--lampblack); }
+/* ahead and behind differ by more than ink: behind is a block */
+html.mode-presenter .deck-pv-status[data-status="behind"] {
+  display: inline-block;
+  padding: 2px 10px;
+  background: var(--c-accent);
+  color: var(--c-accent-ink);
+}
+
+/* ---- the timer scene ---- */
+.timer {
+  --timer-font: var(--f-display);
+  --timer-weight: var(--wght-display);
+  --timer-label-size: var(--t-label);
+  --timer-hint-size: var(--t-small);
+  --timer-bar-height: 28px;
+  --timer-bar-border: var(--w-rule);
+}
+.timer-digits {
+  font-stretch: var(--wdth-display);
+  line-height: var(--lh-cap);
+  letter-spacing: 0;
+  margin: 0.06em 0 0.04em;
+}
+.timer-label {
+  font-family: var(--f-mono);
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-label);
+  letter-spacing: var(--track-label);
+  margin-bottom: var(--s-3);
+}
+.timer-bar { width: 78%; margin-top: var(--s-5); }
+.timer-hint {
+  font-family: var(--f-mono);
+  font-weight: 600;
+  margin-top: var(--s-3);
+}
+/* the keys (T, R) are for the speaker: they are in the notes, not on the
+   audience's screen */
+.deck-stage .timer-hint { display: none; }
+.timer[data-state="paused"] .timer-digits { -webkit-text-stroke-width: 0.02em; }
+
+/* ==========================================================================
+   10. Print
+   ========================================================================== */
+
+/* the PDF has every slide in its final state: no half-open reveals */
+html.mode-print .slide [data-anim="pop"]::after { display: none; }
+html.mode-print .gate::after,
+html.mode-print .gate > .gate-shutter,
+html.mode-print .gate > .gate-shutter::after,
+html.mode-print .gate > .gate-name::after,
+html.mode-print .gate > .gate-why { animation: none !important; }

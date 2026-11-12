@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SLEEVE · title build and the NO · motion study</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #050505; overflow: hidden; }
+#stage {
+  position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; transform-origin: 0 0;
+  background: var(--card); color: var(--lampblack);
+  font-family: var(--font-text); font-weight: 500; font-stretch: 100%;
+  font-synthesis: none; -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision;
+}
+:where(#stage *) { margin: 0; padding: 0; }
+#stage .a { position: absolute; }
+
+/* left field: prints in negative for the stop-time hold */
+#lbg { left: 0; top: 0; width: 1920px; height: 1080px; background: var(--card); }
+#lgroup { left: 0; top: 0; width: 1920px; height: 1080px; color: var(--lampblack); }
+#stage.neg #lbg { background: var(--lampblack); }
+#stage.neg #lgroup { color: var(--card); }
+
+.kicker { left: var(--content-left); top: 64px; }
+.stack { font-family: var(--font-display); font-weight: var(--wght-display); font-stretch: var(--wdth-display); line-height: var(--lh-cap); text-transform: uppercase; font-kerning: normal; }
+.stack .ln { display: block; width: max-content; white-space: nowrap; }
+.title { left: var(--content-left); top: 150px; width: 750px; }
+.bar { position: absolute; left: 0; background: var(--lampblack); }
+.sub { left: var(--content-left); top: 806px; font-size: var(--fs-voice); line-height: 1.1; white-space: nowrap; }
+.who, .where { left: var(--content-left); font-size: var(--fs-credit); line-height: 1; font-stretch: 72%; font-weight: 600; letter-spacing: .01em; white-space: nowrap; }
+.who { top: 950px; }
+.who b { font-weight: 900; text-transform: uppercase; letter-spacing: .02em; }
+.where { top: 995.6px; }
+
+/* the count-in: four gates on the right field */
+#floor { left: 970px; top: 770px; width: 906px; height: 8px; background: var(--lampblack); transform-origin: 0 0; }
+.cg { top: 150px; width: 204px; height: 620px; }
+.cg > * { position: absolute; }
+.cg .lintel { left: 0; top: 0; width: 204px; height: 8px; background: var(--lampblack); }
+.cg .post { top: 0; width: 8px; height: 620px; background: var(--lampblack); }
+.cg .shut { left: 16px; top: 16px; width: 172px; height: 604px; background: var(--lampblack); }
+.cg .nm { left: 0; top: 0; font-size: 104px; white-space: nowrap; transform-origin: 0 0; transform: translate(65.2px, 596px) rotate(-90deg); }
+.cg .ps { left: 29px; top: 91px; font-size: 62px; color: var(--card); letter-spacing: .01em; }
+
+/* the slab: one object. The NO is printed on it and never moves separately */
+#slab { left: 926px; top: 0; width: 994px; height: 1080px; background: var(--flare); }
+#slab > * { position: absolute; }
+.roll { left: 44px; top: 64px; width: 906px; display: grid; grid-template-columns: 326px 326px 254px; white-space: nowrap; }
+.mega { left: 7.8px; top: 150px; font-size: var(--fs-mega); }
+.rule { left: 44px; top: 847px; width: 906px; height: 6px; background: var(--lampblack); transform-origin: 0 0; }
+.fine { left: 44px; top: 879px; width: 906px; display: grid; grid-template-columns: 326px 326px 254px; }
+.fine .t-label { display: block; margin-bottom: 22px; }
+.fine b { display: block; font-family: var(--font-display); font-weight: var(--wght-display); font-stretch: var(--wdth-display); font-size: 58px; line-height: .92; text-transform: uppercase; white-space: nowrap; }
+
+/* the spine starts as the whole sleeve and pulls back to the left edge */
+#spine { left: 0; top: 0; width: var(--spine-w); height: 1080px; background: var(--lampblack); color: var(--card); overflow: hidden; }
+.spine-n { position: absolute; left: 0; top: 46px; width: 88px; text-align: center; font-family: var(--font-display); font-weight: var(--wght-display); font-stretch: var(--wdth-display); font-size: 48px; line-height: var(--lh-cap); font-variant-numeric: tabular-nums; }
+.spine-t { position: absolute; left: 0; top: 132px; width: 88px; height: 760px; writing-mode: vertical-rl; line-height: 88px; white-space: nowrap; font-weight: 700; font-stretch: 112%; font-size: var(--fs-label); letter-spacing: .14em; text-transform: uppercase; }
+.trk { position: absolute; left: 12px; bottom: 46px; width: 64px; height: 40px; display: flex; gap: 4px; }
+.trk i { display: block; width: 13px; height: 40px; border: 2px solid currentColor; position: relative; }
+.trk i.pass::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 11px; background: currentColor; }
+.trk i.no { background: var(--flare); border-color: var(--flare); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="a" id="lbg"></div>
+
+  <div class="a" id="lgroup">
+    <p class="a t-label kicker" id="kicker">A 90-minute workshop</p>
+    <h1 class="a stack title" id="title" data-h="622.6">
+      <span class="ln">The most</span>
+      <span class="ln">valuable</span>
+      <span class="ln">AI skill</span>
+      <span class="ln">is saying</span>
+    </h1>
+    <p class="a t-voice sub" id="sub">Screening AI use cases<br>for real return.</p>
+    <p class="a who" id="who"><b>Dustin T Hughes</b> · VP of Technology, Laborde Products</p>
+    <p class="a where" id="where">NOAI 2026 · New Orleans Jazz Museum</p>
+  </div>
+
+  <div class="a" id="floor"></div>
+  <div id="gates"></div>
+
+  <div class="a" id="slab">
+    <p class="t-label roll"><span id="r0">Four gates</span><span id="r1">One answer</span><span id="r2">No hype</span></p>
+    <div class="t-display mega">NO</div>
+    <div class="rule" id="rule"></div>
+    <div class="fine">
+      <div id="c0"><span class="t-label">When</span><b>Friday<br>Nov 13, 2026</b></div>
+      <div id="c1"><span class="t-label">Time</span><b>2:30–4:00 PM<br>90 minutes</b></div>
+      <div id="c2"><span class="t-label">Room</span><b>Education<br>Center</b></div>
+    </div>
+  </div>
+
+  <aside class="a" id="spine">
+    <b class="spine-n" id="sn">01</b>
+    <span class="spine-t" id="st">The Most Valuable AI Skill Is Saying No</span>
+    <i class="trk" id="trk"><i></i><i></i><i></i><i></i></i>
+  </aside>
+</div>
+
+<script>
+/* =====================================================================
+   SLEEVE motion study. 120 BPM: a beat is 0.5 s, the swung off-beat
+   falls 0.333 s into the beat, a sixteenth is 0.125 s.
+   Everything is a pure function of t. window.__setTime(seconds)
+   renders the exact frame; opened normally, the page plays itself.
+   ===================================================================== */
+var DURATION = 8.0, BEAT = 0.5, SWING = 1 / 3, SIX = 0.125;
+var CAP = 0.688, LH = 0.708, WMIN = 62, WMAX = 125;
+
+/* ---- easings: the same cubic-beziers as tokens.css ---- */
+function bez(x1, y1, x2, y2) {
+  function cx(t) { return 3 * x1 * t * (1 - t) * (1 - t) + 3 * x2 * t * t * (1 - t) + t * t * t; }
+  function cy(t) { return 3 * y1 * t * (1 - t) * (1 - t) + 3 * y2 * t * t * (1 - t) + t * t * t; }
+  return function (x) {
+    if (x <= 0) return 0; if (x >= 1) return 1;
+    var lo = 0, hi = 1, t = x, i;
+    for (i = 0; i < 40; i++) { t = (lo + hi) / 2; if (cx(t) < x) lo = t; else hi = t; }
+    return cy(t);
+  };
+}
+var arrive = bez(0.16, 1, 0.3, 1), lift = bez(0.2, 0.8, 0.2, 1), drop = bez(0.55, 0, 1, 0.45);
+function seg(t, start, dur) { var p = (t - start) / dur; return p < 0 ? 0 : p > 1 ? 1 : p; }
+
+/* ---- the score ---- */
+var S = {
+  sleevePull: [0, 0.5],
+  kicker: 0.5,
+  lines: [BEAT * 0 + SWING, BEAT * 1 + SWING, BEAT * 2 + SWING, BEAT * 3 + SWING],   // each on the swung off-beat
+  barGrow: SIX, barBack: 0.25,
+  sub: [2.25, 0.333], who: 2.667, where: 2.833,
+  floor: [2.0, 0.25],
+  rise: [2.0, 2.167, 2.333, 2.5], riseDur: 0.25,
+  lifts: [3.0, 3.5, 4.0], liftDur: 0.5,                 // one, two, three: on the beat
+  struggle: [4.25, 4.5, 4.75, 4.875],                   // gate four tries, shakes, falls shut
+  drop: [5.1875, 0.375],                                // three sixteenths of gravity
+  negative: [5.5625, 6.75],                             // stop-time: the page holds in negative
+  rule: [7.0, 0.25], roll: 7.0, cols: [7.0, 7.167, 7.333]
+};
+var LAND = S.drop[0] + S.drop[1];
+
+/* ---- build ---- */
+var $ = function (id) { return document.getElementById(id); };
+var stage = $('stage'), lines = [], bars = [], gates = [];
+
+
+/* Optical margins. A glyph's ink never starts exactly at its origin, so a
+   stack justified on advance widths has ragged edges (a P sits 10px inside
+   an A at 270px). inkBearings() measures the real left and right side
+   bearings of a glyph at any width, by scanning a rasterised copy, and
+   fitStack() uses them so the INK is flush on both sides of the measure. */
+var STOPS = [[62, 'ultra-condensed'], [75, 'condensed'], [87.5, 'semi-condensed'], [100, 'normal'], [112.5, 'semi-expanded'], [125, 'expanded']];
+var _scan = null, _bear = {};
+function bearingsAtStop(ch, k) {
+  var key = ch + '|' + k; if (_bear[key]) return _bear[key];
+  if (!_scan) { var cv = document.createElement('canvas'); cv.width = 640; cv.height = 560; _scan = cv.getContext('2d', { willReadFrequently: true }); }
+  var c = _scan, S = 400, X = 80, W = 640, H = 560;
+  c.clearRect(0, 0, W, H); c.font = '900 ' + S + 'px Archivo'; c.fontStretch = STOPS[k][1]; c.textBaseline = 'alphabetic'; c.fillStyle = '#000';
+  var adv = c.measureText(ch).width; c.fillText(ch, X, 420);
+  var d = c.getImageData(0, 0, W, H).data, minx = W, maxx = -1, x, y;
+  for (y = 0; y < H; y++) for (x = 0; x < W; x++) if (d[(y * W + x) * 4 + 3] > 127) { if (x < minx) minx = x; if (x > maxx) maxx = x; }
+  return (_bear[key] = maxx < 0 ? [0, 0] : [(minx - X) / S, (X + adv - (maxx + 1)) / S]);
+}
+function inkBearings(ch, wdth) {
+  var k = 0; while (k < STOPS.length - 2 && wdth > STOPS[k + 1][0]) k++;
+  var a = bearingsAtStop(ch, k), b = bearingsAtStop(ch, k + 1), f = (wdth - STOPS[k][0]) / (STOPS[k + 1][0] - STOPS[k][0]);
+  f = Math.max(0, Math.min(1, f));
+  return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+}
+function fitStack(el) {
+  var measure = el.clientWidth;
+  var lines = Array.prototype.slice.call(el.querySelectorAll('.ln'));
+  var n = lines.length, i;
+  function w(l) { return l.getBoundingClientRect().width; }
+  function ends(l) { var t = l.textContent.trim().toUpperCase(); return [t.charAt(0), t.charAt(t.length - 1)]; }
+  function ink(l, wdth, s) { var e = ends(l); return w(l) - (inkBearings(e[0], wdth)[0] + inkBearings(e[1], wdth)[1]) * s; }
+  el.style.fontSize = '100px';
+  lines.forEach(function (l) { l.style.fontStretch = WMIN + '%'; l.style.letterSpacing = '0'; l.style.marginRight = '0'; l.style.marginLeft = '0'; });
+  var widest = 0;
+  lines.forEach(function (l) { widest = Math.max(widest, ink(l, WMIN, 100) / 100); });
+  var s = el.dataset.size ? parseFloat(el.dataset.size) : Math.floor(measure / widest * 10) / 10;
+  el.style.fontSize = s + 'px';
+  lines.forEach(function (l) {
+    var lo = WMIN, hi = WMAX, mid;
+    for (i = 0; i < 18; i++) { mid = (lo + hi) / 2; l.style.fontStretch = mid + '%'; if (ink(l, mid, s) > measure) hi = mid; else lo = mid; }
+    var v = Math.round(lo * 10) / 10;
+    l.style.fontStretch = v + '%';
+    var chars = l.textContent.trim().length, rest = measure - ink(l, v, s), ls = 0;
+    if (rest > 0.5 && chars > 1) { ls = rest / (chars - 1); l.style.letterSpacing = ls.toFixed(3) + 'px'; }
+    l.style.marginLeft = (-inkBearings(ends(l)[0], v)[0] * s).toFixed(2) + 'px';
+    l.style.marginRight = (-ls).toFixed(3) + 'px';
+    l.dataset.wdth = v;
+  });
+  var gap = null;
+  if (el.dataset.h) gap = (parseFloat(el.dataset.h) - CAP * s) / (n - 1) - LH * s;
+  else if (el.dataset.gap) gap = parseFloat(el.dataset.gap);
+  if (gap !== null) lines.forEach(function (l, k) { l.style.marginBottom = (k < n - 1 ? gap : 0) + 'px'; });
+  el.dataset.fs = s;
+  return { size: s, pitch: gap === null ? LH * s : LH * s + gap };
+}
+
+function build() {
+  var title = $('title'), f = fitStack(title);
+  lines = Array.prototype.slice.call(title.querySelectorAll('.ln'));
+  lines.forEach(function (l, k) {
+    var b = document.createElement('i'); b.className = 'bar';
+    b.style.top = (k * f.pitch - 4) + 'px'; b.style.height = (LH * f.size + 8) + 'px';
+    title.appendChild(b); bars.push(b);
+  });
+  var names = ['Cost', 'Return', 'Effort', 'Potential'], host = $('gates');
+  names.forEach(function (nm, i) {
+    var g = document.createElement('div'); g.className = 'a cg'; g.style.left = (970 + i * 234) + 'px';
+    g.innerHTML = '<i class="lintel"></i><i class="post" style="left:0"></i><i class="post" style="left:196px"></i>' +
+      '<span class="t-display nm">' + nm + '</span><i class="shut"></i><span class="t-display ps">Pass</span>';
+    host.appendChild(g);
+    gates.push({ el: g, shut: g.querySelector('.shut'), ps: g.querySelector('.ps') });
+  });
+}
+
+function show(el, on) { el.style.visibility = on ? 'visible' : 'hidden'; }
+
+/* ---- render: the whole frame from t, nothing remembered ---- */
+function render(t) {
+  var i, p, e;
+
+  // 1. the sleeve pull: the black cover retreats left and becomes the spine
+  e = arrive(seg(t, S.sleevePull[0], S.sleevePull[1]));
+  $('spine').style.width = (1920 - e * (1920 - 88)) + 'px';
+  var spineOn = t >= S.sleevePull[1];
+  show($('sn'), spineOn); show($('st'), spineOn); show($('trk'), spineOn);
+
+  // 2. left column. Labels cut. Lines arrive behind a block, on the swung off-beat
+  show($('kicker'), t >= S.kicker);
+  for (i = 0; i < 4; i++) {
+    var g = arrive(seg(t, S.lines[i], S.barGrow)), r = arrive(seg(t, S.lines[i] + S.barGrow, S.barBack));
+    bars[i].style.left = (r * 750) + 'px';
+    bars[i].style.width = Math.max(0, (g - r) * 750) + 'px';
+    lines[i].style.clipPath = 'inset(-30px ' + ((1 - r) * 100) + '% -30px -10px)';
+  }
+  p = arrive(seg(t, S.sub[0], S.sub[1]));
+  $('sub').style.clipPath = 'inset(-10px ' + ((1 - p) * 100) + '% -20px -10px)';
+  show($('who'), t >= S.who); show($('where'), t >= S.where);
+
+  // 3. the count-in: four gates rise shut, then open one, two, three
+  p = arrive(seg(t, S.floor[0], S.floor[1])); $('floor').style.transform = p >= 1 ? 'none' : 'scaleX(' + p + ')';
+  for (i = 0; i < 4; i++) {
+    p = arrive(seg(t, S.rise[i], S.riseDur));
+    gates[i].el.style.clipPath = 'inset(' + ((1 - p) * 100) + '% 0 0 0)';
+    var h = 604, pass = false;
+    if (i < 3) {
+      e = lift(seg(t, S.lifts[i], S.liftDur));
+      h = 604 - e * 472;
+      pass = t >= S.lifts[i] + S.liftDur - SIX;
+    } else {
+      // gate four: tries (lift), shakes (deterministic tremble), falls shut (drop)
+      var up = 0, s = S.struggle;
+      if (t >= s[0] && t < s[1]) up = 90 * lift(seg(t, s[0], s[1] - s[0]));
+      else if (t >= s[1] && t < s[2]) up = 90 + 5 * Math.sin((t - s[1]) * 2 * Math.PI * 12);
+      else if (t >= s[2] && t < s[3]) up = 90 * (1 - drop(seg(t, s[2], s[3] - s[2])));
+      h = 604 - up;
+    }
+    gates[i].shut.style.height = h + 'px';
+    show(gates[i].ps, pass);
+  }
+
+  // 4. NO. The slab falls for three sixteenths and stops dead
+  e = drop(seg(t, S.drop[0], S.drop[1]));
+  $('slab').style.transform = e >= 1 ? 'none' : 'translateY(' + (-(1 - e) * 1080).toFixed(2) + 'px)';
+  show($('slab'), t >= S.drop[0]);
+
+  // 5. impact: the left field recoils for an eighth, and prints in negative for the stop-time hold
+  var since = t - LAND, jolt = 0;
+  if (since >= 0 && since < 0.375) jolt = 14 * Math.exp(-since * 14) * Math.cos(since * 2 * Math.PI * 7);
+  $('lgroup').style.transform = jolt ? 'translateY(' + jolt.toFixed(2) + 'px)' : 'none';
+  stage.classList.toggle('neg', t >= S.negative[0] && t < S.negative[1]);
+
+  // 6. the fine print cuts in after the hold, in swung order
+  p = arrive(seg(t, S.rule[0], S.rule[1])); $('rule').style.transform = p >= 1 ? 'none' : 'scaleX(' + p + ')';
+  for (i = 0; i < 3; i++) { show($('r' + i), t >= S.cols[i]); show($('c' + i), t >= S.cols[i]); }
+
+  // 7. the tracker on the spine keeps score
+  var tk = $('trk').children;
+  for (i = 0; i < 3; i++) tk[i].className = t >= S.lifts[i] + S.liftDur ? 'pass' : '';
+  tk[3].className = t >= LAND ? 'no' : '';
+}
+
+/* ---- transport ---- */
+var ready = false, manual = false, pending = null, t0 = null, HOLD = 2.5;
+window.__duration = DURATION;
+window.__setTime = function (seconds) {
+  manual = true;
+  var t = Math.max(0, Math.min(DURATION, +seconds || 0));
+  if (!ready) { pending = t; return false; }
+  render(t); return true;
+};
+function fitToWindow() {
+  var sc = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  if (Math.abs(sc - 1) < 0.001) { stage.style.transform = ''; stage.style.left = '0'; stage.style.top = '0'; return; }
+  stage.style.transform = 'scale(' + sc + ')';
+  stage.style.left = ((window.innerWidth - 1920 * sc) / 2) + 'px';
+  stage.style.top = ((window.innerHeight - 1080 * sc) / 2) + 'px';
+}
+function tick(now) {
+  if (manual) return;
+  if (t0 === null) t0 = now;
+  var t = ((now - t0) / 1000) % (DURATION + HOLD);
+  render(Math.min(t, DURATION));
+  requestAnimationFrame(tick);
+}
+function start() {
+  build();                      // measured at scale 1, before any window scaling
+  ready = true; window.__ready = true;
+  fitToWindow(); window.addEventListener('resize', fitToWindow);
+  if (pending !== null) render(pending);
+  else { render(0); requestAnimationFrame(tick); }
+}
+document.addEventListener('keydown', function (ev) { if (ev.key === ' ' || ev.key === 'r') { manual = false; t0 = null; requestAnimationFrame(tick); } });
+if (document.fonts && document.fonts.ready) {
+  Promise.all([document.fonts.load('900 100px Archivo'), document.fonts.load('italic 560 54px Fraunces')]).then(function () { return document.fonts.ready; }).then(start, start);
+} else { window.onload = start; }
+</script>
+</body>
+</html>

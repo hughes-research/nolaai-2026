@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Most Valuable AI Skill Is Saying No</title>
+<!--
+  THE DECK. Double-click this file: it runs from disk, with no network.
+
+  Rules for this file (docs/BRIEF.md, section 9):
+    - classic <script src> tags and relative CSS only
+    - no ES modules, no fetch, no external URLs, no CDNs
+    - the load order below matters: theme, engine css, libraries, the
+      speaker's numbers, the engine, scenes, slides, then Deck.start()
+
+  Add ?debug to the address to see an error badge when a slide misbehaves.
+  Keys: → next, ← back, O overview, S presenter view, F fullscreen,
+        B blackout, N notes, P progress bar, T timer, digits + Enter jump.
+  Tools (screenshots, tests, single-file build, PDF): see tools/README.md.
+-->
+
+<!-- 1. theme -->
+<link rel="stylesheet" href="theme/fonts.css">
+<link rel="stylesheet" href="theme/tokens.css">
+<link rel="stylesheet" href="theme/components.css">
+<!-- 2. engine css -->
+<link rel="stylesheet" href="engine/deck.css">
+</head>
+<body>
+<div id="deck"></div>
+<noscript>This deck needs JavaScript. Open it in Chrome, Edge or Safari.</noscript>
+
+<!-- 3. libraries -->
+<script src="lib/motion.js"></script>
+<script src="lib/benchlm-data.js"></script>
+<script src="lib/cost-math.js"></script>
+<script src="lib/gates-core.js"></script>
+<script src="lib/slotting-core.js"></script>
+<script src="lib/qr.js"></script>
+
+<!-- 4. everything the speaker may edit -->
+<script src="content/your-numbers.js"></script>
+
+<!-- 5. engine -->
+<script src="engine/deck.js"></script>
+
+<!-- 5b. theme helpers for canvas scenes (window.THEME) -->
+<script src="theme/theme.js"></script>
+
+<!-- 6. scenes -->
+<script src="scenes/timer.js"></script>
+<script src="scenes/title.js"></script>
+<script src="scenes/gates.js"></script>
+<script src="scenes/cost.js"></script>
+<script src="scenes/cash.js"></script>
+<script src="scenes/warehouse.js"></script>
+<script src="scenes/screener.js"></script>
+<script src="scenes/misc.js"></script>
+<script src="scenes/project.js"></script>
+<script src="scenes/close.js"></script>
+
+<!-- 7. slides, in running order (one file per group; the order of these tags IS the running order) -->
+<script src="slides/a0-walkin.js"></script>
+<script src="slides/a1-bandwagon.js"></script>
+<script src="slides/a2a-gates.js"></script>
+<script src="slides/a2b-cost.js"></script>
+<script src="slides/a2c-gates.js"></script>
+<script src="slides/a3-yourturn.js"></script>
+<script src="slides/a4a-winner.js"></script>
+<script src="slides/a4b-live.js"></script>
+<script src="slides/a4c-project.js"></script>
+<script src="slides/a5-close.js"></script>
+
+<!-- Slide kit: reference slides for authors, shown only with ?kit -->
+<script src="slides/_kit.js"></script>
+
+<!-- Engine demo slides. Switch them off with  window.DECK_DEMO = false;
+     (see the top of slides/_demo.js). Keep this tag: the engine test needs it. -->
+<script src="slides/_demo.js"></script>
+
+<!-- 8. go -->
+<script>
+  Deck.config({
+    title: 'The Most Valuable AI Skill Is Saying No',
+    startClock: '14:30',   // session start, 24-hour clock: the presenter view shows planned clock times
+    acts: ['Walk-in', 'The Bandwagon', 'The Four Gates', 'Your Turn', 'The One We Built', 'Who Owns the Minutes?']
+  });
+  Deck.start();
+</script>
+</body>
+</html>

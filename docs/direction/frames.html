@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SLEEVE · five frames · The Most Valuable AI Skill Is Saying No</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+/* ---------- page ---------- */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #1a1917; }
+.frame {
+  position: relative; width: 1920px; height: 1080px; overflow: hidden;
+  background: var(--card); color: var(--lampblack);
+  font-family: var(--font-text); font-weight: var(--wght-text); font-stretch: 100%;
+  font-synthesis: none; -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision;
+}
+.frame + .frame { margin-top: 40px; }
+.frame * { margin: 0; padding: 0; }
+.frame .abs, .frame > * { position: absolute; }
+.dark { background: var(--lampblack); color: var(--card); }
+
+/* ---------- the spine: on every slide, like the edge of a record sleeve ---------- */
+.spine { left: 0; top: 0; width: var(--spine-w); height: 1080px; background: var(--lampblack); color: var(--card); }
+.spine.inv { background: var(--card); color: var(--lampblack); }
+.spine-n { position: absolute; left: 0; top: 46px; width: 88px; text-align: center;
+  font-family: var(--font-display); font-weight: var(--wght-display); font-stretch: var(--wdth-display); font-size: 48px; line-height: var(--lh-cap);
+  font-variant-numeric: tabular-nums; }
+.spine-t { position: absolute; left: 0; top: 132px; width: 88px; height: 760px;
+  writing-mode: vertical-rl; line-height: 88px; white-space: nowrap;
+  font-weight: 700; font-stretch: 112%; font-size: var(--fs-label); letter-spacing: .14em; text-transform: uppercase; }
+.trk { position: absolute; left: 12px; bottom: 46px; width: 64px; height: 40px; display: flex; gap: 4px; }
+.trk i { display: block; width: 13px; height: 40px; border: 2px solid currentColor; position: relative; }
+.trk i.pass::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 11px; background: currentColor; }
+.trk i.no { background: var(--flare); border-color: var(--flare); }
+.trk i.now { background: currentColor; }
+
+/* ---------- justified stacks: lines are fitted on the width axis by fitStack() ---------- */
+.stack { font-family: var(--font-display); font-weight: var(--wght-display); font-stretch: var(--wdth-display); line-height: var(--lh-cap);
+  text-transform: uppercase; font-kerning: normal; }
+.stack .ln { display: block; width: max-content; white-space: nowrap; }
+.point { color: var(--flare); }
+
+/* =====================================================================
+   F1 · TITLE
+   ===================================================================== */
+#f1 .slab { left: 926px; top: 0; width: 994px; height: 1080px; background: var(--flare); }
+#f1 .kicker { left: var(--content-left); top: 64px; }
+#f1 .roll { left: 970px; top: 64px; width: 906px; display: grid; grid-template-columns: 326px 326px 254px; white-space: nowrap; }
+#f1 .roll span { display: block; }
+#f1 .title { left: var(--content-left); top: 150px; width: 750px; }
+#f1 .mega { left: 933.8px; top: 150px; font-size: var(--fs-mega); }
+#f1 .sub { left: var(--content-left); top: 806px; font-size: var(--fs-voice); line-height: 1.1; }
+#f1 .who, #f1 .where { left: var(--content-left); font-size: var(--fs-credit); line-height: 1; font-stretch: 72%; font-weight: 600; letter-spacing: .01em; white-space: nowrap; }
+#f1 .who { top: 950px; }
+#f1 .who b { font-weight: 900; text-transform: uppercase; letter-spacing: .02em; }
+#f1 .where { top: 995.6px; }
+#f1 .fine { left: 970px; top: 847px; width: 906px; border-top: var(--rule) solid var(--lampblack); padding-top: 26px;
+  display: grid; grid-template-columns: 326px 326px 254px; }
+#f1 .fine > div { position: relative; }
+#f1 .fine .t-label { display: block; margin-bottom: 22px; }
+#f1 .fine b { display: block; font-family: var(--font-display); font-weight: var(--wght-display); font-stretch: var(--wdth-display); font-size: 58px; line-height: .92; text-transform: uppercase; white-space: nowrap; }
+
+/* =====================================================================
+   F2 · STATEMENT
+   ===================================================================== */
+#f2 .panel { left: 1264px; top: 316px; width: 656px; height: 764px; background: var(--card); }
+#f2 .chip-l { left: var(--content-left); top: 64px; color: var(--card); }
+#f2 .big { left: var(--content-left); top: 131px; width: 1088px; }
+#f2 .follow { left: 1316px; top: 506px; width: 560px; color: var(--lampblack); font-size: var(--fs-voice-l); line-height: 1.12; }
+#f2 .worth { left: 1316px; top: 763px; width: 552px; color: var(--lampblack); }
+
+/* =====================================================================
+   F3 · THE FOUR GATES
+   ===================================================================== */
+#f3 .head { left: var(--content-left); top: 60px; font-size: var(--fs-headline); white-space: nowrap; }
+#f3 .kick { right: var(--margin-right); top: 58px; width: 800px; text-align: right; font-size: var(--fs-voice-s); line-height: 54px; }
+#f3 .dock { left: var(--spine-w); top: 236px; width: 1832px; height: 844px; }
+#f3 .lintel { left: 0; top: 0; width: 1832px; height: var(--rule-heavy); background: var(--lampblack); }
+#f3 .floor { left: 0; top: 772px; width: 1832px; height: var(--rule-heavy); background: var(--lampblack); }
+#f3 .post { top: 0; width: var(--rule-heavy); height: 772px; background: var(--lampblack); }
+.gate { position: absolute; top: 0; width: 456px; height: 844px; left: calc(var(--i) * 456px); }
+.gate > * { position: absolute; }
+.gate .shutter { left: 16px; top: 16px; width: 432px; height: 152px; background: var(--lampblack); }
+.gate .verdict { left: 40px; top: 59px; font-size: var(--fs-verdict); color: var(--card); letter-spacing: .01em; }
+.gate .gn { left: 40px; top: 206px; }
+.gate .name { left: 40px; top: 250px; font-size: var(--fs-headline-s); white-space: nowrap; letter-spacing: -0.01em; }
+.gate .pull { left: 196px; top: 168px; width: 72px; height: 14px; background: var(--lampblack); }
+.gate .q { left: 40px; top: 346px; width: 400px; font-size: var(--fs-body); line-height: 48px; font-weight: 500; }
+.gate .thru { left: 40px; top: 668px; }
+.gate.no .shutter { height: 828px; background: var(--flare); }
+.gate.no .verdict { left: 26.4px; top: 566px; font-size: var(--fs-verdict-no); color: var(--lampblack); letter-spacing: 0; }
+#f3 .foot { left: var(--content-left); top: 1040px; }
+#f3 .key { right: var(--margin-right); top: 1030px; height: 40px; display: flex; align-items: center; white-space: nowrap; }
+#f3 .key i { display: block; width: 16px; height: 40px; border: 3px solid var(--lampblack); margin-right: 14px; position: relative; }
+#f3 .key i.pass::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 11px; background: var(--lampblack); }
+#f3 .key i.no { background: var(--flare); }
+#f3 .key span { margin-right: 44px; }
+#f3 .key span:last-child { margin-right: 0; }
+
+/* =====================================================================
+   F4 · DATA
+   ===================================================================== */
+#f4 .head { left: var(--content-left); top: 60px; font-size: var(--fs-headline); white-space: nowrap; }
+#f4 .axis-l { left: var(--content-left); top: 206px; white-space: nowrap; }
+#f4 .axis { left: 557px; top: 236px; width: 6px; height: 748px; background: var(--lampblack); }
+#f4 .row { left: 0; top: var(--y); width: 1920px; height: 96px; }
+#f4 .row > * { position: absolute; }
+#f4 .row .m { left: var(--content-left); top: 0; font-size: var(--fs-body); line-height: 96px; font-weight: 600; white-space: nowrap; }
+#f4 .row .bar { left: 560px; top: 0; height: 96px; width: var(--w); background: var(--lampblack); }
+#f4 .row .v { top: 15px; left: calc(560px + var(--w) + 22px); font-size: var(--fs-numeral-m); }
+#f4 .row.max .v { left: auto; right: var(--margin-right); color: var(--card); }
+#f4 .spread { right: var(--margin-right); top: 258px; font-size: var(--fs-numeral-l); }
+#f4 .spread-c { right: var(--margin-right); top: 462px; width: 700px; text-align: right; font-size: var(--fs-voice-s); line-height: 50px; }
+#f4 .band { left: var(--spine-w); top: 720px; width: 1832px; height: 264px; background: var(--flare); }
+#f4 .pc { left: var(--content-left); top: 766.4px; width: 250px; }
+#f4 .about { left: 596px; top: 871px; font-size: var(--fs-voice-l); line-height: 1; }
+#f4 .zero { left: 770px; top: 766.4px; font-size: var(--fs-numeral-l); }
+#f4 .nobar { right: var(--margin-right); top: 883px; font-size: var(--fs-voice); line-height: 1; }
+#f4 .src { left: var(--content-left); top: 1014px; font-size: var(--fs-label); line-height: 1; font-weight: 500; white-space: nowrap; }
+
+/* =====================================================================
+   F5 · WAREHOUSE
+   ===================================================================== */
+#f5 .block { left: var(--spine-w); top: 0; width: 1152px; height: 1080px; background: var(--lampblack); }
+#f5 .head { left: var(--content-left); top: 60px; font-size: var(--fs-headline-s); color: var(--card); white-space: nowrap; }
+#f5 .sub { left: var(--content-left); top: 154px; color: var(--card); white-space: nowrap; }
+#f5 .tag { right: 728px; top: 142px; height: 48px; line-height: 48px; padding: 0 22px; white-space: nowrap; font-stretch: 112%; background: var(--card); color: var(--lampblack); }
+#f5 .map { left: var(--content-left); top: 196px; }
+#f5 .legend { left: var(--content-left); top: 1012px; width: 1064px; height: 32px; color: var(--card); display: flex; align-items: center; gap: 14px; white-space: nowrap; }
+#f5 .legend span { font-weight: 700; font-stretch: 112%; font-size: var(--fs-label); letter-spacing: .08em; text-transform: uppercase; line-height: 32px; margin-right: 26px; }
+#f5 .legend svg { flex: none; }
+#f5 .cl { left: 1288px; top: 62px; font-size: var(--fs-label-l); }
+#f5 .cr { left: 1288px; top: 108px; width: 584px; height: var(--rule); background: var(--lampblack); }
+#f5 .after { left: 1240px; top: 536px; width: 680px; height: 544px; background: var(--flare); }
+#f5 .k { left: 1288px; display: flex; align-items: center; gap: 18px; }
+#f5 .k1 { top: 156px; }
+#f5 .k2 { top: 584px; }
+#f5 .n { left: 1276px; font-size: var(--fs-numeral-xl); white-space: nowrap; }
+#f5 .n small { font-size: 110px; font-weight: 900; margin-left: 14px; text-transform: none; }
+#f5 .n1 { top: 228px; }
+#f5 .n2 { top: 656px; }
+#f5 .delta { left: 1288px; top: 908px; font-size: var(--fs-voice); line-height: 1.1; width: 600px; white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<!-- ================================================================== F1 -->
+<section class="frame" id="f1">
+  <div class="slab"></div>
+  <aside class="spine">
+    <b class="spine-n">01</b>
+    <span class="spine-t">The Most Valuable AI Skill Is Saying No</span>
+    <i class="trk"><i class="pass"></i><i class="pass"></i><i class="pass"></i><i class="no"></i></i>
+  </aside>
+  <p class="t-label kicker">A 90-minute workshop</p>
+  <p class="t-label roll"><span>Four gates</span><span>One answer</span><span>No hype</span></p>
+  <h1 class="stack title" data-fit data-h="622.6">
+    <span class="ln">The most</span>
+    <span class="ln">valuable</span>
+    <span class="ln">AI skill</span>
+    <span class="ln">is saying</span>
+  </h1>
+  <div class="t-display mega">NO</div>
+  <p class="t-voice sub">Screening AI use cases<br>for real return.</p>
+  <p class="who"><b>Dustin T Hughes</b> · VP of Technology, Laborde Products</p>
+  <p class="where">NOAI 2026 · New Orleans Jazz Museum</p>
+  <div class="fine">
+    <div><span class="t-label">When</span><b>Friday<br>Nov 13, 2026</b></div>
+    <div><span class="t-label">Time</span><b>2:30–4:00 PM<br>90 minutes</b></div>
+    <div><span class="t-label">Room</span><b>Education<br>Center</b></div>
+  </div>
+</section>
+
+<!-- ================================================================== F2 -->
+<section class="frame dark" id="f2">
+  <div class="panel"></div>
+  <aside class="spine inv">
+    <b class="spine-n">02</b>
+    <span class="spine-t">The Most Valuable AI Skill Is Saying No</span>
+    <i class="trk"><i></i><i></i><i></i><i></i></i>
+  </aside>
+  <p class="t-label chip-l">The premise</p>
+  <h2 class="stack big" data-fit data-h="818">
+    <span class="ln">Your best</span>
+    <span class="ln">AI idea is</span>
+    <span class="ln">probably</span>
+    <span class="ln point">wrong.</span>
+  </h2>
+  <p class="t-voice follow">The boring one<br>you didn’t pitch<br>is probably</p>
+  <p class="stack worth" data-fit data-gap="18">
+    <span class="ln">worth</span>
+    <span class="ln">thousands.</span>
+  </p>
+</section>
+
+<!-- ================================================================== F3 -->
+<section class="frame" id="f3">
+  <aside class="spine">
+    <b class="spine-n">03</b>
+    <span class="spine-t">The Most Valuable AI Skill Is Saying No</span>
+    <i class="trk"><i class="pass"></i><i class="no"></i><i class="pass"></i><i class="pass"></i></i>
+  </aside>
+  <h2 class="t-display head">The four gates</h2>
+  <p class="t-voice kick">Every AI idea goes through all four.<br>The math picks the winner.</p>
+
+  <div class="dock">
+    <div class="abs lintel"></div>
+    <div class="abs floor"></div>
+    <div class="abs post" style="left:0"></div>
+    <div class="abs post" style="left:456px"></div>
+    <div class="abs post" style="left:912px"></div>
+    <div class="abs post" style="left:1368px"></div>
+    <div class="abs post" style="left:1824px"></div>
+
+    <article class="gate pass" style="--i:0">
+      <div class="shutter"></div>
+      <i class="pull"></i>
+      <span class="t-display verdict">Pass</span>
+      <span class="t-label gn">Gate 1</span>
+      <h3 class="t-display name">Cost</h3>
+      <p class="q">What does it cost to run?</p>
+      <svg class="thru" width="392" height="56" viewBox="0 0 392 56"><path d="M0 28H352" stroke="#050505" stroke-width="8" fill="none"/><path d="M344 2L392 28L344 54Z" fill="#050505"/></svg>
+    </article>
+
+    <article class="gate no" style="--i:1">
+      <div class="shutter"></div>
+      <span class="t-label gn">Gate 2</span>
+      <h3 class="t-display name">Return</h3>
+      <p class="q">What comes back: cash sooner, or more work done?</p>
+      <span class="t-display verdict">No</span>
+    </article>
+
+    <article class="gate pass" style="--i:2">
+      <div class="shutter"></div>
+      <i class="pull"></i>
+      <span class="t-display verdict">Pass</span>
+      <span class="t-label gn">Gate 3</span>
+      <h3 class="t-display name">Effort</h3>
+      <p class="q">What does it take to build it and keep it alive?</p>
+      <svg class="thru" width="392" height="56" viewBox="0 0 392 56"><path d="M0 28H352" stroke="#050505" stroke-width="8" fill="none"/><path d="M344 2L392 28L344 54Z" fill="#050505"/></svg>
+    </article>
+
+    <article class="gate pass" style="--i:3">
+      <div class="shutter"></div>
+      <i class="pull"></i>
+      <span class="t-display verdict">Pass</span>
+      <span class="t-label gn">Gate 4</span>
+      <h3 class="t-display name">Potential</h3>
+      <p class="q">If it works, how far does it grow?</p>
+      <svg class="thru" width="392" height="56" viewBox="0 0 392 56"><path d="M0 28H352" stroke="#050505" stroke-width="8" fill="none"/><path d="M344 2L392 28L344 54Z" fill="#050505"/></svg>
+    </article>
+  </div>
+  <p class="t-label foot">Example verdicts</p>
+  <p class="t-label key"><i class="pass"></i><span>Pass</span><i class="no"></i><span>No</span><i></i><span>Not yet</span></p>
+</section>
+
+<!-- ================================================================== F4 -->
+<section class="frame" id="f4">
+  <div class="band"></div>
+  <aside class="spine">
+    <b class="spine-n">04</b>
+    <span class="spine-t">The Most Valuable AI Skill Is Saying No</span>
+    <i class="trk"><i class="now"></i><i></i><i></i><i></i></i>
+  </aside>
+  <h2 class="t-display head">100,000 records. Same task.</h2>
+  <p class="t-label axis-l">Cost to run the whole batch · US dollars · bars drawn to scale</p>
+
+  <div class="row" style="--y:252px; --w:4.08px">
+    <span class="m">Claude Haiku 5.5</span><i class="bar"></i><span class="t-num v">$45</span>
+  </div>
+  <div class="row" style="--y:368px; --w:81.6px">
+    <span class="m">Gemini 4 Carbon</span><i class="bar"></i><span class="t-num v">$900</span>
+  </div>
+  <div class="row" style="--y:484px; --w:326.4px">
+    <span class="m">Claude Fable 5.2</span><i class="bar"></i><span class="t-num v">$3,600</span>
+  </div>
+  <div class="row max" style="--y:600px; --w:1360px">
+    <span class="m">GPT-5.5 Pro</span><i class="bar"></i><span class="t-num v">$15,000</span>
+  </div>
+
+  <div class="t-num spread">333×</div>
+  <p class="t-voice spread-c">between the cheapest model<br>and the dearest</p>
+
+  <div class="axis"></div>
+  <p class="stack pc" data-fit data-h="181.6"><span class="ln">Plain</span><span class="ln">code</span></p>
+  <span class="t-voice about">about</span>
+  <span class="t-num zero">$0</span>
+  <span class="t-voice nobar">No bar to draw.</span>
+
+  <p class="src">Source: BenchLM leaderboard export, Nov 2026 · assumes 2,000 tokens in / 500 out per record</p>
+</section>
+
+<!-- ================================================================== F5 -->
+<section class="frame" id="f5">
+  <div class="block"></div>
+  <div class="after"></div>
+  <aside class="spine inv">
+    <b class="spine-n">05</b>
+    <span class="spine-t">The Most Valuable AI Skill Is Saying No</span>
+    <i class="trk"><i class="pass"></i><i class="pass"></i><i class="pass"></i><i class="pass"></i></i>
+  </aside>
+  <h2 class="t-display head">Same parts. Shorter walk.</h2>
+  <p class="t-label sub">12 aisles · routes to scale</p>
+  <p class="t-label tag">Illustrative model</p>
+  <svg class="map" id="wh" width="1064" height="800" viewBox="0 0 1064 800" role="img" aria-label="Top-down warehouse map with bins sized by pick velocity and two walking paths"></svg>
+  <div class="legend">
+    <svg width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="2.8" fill="#F4EDDE"/></svg><span>Slow</span>
+    <svg width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="6.5" fill="#F4EDDE"/></svg><span>Steady</span>
+    <svg width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="11.5" fill="#FF6842"/></svg><span>Fast mover</span>
+    <svg width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="10" fill="none" stroke="#FF6842" stroke-width="3.5"/></svg><span style="margin-right:0">Its old slot</span>
+  </div>
+
+  <p class="t-label cl">Walked per day</p>
+  <div class="cr"></div>
+  <div class="k k1">
+    <svg width="132" height="36" viewBox="0 0 132 36"><rect width="132" height="36" fill="#050505"/><path d="M10 18H122" stroke="#F4EDDE" stroke-width="4" stroke-dasharray="14 10" fill="none"/></svg>
+    <span class="t-label">Before</span>
+  </div>
+  <div class="t-num n n1">11.4<small>km</small></div>
+  <div class="k k2">
+    <svg width="132" height="36" viewBox="0 0 132 36"><rect width="132" height="36" fill="#050505"/><path d="M10 18H122" stroke="#FF6842" stroke-width="8" fill="none"/></svg>
+    <span class="t-label">After re-slotting</span>
+  </div>
+  <div class="t-num n n2">6.9<small>km</small></div>
+  <p class="t-voice delta">4.5 km less, every day.</p>
+</section>
+
+<script>
+/* ------------------------------------------------------------------
+   fitStack: the Sleeve signature. Every line of a stack is justified
+   to the same measure by moving Archivo's width axis (62 to 125),
+   never by scaling or distorting. Long lines condense, short lines
+   expand, cap height stays constant. Deterministic once fonts load.
+   ------------------------------------------------------------------ */
+var CAP = 0.688, LH = 0.708, WMIN = 62, WMAX = 125;
+
+/* Optical margins. A glyph's ink never starts exactly at its origin, so a
+   stack justified on advance widths has ragged edges (a P sits 10px inside
+   an A at 270px). inkBearings() measures the real left and right side
+   bearings of a glyph at any width, by scanning a rasterised copy, and
+   fitStack() uses them so the INK is flush on both sides of the measure. */
+var STOPS = [[62, 'ultra-condensed'], [75, 'condensed'], [87.5, 'semi-condensed'], [100, 'normal'], [112.5, 'semi-expanded'], [125, 'expanded']];
+var _scan = null, _bear = {};
+function bearingsAtStop(ch, k) {
+  var key = ch + '|' + k; if (_bear[key]) return _bear[key];
+  if (!_scan) { var cv = document.createElement('canvas'); cv.width = 640; cv.height = 560; _scan = cv.getContext('2d', { willReadFrequently: true }); }
+  var c = _scan, S = 400, X = 80, W = 640, H = 560;
+  c.clearRect(0, 0, W, H); c.font = '900 ' + S + 'px Archivo'; c.fontStretch = STOPS[k][1]; c.textBaseline = 'alphabetic'; c.fillStyle = '#000';
+  var adv = c.measureText(ch).width; c.fillText(ch, X, 420);
+  var d = c.getImageData(0, 0, W, H).data, minx = W, maxx = -1, x, y;
+  for (y = 0; y < H; y++) for (x = 0; x < W; x++) if (d[(y * W + x) * 4 + 3] > 127) { if (x < minx) minx = x; if (x > maxx) maxx = x; }
+  return (_bear[key] = maxx < 0 ? [0, 0] : [(minx - X) / S, (X + adv - (maxx + 1)) / S]);
+}
+function inkBearings(ch, wdth) {
+  var k = 0; while (k < STOPS.length - 2 && wdth > STOPS[k + 1][0]) k++;
+  var a = bearingsAtStop(ch, k), b = bearingsAtStop(ch, k + 1), f = (wdth - STOPS[k][0]) / (STOPS[k + 1][0] - STOPS[k][0]);
+  f = Math.max(0, Math.min(1, f));
+  return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+}
+function fitStack(el) {
+  var measure = el.clientWidth;
+  var lines = Array.prototype.slice.call(el.querySelectorAll('.ln'));
+  var n = lines.length, i;
+  function w(l) { return l.getBoundingClientRect().width; }
+  function ends(l) { var t = l.textContent.trim().toUpperCase(); return [t.charAt(0), t.charAt(t.length - 1)]; }
+  function ink(l, wdth, s) { var e = ends(l); return w(l) - (inkBearings(e[0], wdth)[0] + inkBearings(e[1], wdth)[1]) * s; }
+  el.style.fontSize = '100px';
+  lines.forEach(function (l) { l.style.fontStretch = WMIN + '%'; l.style.letterSpacing = '0'; l.style.marginRight = '0'; l.style.marginLeft = '0'; });
+  var widest = 0;
+  lines.forEach(function (l) { widest = Math.max(widest, ink(l, WMIN, 100) / 100); });
+  var s = el.dataset.size ? parseFloat(el.dataset.size) : Math.floor(measure / widest * 10) / 10;
+  el.style.fontSize = s + 'px';
+  lines.forEach(function (l) {
+    var lo = WMIN, hi = WMAX, mid;
+    for (i = 0; i < 18; i++) { mid = (lo + hi) / 2; l.style.fontStretch = mid + '%'; if (ink(l, mid, s) > measure) hi = mid; else lo = mid; }
+    var v = Math.round(lo * 10) / 10;
+    l.style.fontStretch = v + '%';
+    var chars = l.textContent.trim().length, rest = measure - ink(l, v, s), ls = 0;
+    if (rest > 0.5 && chars > 1) { ls = rest / (chars - 1); l.style.letterSpacing = ls.toFixed(3) + 'px'; }
+    l.style.marginLeft = (-inkBearings(ends(l)[0], v)[0] * s).toFixed(2) + 'px';
+    l.style.marginRight = (-ls).toFixed(3) + 'px';
+    l.dataset.wdth = v;
+  });
+  var gap = null;
+  if (el.dataset.h) gap = (parseFloat(el.dataset.h) - CAP * s) / (n - 1) - LH * s;
+  else if (el.dataset.gap) gap = parseFloat(el.dataset.gap);
+  if (gap !== null) lines.forEach(function (l, k) { l.style.marginBottom = (k < n - 1 ? gap : 0) + 'px'; });
+  el.dataset.fs = s;
+  return { size: s, pitch: gap === null ? LH * s : LH * s + gap };
+}
+
+/* ------------------------------------------------------------------
+   Warehouse map. A halftone: every bin is a dot, dot size is pick
+   velocity, and only the fastest tier takes the Flare ink. Paths run
+   on aisle centre lines. Before and after are drawn to scale:
+   3116 map px vs 1884 map px = 1.65x, the same ratio as 11.4 : 6.9.
+   ------------------------------------------------------------------ */
+function buildWarehouse(svg) {
+  var NS = 'http://www.w3.org/2000/svg';
+  var CARD = '#F4EDDE', INK = '#050505', FLARE = '#FF6842', RACK = '#8A8275';
+  function el(name, attrs, parent) { var e = document.createElementNS(NS, name); for (var k in attrs) e.setAttribute(k, attrs[k]); (parent || svg).appendChild(e); return e; }
+  var seed = 20261113;
+  function rnd() { seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
+
+  var TOP = 40, BOT = 740, CELL = 28, RACKS = 12, ROWS = 10;
+  var yUp = TOP + 36, yLo = yUp + ROWS * CELL + 44;           // 76, 400
+  var yT = 58, yM = yUp + ROWS * CELL + 22, yB = 710;          // aisle centre lines
+  function rackX(r) { return 20 + r * 88; }
+  function cx(k) { return k === 0 ? 10 : 92 + (k - 1) * 88; }   // corridor centre lines
+
+  // racks and aisle numbers
+  for (var r = 0; r < RACKS; r++) {
+    [yUp, yLo].forEach(function (y) { el('rect', { x: rackX(r) - 1, y: y - 1, width: 2 * CELL + 2, height: ROWS * CELL + 2, fill: 'none', stroke: RACK, 'stroke-width': 2 }); });
+    var t = el('text', { x: rackX(r) + CELL, y: 26, 'text-anchor': 'middle', fill: CARD, 'font-family': 'Archivo', 'font-weight': 700, 'font-size': 24, style: 'font-stretch:112%;letter-spacing:.04em' });
+    t.textContent = (r < 9 ? '0' : '') + (r + 1);
+  }
+
+  // where this tour's fast movers used to live (rack, col, block, row)
+  var old = {};
+  [[5,1,0,1],[6,0,0,3],[5,1,0,5],[6,0,0,7],[5,1,0,8],
+   [6,1,0,0],[7,1,0,0],[8,0,0,0],[9,0,0,1],
+   [9,1,0,3],[10,0,0,6],[9,1,0,8],[10,0,1,1],[9,1,1,4],[10,0,1,6],[9,1,1,8],
+   [8,0,1,9],[6,1,1,9],[4,1,1,9],[3,0,0,9],[1,1,1,0]].forEach(function (b) { old[b.join('.')] = 1; });
+
+  // velocity by slot, after re-slotting: the golden zone is the four racks nearest the pack station
+  var pFast = [[.35,.92],[.92,.8],[.72,.72],[.8,.92],[.9,.22]];
+  var pSteady = [.7,.7,.7,.7,.7,.55,.42,.3,.22,.15,.1,.06];
+  var gDots = el('g', {});
+  for (r = 0; r < RACKS; r++) for (var c = 0; c < 2; c++) for (var b = 0; b < 2; b++) for (var j = 0; j < ROWS; j++) {
+    var x = rackX(r) + c * CELL + CELL / 2, y = (b ? yLo : yUp) + j * CELL + CELL / 2;
+    var u = rnd(), v = rnd(), key = [r, c, b, j].join('.');
+    if (old[key]) {
+      el('circle', { cx: x, cy: y, r: 10, fill: 'none', stroke: FLARE, 'stroke-width': 3.5 }, gDots);
+      el('circle', { cx: x, cy: y, r: 2.8, fill: CARD }, gDots);
+    } else if (r < 5 && u < pFast[r][c]) {
+      el('circle', { cx: x, cy: y, r: 11.5, fill: FLARE }, gDots);
+    } else if (v < pSteady[r]) {
+      el('circle', { cx: x, cy: y, r: 6.5, fill: CARD }, gDots);
+    } else {
+      el('circle', { cx: x, cy: y, r: 2.8, fill: CARD }, gDots);
+    }
+  }
+
+  // walls and pack station
+  el('rect', { x: 1.5, y: TOP, width: 1061, height: BOT - TOP, fill: 'none', stroke: RACK, 'stroke-width': 3 });
+  el('rect', { x: 0, y: BOT, width: 256, height: 56, fill: CARD });
+  var pk = el('text', { x: 128, y: BOT + 37, 'text-anchor': 'middle', fill: INK, 'font-family': 'Archivo', 'font-weight': 700, 'font-size': 24, style: 'font-stretch:112%;letter-spacing:.1em' });
+  pk.textContent = 'PACK STATION';
+
+  // paths: polylines on aisle centre lines
+  var before = [[cx(0), BOT], [cx(0), yM], [cx(6), yM], [cx(6), 56], [cx(10), 56], [cx(10), 724], [cx(0), 724]];
+  var after  = [[cx(1), BOT], [cx(1), 62], [cx(4), 62], [cx(4), 700], [cx(1), 700]];
+  function len(p) { var L = 0; for (var k = 1; k < p.length; k++) L += Math.abs(p[k][0] - p[k-1][0]) + Math.abs(p[k][1] - p[k-1][1]); return L; }
+  function d(p) { return 'M' + p.map(function (q) { return q[0] + ' ' + q[1]; }).join('L'); }
+  function arrow(x, y, dir, size, fill) {
+    var a = { e: [[-size, -size], [size, 0], [-size, size]], w: [[size, -size], [-size, 0], [size, size]], n: [[-size, size], [0, -size], [size, size]], s: [[-size, -size], [0, size], [size, -size]] }[dir];
+    el('path', { d: 'M' + a.map(function (q) { return (x + q[0]) + ' ' + (y + q[1]); }).join('L') + 'Z', fill: fill });
+  }
+  el('path', { d: d(before), fill: 'none', stroke: CARD, 'stroke-width': 4, 'stroke-dasharray': '14 10', 'stroke-linejoin': 'miter' });
+  arrow(cx(3) + 44, yM, 'e', 9, CARD); arrow(cx(8), 56, 'e', 9, CARD); arrow(cx(10), 400 - 22, 's', 9, CARD); arrow(cx(7), 724, 'w', 9, CARD);
+  el('path', { d: d(after), fill: 'none', stroke: FLARE, 'stroke-width': 8, 'stroke-linejoin': 'miter', 'stroke-linecap': 'butt' });
+  arrow(cx(1), yM, 'n', 13, FLARE); arrow(cx(2) + 44, 62, 'e', 13, FLARE); arrow(cx(4), yM, 's', 13, FLARE); arrow(cx(2) + 44, 700, 'w', 13, FLARE);
+
+  svg.dataset.before = len(before) + (BOT - 724);   // + the last steps back into the pack station
+  svg.dataset.after = len(after) + (BOT - 700);
+  svg.dataset.ratio = (svg.dataset.before / svg.dataset.after).toFixed(3);
+}
+
+function sleeveInit() {
+  Array.prototype.forEach.call(document.querySelectorAll('[data-fit]'), fitStack);
+  buildWarehouse(document.getElementById('wh'));
+  document.documentElement.dataset.ready = '1';
+}
+if (document.fonts && document.fonts.ready) {
+  Promise.all([document.fonts.load('900 100px Archivo'), document.fonts.load('italic 560 60px Fraunces')]).then(function () { return document.fonts.ready; }).then(sleeveInit, sleeveInit);
+} else { window.onload = sleeveInit; }
+</script>
+</body>
+</html>
