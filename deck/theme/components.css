@@ -1,0 +1,104 @@
+/*
+ * components.css: the slide kit.
+ *
+ * ############################################################
+ * #  PLACEHOLDER THEME. Just enough to make a slide legible.  #
+ * #  The designer replaces this file with the real kit        #
+ * #  (layouts, type, gate motif, verdicts, counters).         #
+ * ############################################################
+ *
+ * Everything is driven by the tokens in tokens.css. Sizes respect the
+ * floors in docs/DIRECTION.md Part 1: running text 36px or more, labels
+ * 32px or more, source lines 28px semibold, nothing smaller.
+ *
+ * Style ".slide", never ".deck-stage .slide": the overview and the
+ * presenter view reuse the same markup outside the stage.
+ */
+
+/* ---------- the slide ---------- */
+
+.slide {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--s-3);
+  padding: var(--m-y) var(--m-x) calc(var(--m-y) + var(--s-4));
+  background: var(--c-bg);
+  color: var(--c-ink);
+  font-family: var(--f-body);
+  font-size: var(--t-body);
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.slide h1,
+.slide h2,
+.slide p,
+.slide ul,
+.slide ol {
+  margin: 0;
+}
+
+.slide h1 {
+  font-family: var(--f-display);
+  font-size: var(--t-h1);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.slide h2 {
+  font-family: var(--f-display);
+  font-size: var(--t-h2);
+  font-weight: 800;
+  line-height: 1.05;
+}
+
+.slide ul,
+.slide ol {
+  padding-left: 1.1em;
+}
+
+.slide li + li {
+  margin-top: 0.3em;
+}
+
+/* ---------- small pieces ---------- */
+
+.kicker,
+.label {
+  font-size: var(--t-label);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* assumption and source, at the foot of a chart */
+.source-line {
+  font-size: var(--t-small);
+  font-weight: 600;
+}
+
+/* a scene fills whatever room the slide has left */
+.scene {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+}
+
+.scene > canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------- layouts: Deck.slide({ layout: '...' }) adds .layout-... ---------- */
+
+.layout-center {
+  align-items: center;
+  text-align: center;
+}
+
+/* headline at the top, a chart or scene filling the rest */
+.layout-chart {
+  justify-content: flex-start;
+}

@@ -1,6 +1,6 @@
 # Builder rules
 
-For everyone (human or agent) building a piece of this deck. Read `docs/BRIEF.md` first; it wins on facts, copy and the technical contract. Token names are in `docs/TOKENS.md`. The chosen visual direction is described in `docs/DIRECTION.md` with reference frames in `docs/direction/`.
+For everyone (human or agent) building a piece of this deck. Read `docs/BRIEF.md` first; it wins on facts, copy and the technical contract. Token names are in `docs/TOKENS.md`. The chosen visual direction is described in `docs/DIRECTION.md` (Part 1 is binding) with reference frames in `docs/direction/`.
 
 ## Working in a shared repository
 
@@ -13,7 +13,7 @@ For everyone (human or agent) building a piece of this deck. Read `docs/BRIEF.md
 
 - Runs offline by double-clicking `deck/index.html`: **no ES modules, no fetch/XHR, no external URLs, no CDNs.** Classic scripts only. Data files assign to `window`.
 - No frameworks or third-party libraries.
-- Stage is 1920×1080. Body text 36px or more, labels 28px or more, source lines 24px or more. Text contrast 7:1 or better for anything that must be read.
+- Stage is 1920×1080. Running text 36px or more, labels that carry meaning 32px or more, source lines 28px or more, nothing below 28px. Text contrast 7:1 or better for anything that must be read. `docs/DIRECTION.md` Part 1 has the full list of floors.
 - A scene stops every animation loop and timer in `destroy()`. All time comes from `Motion.now()`.
 - Keys belong to the deck. An interactive scene handles pointer input freely, and puts `data-keys="own"` only on real form fields.
 - Interactive controls are big enough to hit while talking: at least 64px tall on the stage.

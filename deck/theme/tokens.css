@@ -1,0 +1,90 @@
+/*
+ * tokens.css: design tokens.
+ *
+ * ############################################################
+ * #  PLACEHOLDER THEME. Neutral on purpose. The designer      #
+ * #  replaces this file (and components.css) with the real    #
+ * #  "Sleeve" theme and its embedded fonts.                   #
+ * ############################################################
+ *
+ * What is NOT a placeholder is the list of names: these are the canonical
+ * tokens from docs/TOKENS.md, and every one of them is defined here so that
+ * slides and scenes written before the real theme lands already work.
+ * Scenes read them with api.token('--c-accent').
+ *
+ * The three colours are the direction's inks (docs/DIRECTION.md): a card
+ * ground, a black ink, one accent. No fonts are embedded yet: the stacks
+ * below only use fonts already on the machine, so nothing is fetched.
+ *
+ * Contrast (WCAG, computed): ink on bg 17.5:1 · ink-soft on bg 10.4:1 ·
+ * accent-ink on accent 7.1:1 · bg on ink 17.5:1. The accent on the card
+ * ground is only 2.5:1: use it for blocks, never for text or thin lines.
+ */
+
+:root {
+  /* ---- colour ---- */
+  --c-bg: #f4edde;            /* stage background */
+  --c-bg-alt: #e8dfcb;        /* panels, cards, chart plot area */
+  --c-ink: #050505;           /* primary text and marks */
+  --c-ink-soft: #3a3632;      /* secondary text, 32px and above only */
+  --c-muted: #8a8275;         /* de-emphasised marks; not for text below 36px */
+  --c-line: #050505;          /* rules, grid lines, axes */
+  --c-accent: #ff6842;        /* the one accent: the point of the slide */
+  --c-accent-ink: #050505;    /* text placed on the accent */
+  --c-no: #050505;            /* NO and PASS are told apart by shape and word, */
+  --c-no-ink: #f4edde;        /* not by colour: both resolve to the base inks  */
+  --c-pass: #050505;
+  --c-pass-ink: #f4edde;
+  --c-warn: #050505;
+  --c-before: #8a8275;        /* the before/after pair differs in lightness */
+  --c-after: #050505;
+  --c-data-1: #050505;        /* categorical series, ordered by lightness */
+  --c-data-2: #4a453f;
+  --c-data-3: #7d766a;
+  --c-data-4: #aaa293;
+  --c-data-5: #d2cab9;
+  --c-heat-0: #e6dfd0;        /* sequential ramp, cold to hot, darker = hotter */
+  --c-heat-1: #c9c1b1;
+  --c-heat-2: #a39c8e;
+  --c-heat-3: #746e64;
+  --c-heat-4: #3d3935;
+  --c-heat-5: #050505;
+
+  /* ---- type (floors on the 1920 x 1080 stage: running text 36px,
+          labels that carry meaning 32px, source lines 28px, nothing smaller) ---- */
+  --f-display: "Arial Narrow", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  --f-body: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  --f-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --t-mega: 260px;            /* one-word or one-number slides */
+  --t-hero: 140px;            /* statement slides */
+  --t-h1: 96px;               /* slide headline */
+  --t-h2: 64px;               /* sub-headline */
+  --t-body: 40px;             /* body; never below 36px */
+  --t-label: 32px;            /* chart labels, legends, kickers */
+  --t-small: 28px;            /* source lines only, semibold */
+
+  /* ---- space, line, shape ---- */
+  --m-x: 128px;               /* stage margins */
+  --m-y: 72px;
+  --s-1: 8px;
+  --s-2: 16px;
+  --s-3: 24px;
+  --s-4: 32px;
+  --s-5: 48px;
+  --s-6: 64px;
+  --s-7: 96px;
+  --s-8: 128px;
+  --w-hair: 3px;              /* line weights */
+  --w-rule: 6px;
+  --w-bold: 8px;
+  --r-1: 0;                   /* radii */
+  --r-2: 0;
+
+  /* ---- motion (the engine's own knobs, --deck-*, default to these) ---- */
+  --d-fast: 180ms;
+  --d-base: 420ms;
+  --d-slow: 900ms;
+  --e-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --e-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --e-snap: steps(1, end);
+}

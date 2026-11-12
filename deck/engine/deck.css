@@ -1,0 +1,1138 @@
+/*
+ * deck.css: engine styles (structure and behaviour).
+ *
+ * Colours, type and spacing belong to the theme (theme/tokens.css and
+ * theme/components.css, token names in docs/TOKENS.md). This file only
+ * reads those tokens (--c-bg, --c-ink, --c-accent, --f-display, --d-base...)
+ * and falls back to plain values when there is no theme.
+ *
+ * HOW A THEME RESTYLES THE ENGINE
+ *
+ * 1. Knobs. Everything a designer is likely to change is a CSS variable,
+ *    listed in section 1 with its default. Set them on :root in the theme:
+ *
+ *        :root { --deck-slide-duration: 0s; --deck-progress-height: 4px; }
+ *
+ * 2. Plain rules. Every rule here that is about LOOKS (the slide transition,
+ *    the reveals, the progress bar, the timer) is wrapped in :where(), which
+ *    has zero specificity. So any ordinary rule in the theme wins, even
+ *    though this file loads after the theme:
+ *
+ *        .deck-progress { left: 0; top: 0; bottom: 0; right: auto; width: 88px; }
+ *        [data-anim="rise"]:not(.is-visible) { translate: none; clip-path: inset(0 100% 0 0); }
+ *
+ *    Rules that are about STRUCTURE (the stage, slide geometry, "a hidden step
+ *    is hidden") are ordinary rules and should be left alone.
+ *
+ * 3. Hooks the engine keeps up to date, for selectors:
+ *      .deck-stage[data-current-slide] [data-current-act] [data-current-layout] [data-current-step]
+ *      .deck-stage.is-transitioning[data-dir="forward|back"]
+ *      .deck-transition          an empty block that exists only during a slide change
+ *      .slide.is-current / .is-leaving / .layout-NAME / .act-N,  [data-current-step]
+ *      .is-visible / .is-current-step on step elements
+ *      .deck-progress and its parts (section 6)
+ *      .timer[data-state], .timer[data-last-minute] (section 9)
+ *
+ * Contents
+ *   1. Knobs (variables and their defaults)
+ *   2. Page, viewport, stage
+ *   3. Slides and the slide transition
+ *   4. Step reveals: data-step + data-anim
+ *   5. Counters and scene hosts
+ *   6. Progress: bar, ticks, act name, slide number
+ *   7. Chrome: prev/next buttons, notes overlay, jump chip, blackout, debug badge
+ *   8. Overview and thumbnails
+ *   9. Timer scene
+ *  10. Presenter view
+ *  11. Print mode
+ *  12. Fast mode
+ */
+
+/* ==========================================================================
+   1. Knobs
+   ========================================================================== */
+
+:where(:root) {
+  /* stage */
+  --deck-letterbox: #000;                          /* around the stage when the window is not 16:9 */
+  --deck-stage-bg: var(--c-bg, #f4edde);
+  --deck-stage-fg: var(--c-ink, #050505);
+
+  /* slide change. The outgoing slide stays in the DOM for exactly this long;
+     0s makes it a hard cut. The default look is a cross-fade (section 3). */
+  --deck-slide-duration: var(--d-base, 400ms);
+  --deck-slide-ease: ease;
+
+  /* step reveals */
+  --deck-reveal-duration: var(--d-base, 450ms);
+  --deck-reveal-ease: var(--e-out, cubic-bezier(0.2, 0.7, 0.2, 1));
+  --deck-hide-duration: var(--d-fast, 160ms);      /* going back a step */
+  --deck-rise-distance: 36px;
+  --deck-wipe-duration: 700ms;
+  --deck-wipe-ease: var(--e-in-out, cubic-bezier(0.65, 0, 0.35, 1));
+  --deck-stamp-duration: 260ms;
+  --deck-stamp-ease: cubic-bezier(0.2, 1.5, 0.4, 1);
+  --deck-stamp-scale: 1.7;
+  --deck-stamp-rotate: -7deg;
+  --deck-pop-duration: 420ms;
+  --deck-pop-ease: cubic-bezier(0.3, 1.6, 0.5, 1);
+  --deck-pop-scale: 0.7;
+
+  /* progress (section 6). Done and to-do differ by thickness, not by colour,
+     so the bar reads in a two-ink theme and on a washed-out projector. */
+  --deck-progress-height: 8px;                     /* the done part */
+  --deck-progress-rule: 2px;                       /* the part still to come */
+  --deck-progress-gap: 6px;                        /* between acts */
+  --deck-progress-track: var(--c-ink, #050505);
+  --deck-progress-fill: var(--c-ink, #050505);
+  --deck-progress-num-size: var(--t-small, 28px);  /* 28px is the floor for text on stage */
+  --deck-progress-num-color: var(--c-ink, #050505);
+  --deck-progress-num-inset: 40px;
+  --deck-progress-font: var(--f-mono, var(--f-body, system-ui, sans-serif));
+
+  /* overview (outside the stage; its own dark neutral look) */
+  --deck-overview-bg: #0e0f12;
+  --deck-overview-fg: #eeeeee;
+  --deck-overview-current: var(--c-accent, #ff6842);
+  --deck-thumb-w: 320;                             /* thumbnail width in px, no unit */
+
+  /* timer scene: see section 9 for the --timer-* variables */
+
+  /* presenter view: see section 10 for the --deck-pv-* variables */
+}
+
+/* --delay staggers one reveal:  <li data-step="1" style="--delay: 150ms">.
+   Registered so that it does not leak into nested reveals. */
+@property --delay {
+  syntax: '<time>';
+  inherits: false;
+  initial-value: 0s;
+}
+
+/* ==========================================================================
+   2. Page, viewport, stage
+   ========================================================================== */
+
+html.deck-on,
+html.deck-on body {
+  margin: 0;
+  padding: 0;
+}
+
+html.mode-stage,
+html.mode-stage body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--deck-letterbox);
+}
+
+/* the engine hides its own parts with the hidden attribute */
+.deck-viewport [hidden],
+.deck-presenter [hidden],
+.deck-debug-badge[hidden] {
+  display: none !important;
+}
+
+.deck-viewport {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--deck-letterbox);
+}
+
+/* hide the pointer when the mouse has been still for a moment */
+.deck-viewport:not(.is-mouse-active):not(.is-overview),
+.deck-viewport:not(.is-mouse-active):not(.is-overview) * {
+  cursor: none !important;
+}
+
+/* 1920 x 1080, scaled and centred by deck.js (transform set inline) */
+.deck-stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  transform-origin: 0 0;
+  overflow: hidden;
+  background: var(--deck-stage-bg);
+  color: var(--deck-stage-fg);
+  /* a stray drag must not paint a text selection across a slide */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ...but text fields, and anything marked data-select="text", stay selectable */
+.deck-stage :is(input, textarea, [contenteditable], [data-select="text"]) {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.deck-slides {
+  position: absolute;
+  inset: 0;
+}
+
+/* the engine measures --deck-slide-duration through this invisible element */
+.deck-probe {
+  position: absolute;
+  width: 0;
+  height: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition-property: opacity;
+  transition-duration: var(--deck-slide-duration);
+}
+
+.deck-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 120px;
+  font: 400 40px/1.3 system-ui, sans-serif;
+  text-align: center;
+}
+
+/* ==========================================================================
+   3. Slides and the slide transition
+   --------------------------------------------------------------------------
+   Theme authors: style ".slide", not ".deck-stage .slide". The same markup is
+   reused, scaled down, in the overview and the presenter view, outside the stage.
+   ========================================================================== */
+
+/* structure */
+.slide {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.slide:not(.is-current) {
+  pointer-events: none;
+}
+
+:where(.slide) *,
+:where(.slide) *::before,
+:where(.slide) *::after {
+  box-sizing: border-box;
+}
+
+/* the default transition: a cross-fade. Zero specificity: replace at will.
+
+   What happens on a slide change (when --deck-slide-duration is above 0):
+     t = 0     the new slide is added on top, .is-current; the old one gets
+               .is-leaving; .deck-stage gets .is-transitioning and data-dir;
+               an empty <div class="deck-transition"> is added above both.
+     t = end   the old slide and .deck-transition are removed.
+   For a wipe or a cover, animate .deck-transition (it is a fresh element
+   every time, so its CSS animation restarts) and let the slides cut. */
+:where(.slide) {
+  opacity: 0;
+  transition: opacity var(--deck-slide-duration) var(--deck-slide-ease);
+}
+
+:where(.slide.is-current) {
+  opacity: 1;
+  z-index: 1;
+}
+
+:where(.slide.is-leaving) {
+  opacity: 0;
+  z-index: 0;
+}
+
+:where(.deck-transition) {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 4;                 /* above the slides, below the progress parts */
+  pointer-events: none;
+}
+
+/* set by the engine while it puts a slide in place: nothing may animate */
+.slide.no-anim,
+.slide.no-anim *,
+.slide.no-anim *::before,
+.slide.no-anim *::after {
+  transition: none !important;
+}
+
+/* static copies (overview, presenter): final states, no motion */
+.slide.is-static,
+.slide.is-static *,
+.slide.is-static *::before,
+.slide.is-static *::after {
+  transition: none !important;
+  animation-duration: 1ms !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+}
+
+.slide.is-static {
+  opacity: 1;
+}
+
+/* ==========================================================================
+   4. Step reveals
+   --------------------------------------------------------------------------
+   The engine adds .is-visible when an element's step is reached and removes
+   it when you step back.
+
+   data-anim="rise"   slides up into place (also the default)
+   data-anim="fade"   opacity only
+   data-anim="wipe"   uncovered from left to right
+   data-anim="stamp"  lands from above with a thud
+   data-anim="pop"    scales up with a small overshoot
+
+   Only the HIDDEN state is styled, and only with opacity / translate / scale /
+   rotate / clip-path, so the theme stays free to use opacity and transform on
+   visible elements. All of it is zero specificity. To redesign a variant,
+   write the hidden state yourself in the theme, for example a hard cut:
+
+       [data-anim="fade"] { transition: none; }
+   ========================================================================== */
+
+/* structure: a hidden step is really hidden, whatever the theme does */
+.slide :is([data-step], [data-step-only], [data-step-out]):not(.is-visible) {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* looks */
+:where(.slide) :where([data-step], [data-step-only], [data-step-out]) {
+  --_dur: var(--deck-reveal-duration);
+  --_ease: var(--deck-reveal-ease);
+  transition-property: opacity, translate, scale, rotate, clip-path, visibility;
+  transition-duration: var(--_dur), var(--_dur), var(--_dur), var(--_dur), var(--_dur), 0s;
+  transition-timing-function: var(--_ease);
+  transition-delay: var(--delay);
+}
+
+:where(.slide) :where([data-step], [data-step-only], [data-step-out]):where(:not(.is-visible)) {
+  --_dur: var(--deck-hide-duration);
+  --_ease: linear;
+  opacity: 0;
+  /* visibility flips only after the fade-out has finished */
+  transition-delay: 0s, 0s, 0s, 0s, 0s, var(--deck-hide-duration);
+}
+
+/* rise (and the default when there is no data-anim) */
+:where(.slide) :where([data-step], [data-step-only], [data-step-out]):where(:not([data-anim]):not(.is-visible)),
+:where(.slide [data-anim="rise"]:not(.is-visible)) {
+  translate: 0 var(--deck-rise-distance);
+}
+
+/* fade: nothing to add */
+
+/* wipe: the clip box is a little larger than the element (2em on the left)
+   so list bullets and descenders are not cut off once it is open */
+:where(.slide [data-anim="wipe"].is-visible) {
+  --_dur: var(--deck-wipe-duration);
+  --_ease: var(--deck-wipe-ease);
+  clip-path: inset(-0.3em -0.3em -0.3em -2em);
+}
+
+:where(.slide [data-anim="wipe"]:not(.is-visible)) {
+  opacity: 1;
+  clip-path: inset(-0.3em 100% -0.3em -2em);
+}
+
+/* stamp */
+:where(.slide [data-anim="stamp"].is-visible) {
+  --_dur: var(--deck-stamp-duration);
+  --_ease: var(--deck-stamp-ease);
+}
+
+:where(.slide [data-anim="stamp"]:not(.is-visible)) {
+  scale: var(--deck-stamp-scale);
+  rotate: var(--deck-stamp-rotate);
+}
+
+/* pop */
+:where(.slide [data-anim="pop"].is-visible) {
+  --_dur: var(--deck-pop-duration);
+  --_ease: var(--deck-pop-ease);
+}
+
+:where(.slide [data-anim="pop"]:not(.is-visible)) {
+  scale: var(--deck-pop-scale);
+}
+
+/* ==========================================================================
+   5. Counters and scene hosts
+   ========================================================================== */
+
+/* digits keep their width while a number counts up */
+:where(.slide) [data-count-to] {
+  font-variant-numeric: tabular-nums;
+}
+
+:where(.slide) [data-scene] {
+  position: relative;
+}
+
+/* static copies do not run scenes: show which scene goes here */
+.slide.is-static [data-scene]::after {
+  content: attr(data-scene);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 6px dashed currentColor;
+  font: 600 64px/1 system-ui, sans-serif;
+}
+
+/* ?debug: a scene name with no Scenes.define() behind it */
+html.mode-debug .scene-missing::after {
+  content: 'scene "' attr(data-scene) '" is not defined';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 6px dashed #b3261e;
+  background: #ffffff;
+  color: #b3261e;
+  font: 600 36px/1.2 system-ui, sans-serif;
+}
+
+/* ==========================================================================
+   6. Progress (inside the stage, so it scales with it)
+   --------------------------------------------------------------------------
+   What the engine builds, and keeps up to date:
+
+     <div class="deck-progress" data-act data-act-name data-index data-total>
+       <div class="deck-progress-track">
+         <div class="deck-progress-act [is-current]" data-act style="flex-grow: SLIDES">
+           <div class="deck-progress-fill" style="width: N%"></div>
+           <div class="deck-progress-ticks">                 one tick per slide
+             <i class="deck-progress-tick [is-done] [is-current]"></i> ...
+           </div>
+         </div> ...                                          one per act
+       </div>
+       <div class="deck-progress-label">
+         <span class="deck-progress-actnum">2</span>
+         <span class="deck-progress-actname">The Four Gates</span>
+       </div>
+       <div class="deck-progress-num">
+         <span class="deck-progress-current">7</span>
+         <span class="deck-progress-sep"> / </span>
+         <span class="deck-progress-total">40</span>
+       </div>
+     </div>
+
+   Default look: a thin bar along the bottom, one segment per act, plus the
+   slide number. The ticks and the act label are there for the theme and are
+   switched off here. P adds .is-hidden. All zero specificity.
+   ========================================================================== */
+
+:where(.deck-progress) {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+:where(.deck-progress.is-hidden) {
+  visibility: hidden;
+}
+
+:where(.deck-progress-track) {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--deck-progress-gap);
+  height: var(--deck-progress-height);
+}
+
+/* one segment per act; flex-grow (set inline) = number of slides in the act.
+   The thin rule is what is still to come. */
+:where(.deck-progress-act) {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  border-bottom: var(--deck-progress-rule) solid var(--deck-progress-track);
+  box-sizing: border-box;
+}
+
+/* the thick part is what is done */
+:where(.deck-progress-fill) {
+  position: absolute;
+  left: 0;
+  bottom: calc(var(--deck-progress-rule) * -1);
+  width: 0;
+  height: var(--deck-progress-height);
+  background: var(--deck-progress-fill);
+  transition: width var(--deck-slide-duration) var(--deck-slide-ease);
+}
+
+:where(.deck-progress-ticks),
+:where(.deck-progress-label) {
+  display: none;
+}
+
+:where(.deck-progress-num) {
+  position: absolute;
+  right: var(--deck-progress-num-inset);
+  bottom: calc(var(--deck-progress-height) + 18px);
+  font-family: var(--deck-progress-font);
+  font-size: var(--deck-progress-num-size);
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--deck-progress-num-color);
+}
+
+/* ==========================================================================
+   7. Chrome around the stage (not scaled; the engine's own neutral look)
+   ========================================================================== */
+
+/* prev / next: appear in the bottom corners when the mouse moves.
+   They sit just above the progress bar and the slide number. */
+.deck-nav {
+  position: absolute;
+  bottom: max(18px, 6.5vh);
+  z-index: 25;
+  width: 52px;
+  height: 52px;
+  padding: 0 0 4px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(24, 26, 30, 0.78);
+  color: #ffffff;
+  font: 400 34px/1 system-ui, sans-serif;
+  opacity: 0;
+  pointer-events: none;
+  cursor: pointer;
+  transition: opacity 250ms ease;
+}
+
+.deck-nav-prev { left: 18px; }
+.deck-nav-next { right: 18px; }
+
+.is-mouse-active .deck-nav {
+  opacity: 0.8;
+  pointer-events: auto;
+}
+
+.is-mouse-active .deck-nav:hover,
+.deck-nav:focus-visible {
+  opacity: 1;
+}
+
+.is-overview .deck-nav {
+  display: none;
+}
+
+/* N: speaker notes over the bottom of the window */
+.deck-notes-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  max-height: 46%;
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 2.2vh 4vw 3vh;
+  border-top: 2px solid rgba(255, 255, 255, 0.25);
+  background: rgba(12, 13, 16, 0.95);
+  color: #f3f1ec;
+  font: 400 clamp(16px, 2vw, 38px)/1.4 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.deck-notes-overlay p {
+  margin: 0 0 0.7em;
+  max-width: 50em;
+}
+
+.deck-notes-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 2em;
+  margin-bottom: 0.8em;
+  font-size: 0.6em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #b9b6ae;
+}
+
+/* "YOUR STORY: ..." paragraphs in notes (overlay and presenter view) */
+.deck-notes-story {
+  padding-left: 0.6em;
+  border-left: 0.2em solid #ffd166;
+  color: #ffd166;
+}
+
+.deck-notes-empty {
+  color: #b9b6ae;
+}
+
+/* digits typed, waiting for Enter (also used for short engine messages) */
+.deck-jump {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 40;
+  padding: 10px 18px;
+  border-radius: 8px;
+  background: rgba(24, 26, 30, 0.92);
+  color: #ffffff;
+  max-width: 60vw;
+  font: 600 20px/1.3 system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+/* B or "." */
+.deck-blackout {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+
+html.is-blackout .deck-blackout {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ?debug */
+.deck-debug-badge {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 60;
+  max-width: min(720px, 80vw);
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #b3261e;
+  color: #ffffff;
+  font: 400 14px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  cursor: pointer;
+}
+
+.deck-debug-line {
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+
+/* ==========================================================================
+   8. Overview (O) and thumbnails
+   ========================================================================== */
+
+.deck-overview {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 12px 36px 60px;
+  background: var(--deck-overview-bg);
+  color: var(--deck-overview-fg);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.deck-overview-heading {
+  margin: 26px 0 14px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.deck-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, calc(var(--deck-thumb-w) * 1px));
+  gap: 24px 22px;
+}
+
+.deck-overview-item {
+  border-radius: 8px;
+  outline: 3px solid transparent;
+  outline-offset: 5px;
+  cursor: pointer;
+}
+
+.deck-overview-item:hover { outline-color: rgba(255, 255, 255, 0.35); }
+.deck-overview-item.is-current { outline-color: var(--deck-overview-current); }
+.deck-overview-item.is-selected { outline-color: #ffffff; }
+
+.deck-overview-caption {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.deck-overview-num {
+  min-width: 1.6em;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.deck-overview-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.85;
+}
+
+/* A thumbnail is a real 1920 x 1080 slide, scaled down.
+   --deck-thumb-w is its width in px (a plain number). */
+.deck-thumb {
+  position: relative;
+  width: calc(var(--deck-thumb-w) * 1px);
+  height: calc(var(--deck-thumb-w) * 1px * 9 / 16);
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--deck-stage-bg);
+  color: var(--deck-stage-fg);
+  pointer-events: none;
+}
+
+.deck-thumb > .slide {
+  transform: scale(calc(var(--deck-thumb-w) / 1920));
+  transform-origin: 0 0;
+}
+
+/* ==========================================================================
+   9. Timer scene (scenes/timer.js)
+   --------------------------------------------------------------------------
+   States on .timer:  data-state="idle | running | paused | finished"
+                      data-last-minute (present for the last 60 seconds)
+
+   The states differ by more than colour, so they read in a two-ink theme:
+     running      ink on the slide's ground
+     paused       the digits are drawn as outlines
+     last minute  a filled block of the accent, with the accent's ink
+     finished     the block inverts (ground on ink) and flashes three times
+
+   Variables (set them on .timer or any ancestor):
+     --timer-size            digit height; default fits the host box
+     --timer-font            default: var(--f-display)
+     --timer-weight          700
+     --timer-color           --timer-bg              normal
+     --timer-warn-color      --timer-warn-bg         last minute
+     --timer-done-color      --timer-done-bg         finished
+     --timer-done-animation  default: three hard flashes, then steady
+     --timer-label-size      --timer-hint-size       (hint: 28px, the floor)
+     --timer-bar-height      --timer-bar-border
+   All zero specificity.
+   ========================================================================== */
+
+:where(.timer) {
+  --_ink: var(--timer-color, var(--c-ink, currentColor));
+  --_ground: var(--timer-bg, transparent);
+  --_done-ink: var(--timer-done-color, var(--c-bg, #f4edde));
+  --_done-ground: var(--timer-done-bg, var(--c-ink, #050505));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--_ink);
+  background: var(--_ground);
+  font-family: var(--timer-font, var(--f-display, system-ui, sans-serif));
+  text-align: center;
+  cursor: pointer;
+}
+
+:where(.timer-label) {
+  font-size: var(--timer-label-size, 44px);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+:where(.timer-label:empty) {
+  display: none;
+}
+
+:where(.timer-digits) {
+  font-size: var(--timer-size, var(--timer-fit, 420px));
+  font-weight: var(--timer-weight, 700);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* an outlined box that empties from the right */
+:where(.timer-bar) {
+  width: min(78%, 1200px);
+  height: var(--timer-bar-height, 22px);
+  margin-top: 24px;
+  border: var(--timer-bar-border, 3px) solid currentColor;
+  box-sizing: border-box;
+}
+
+:where(.timer-bar-fill) {
+  height: 100%;
+  background: currentColor;
+  transform-origin: 0 50%;
+}
+
+:where(.timer-hint) {
+  margin-top: 20px;
+  font-family: var(--f-body, system-ui, sans-serif);
+  font-size: var(--timer-hint-size, var(--t-small, 28px));
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* paused: outlined digits */
+:where(.timer[data-state="paused"] .timer-digits) {
+  color: transparent;
+  -webkit-text-stroke: 0.025em var(--_ink);
+}
+
+/* last minute */
+:where(.timer[data-last-minute]) {
+  --_ink: var(--timer-warn-color, var(--c-accent-ink, #050505));
+  --_ground: var(--timer-warn-bg, var(--c-accent, #ff6842));
+}
+
+/* finished */
+:where(.timer[data-state="finished"]) {
+  --_ink: var(--_done-ink);
+  --_ground: var(--_done-ground);
+  animation: var(--timer-done-animation, deck-timer-flash 1s steps(1, end) 3);
+}
+
+@keyframes deck-timer-flash {
+  0%, 100% { background: var(--_done-ground); color: var(--_done-ink); }
+  50% { background: var(--_done-ink); color: var(--_done-ground); }
+}
+
+/* ==========================================================================
+   10. Presenter view (index.html?presenter)
+   --------------------------------------------------------------------------
+   A normal responsive page, not a scaled stage. Its own neutral palette so
+   it stays readable whatever the theme does:
+     --deck-pv-bg  --deck-pv-fg  --deck-pv-muted  --deck-pv-line
+     --deck-pv-accent  --deck-pv-good  --deck-pv-bad
+   ========================================================================== */
+
+html.mode-presenter,
+html.mode-presenter body {
+  height: 100%;
+  background: var(--deck-pv-bg, #15171b);
+}
+
+.deck-presenter {
+  --pv-fg: var(--deck-pv-fg, #f3f1ec);
+  --pv-muted: var(--deck-pv-muted, #b9b6ae);
+  --pv-line: var(--deck-pv-line, #3a3f48);
+  --pv-accent: var(--deck-pv-accent, #ffd166);
+  --pv-good: var(--deck-pv-good, #7bd88f);
+  --pv-bad: var(--deck-pv-bad, #ff8a80);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100%;
+  box-sizing: border-box;
+  color: var(--pv-fg);
+  font: 400 18px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.deck-presenter *,
+.deck-presenter *::before,
+.deck-presenter *::after {
+  box-sizing: border-box;
+}
+
+/* top bar */
+.deck-pv-top {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 28px;
+  align-items: center;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--pv-line);
+}
+
+.deck-pv-pos { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.deck-pv-num { font-size: 46px; font-weight: 700; line-height: 1; }
+.deck-pv-total { font-size: 22px; color: var(--pv-muted); }
+
+.deck-pv-act {
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--pv-muted);
+}
+
+.deck-pv-title {
+  overflow: hidden;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-pv-clock {
+  font-size: 34px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* notes | side column */
+.deck-pv-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 30%);
+  min-height: 0;
+}
+
+.deck-pv-notes {
+  min-height: 0;
+  overflow: auto;
+  padding: 24px 32px 40px;
+  line-height: 1.45;            /* font-size is set inline by the A- / A+ buttons */
+}
+
+.deck-pv-notes p {
+  margin: 0 0 0.8em;
+  max-width: 44em;
+}
+
+.deck-pv-side {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 0;
+  overflow: auto;
+  padding: 18px;
+  border-left: 1px solid var(--pv-line);
+}
+
+.deck-pv-label {
+  margin-bottom: 6px;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--pv-muted);
+}
+
+.deck-pv-thumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid var(--pv-line);
+  border-radius: 6px;
+  background: #000;
+}
+
+.deck-pv-thumb:empty {
+  display: none;
+}
+
+.deck-pv-next .deck-pv-thumb {
+  width: 62%;
+}
+
+.deck-pv-next-title {
+  margin-bottom: 8px;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+/* elapsed timer: a big button */
+.deck-pv-timer {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 12px;
+  align-items: center;
+}
+
+.deck-pv-timer .deck-pv-label,
+.deck-pv-timer .deck-pv-hint {
+  grid-column: 1 / -1;
+}
+
+.deck-pv-elapsed {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pv-fg);
+  font: 700 58px/1.05 system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+  cursor: pointer;
+}
+
+.deck-pv-elapsed[data-state="paused"] { color: var(--pv-accent); }
+.deck-pv-elapsed[data-state="idle"] { color: var(--pv-muted); }
+
+.deck-pv-hint {
+  font-size: 14px;
+  color: var(--pv-muted);
+}
+
+/* pacing */
+.deck-pv-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+
+.deck-pv-row span { color: var(--pv-muted); }
+.deck-pv-row b { font-weight: 600; text-align: right; }
+
+.deck-pv-status {
+  margin-top: 8px;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.deck-pv-status[data-status="waiting"] { color: var(--pv-muted); font-weight: 400; font-size: 18px; }
+.deck-pv-status[data-status="ahead"] { color: var(--pv-good); }
+.deck-pv-status[data-status="behind"] { color: var(--pv-bad); }
+
+/* bottom bar */
+.deck-pv-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  align-items: center;
+  padding: 10px 24px;
+  border-top: 1px solid var(--pv-line);
+}
+
+.deck-pv-spacer { flex: 1 1 auto; }
+
+.deck-pv-btn {
+  padding: 9px 18px;
+  border: 1px solid var(--pv-line);
+  border-radius: 8px;
+  background: #23262d;
+  color: var(--pv-fg);
+  font: 600 17px/1.2 system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.deck-pv-btn:hover { background: #2d313a; }
+.deck-pv-go { min-width: 150px; background: #2f3541; }
+
+.deck-pv-link,
+.deck-pv-keys {
+  font-size: 14px;
+  color: var(--pv-muted);
+}
+
+.deck-pv-link::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--pv-bad);
+}
+
+.deck-pv-link[data-linked="yes"]::before { background: var(--pv-good); }
+
+.deck-pv-blackout {
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--pv-accent);
+  color: #15171b;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+@media (max-width: 860px) {
+  html.mode-presenter,
+  html.mode-presenter body { height: auto; }
+  .deck-presenter { display: block; height: auto; }
+  .deck-pv-main { display: block; }
+  .deck-pv-side { border-left: 0; border-top: 1px solid var(--pv-line); }
+}
+
+/* ==========================================================================
+   11. Print mode (index.html?print  ->  tools/export-pdf.js)
+   ========================================================================== */
+
+@page {
+  size: 1920px 1080px;
+  margin: 0;
+}
+
+html.mode-print,
+html.mode-print body {
+  height: auto;
+  overflow: visible;
+  background: var(--deck-stage-bg);
+}
+
+.deck-print-page {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background: var(--deck-stage-bg);
+  color: var(--deck-stage-fg);
+  break-after: page;
+  page-break-after: always;
+  break-inside: avoid;
+}
+
+.deck-print-page:last-child {
+  break-after: auto;
+  page-break-after: auto;
+}
+
+@media print {
+  html,
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Ctrl+P in the normal deck window prints the slide on screen, unscaled */
+  html.mode-stage,
+  html.mode-stage body { height: auto; overflow: visible; }
+  html.mode-stage .deck-viewport { position: static; }
+  html.mode-stage .deck-stage { position: relative; transform: none !important; }
+
+  .deck-nav,
+  .deck-notes-overlay,
+  .deck-overview,
+  .deck-jump,
+  .deck-blackout,
+  .deck-debug-badge { display: none !important; }
+}
+
+/* ==========================================================================
+   12. Fast mode (?fast, and ?print): CSS motion is over in a millisecond
+   ========================================================================== */
+
+html.mode-fast *,
+html.mode-fast *::before,
+html.mode-fast *::after {
+  transition-duration: 1ms !important;
+  transition-delay: 0s !important;
+  animation-duration: 1ms !important;
+  animation-delay: 0s !important;
+}

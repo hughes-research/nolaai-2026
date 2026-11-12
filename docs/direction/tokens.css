@@ -1,0 +1,191 @@
+/* ==========================================================================
+   SLEEVE  ·  design tokens
+   "The Most Valuable AI Skill Is Saying No"  ·  NOAI 2026
+
+   Two inks on card stock. One family doing all the heavy lifting on its
+   width axis, one italic for the human voice. Stage is 1920 x 1080 CSS px;
+   every size below is in stage pixels.
+   ========================================================================== */
+
+/* ---- Fonts (OFL 1.1, self-hosted, relative URLs) ------------------------- */
+@font-face {
+  font-family: "Archivo";
+  src: url("fonts/archivo-latin-standard-normal.woff2") format("woff2");
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: "Fraunces";
+  src: url("fonts/fraunces-latin-full-italic.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: block;
+}
+
+:root {
+  /* ---- Colour: three printing colours, one structural neutral ----------- */
+  --card:       #F4EDDE;  /* card stock. Default ground, text on Lampblack   */
+  --lampblack:  #050505;  /* the black plate. Text, blocks, PASS shutters    */
+  --flare:      #FF6842;  /* the spot ink. NO, and the one number that counts */
+  --rack:       #8A8275;  /* structure on Lampblack only (rack outlines)     */
+
+  /* Semantic aliases: use these in components */
+  --c-ground:       var(--card);
+  --c-ground-dark:  var(--lampblack);
+  --c-text:         var(--lampblack);
+  --c-text-on-dark: var(--card);
+  --c-point:        var(--flare);     /* rationed: one Flare idea per slide  */
+  --c-no:           var(--flare);
+  --c-pass:         var(--lampblack);
+  --c-structure-dark:   var(--rack);          /* on Card, structure is Lampblack at rule weight */
+
+  /* ---- Stage and grid ---------------------------------------------------- */
+  --stage-w: 1920px;
+  --stage-h: 1080px;
+  --spine-w: 88px;                 /* the record spine, left edge, every slide */
+  --margin:  40px;                 /* spine to content */
+  --content-left: 128px;           /* = spine + margin */
+  --content-right: 1864px;         /* stage width minus the right margin */
+  --margin-right: 56px;
+  --top: 60px;                     /* cap-top of a slide headline */
+  --gutter: 24px;
+
+  /* ---- Spacing scale (8px base) ----------------------------------------- */
+  --sp-1: 8px;
+  --sp-2: 16px;
+  --sp-3: 24px;
+  --sp-4: 32px;
+  --sp-5: 48px;
+  --sp-6: 64px;
+  --sp-7: 96px;
+  --sp-8: 128px;
+
+  /* ---- Type families ----------------------------------------------------- */
+  --font-display: "Archivo", "Inter", "Arial Narrow", sans-serif;
+  --font-text:    "Archivo", "Inter", Arial, sans-serif;
+  --font-voice:   "Fraunces", Georgia, serif;
+
+  /* Archivo's width axis is the system: 62 shouts, 100 talks, 125 labels */
+  --wdth-display: 62%;
+  --wdth-tight:   75%;
+  --wdth-text:    100%;
+  --wdth-label:   125%;
+
+  --wght-display: 900;
+  --wght-strong:  800;
+  --wght-text:    500;
+  --wght-label:   700;
+  --wght-voice:   560;
+
+  /* Vertical metrics for Archivo, measured. A line-height of 0.708 puts the
+     cap-top exactly on the box top and the baseline 0.688em below it, so
+     display type can be placed on the pixel grid without fudge factors. */
+  --cap: 0.688;
+  --lh-cap: 0.708;
+  --lh-text: 1.2;
+  --lh-voice: 1.14;
+
+  /* ---- Type scale (stage px). Floors: 24 for any text, 36 for running text,
+          96 for a headline. Stacks are fitted by fitStack(), so their size is a
+          result, not an input; the two values below are what the frames produce. */
+  --fs-mega:        905px;  /* the NO on a full-height slab                    */
+  --fs-verdict-no:  340px;  /* the NO on a gate                                */
+  --fs-verdict:     118px;  /* PASS on a raised shutter                        */
+  --fs-stack-statement: 270px;  /* fitted: four-line statement, 1088px measure */
+  --fs-stack-title:     198px;  /* fitted: title stack, 750px measure          */
+  --fs-headline:    150px;  /* slide headline                                  */
+  --fs-headline-s:  96px;   /* long headlines, gate names: the headline floor  */
+  --fs-numeral-xl:  300px;  /* counters                                        */
+  --fs-numeral-l:   264px;  /* call-out multiples and totals (333x, $0)        */
+  --fs-numeral-m:   96px;   /* values at the end of a bar                      */
+  --fs-voice-l:     64px;   /* Fraunces italic: the follow-up line             */
+  --fs-voice:       54px;   /* subtitle, asides                                */
+  --fs-voice-s:     44px;   /* captions under a number                         */
+  --fs-body:        40px;   /* questions, row labels                           */
+  --fs-body-min:    36px;   /* never smaller for running text                  */
+  --fs-credit:      34px;   /* speaker and event lines, width 72               */
+  --fs-label-l:     30px;   /* section label                                   */
+  --fs-label:       24px;   /* wide caps label. Nothing on stage is smaller    */
+  --track-label:    0.1em;
+  --track-display:  0;
+
+  /* ---- Lines: nothing thinner than 3px survives a projector ------------- */
+  --rule-hair:  3px;
+  --rule:       6px;
+  --rule-heavy: 8px;
+  --rule-slab:  12px;
+
+  /* ---- Radii and shadows: there are none -------------------------------- */
+  --radius: 0;            /* hard edges are the brand */
+  --radius-dot: 50%;      /* halftone dots only */
+  --shadow: none;         /* flat ink, no elevation, no glow */
+
+  /* ---- Motion: 120 BPM, everything lands on the grid -------------------- */
+  --bpm: 120;
+  --beat: 500ms;          /* quarter note */
+  --eighth: 250ms;
+  --sixteenth: 125ms;
+  --swing: 333ms;         /* the swung off-beat: 2/3 of a beat */
+  --bar: 2000ms;          /* four beats. The longest a NO may hold the stage */
+
+  --dur-cut: 0ms;                    /* labels and verdict words: they cut in       */
+  --dur-block-in: var(--sixteenth);  /* block reveal: the bar grows across the line */
+  --dur-block-out: var(--eighth);    /* block reveal: the bar retreats, type stays  */
+  --dur-voice: var(--swing);         /* Fraunces lines wipe in                      */
+  --dur-lift: var(--beat);           /* a gate opening                              */
+  --dur-drop: 375ms;                 /* a gate shutting: three sixteenths           */
+  --dur-jolt: 375ms;                 /* the recoil after a drop, same three sixteenths */
+  --dur-hold: 1000ms;                /* stop-time after a NO: two beats in negative */
+  --dur-sleeve: var(--beat);         /* slide transition: the sleeve pull           */
+  --dur-count: 1500ms;               /* counters: twelve sixteenth-note ticks       */
+
+  --ease-arrive: cubic-bezier(0.16, 1, 0.3, 1);     /* fast in, dead stop    */
+  --ease-lift:   cubic-bezier(0.2, 0.8, 0.2, 1);    /* a shutter going up    */
+  --ease-drop:   cubic-bezier(0.55, 0, 1, 0.45);    /* gravity. No bounce    */
+  --ease-cut:    steps(1, end);                     /* print logic: on / off */
+  --ease-tick:   steps(12, end);                    /* counters tick, not glide */
+}
+
+/* ---- Type roles: a deck engine can use these classes as-is -------------- */
+.t-display {
+  font-family: var(--font-display);
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  line-height: var(--lh-cap);
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  font-kerning: normal;
+}
+.t-num {
+  font-family: var(--font-display);
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  line-height: var(--lh-cap);
+  font-variant-numeric: tabular-nums;
+}
+.t-body {
+  font-family: var(--font-text);
+  font-weight: var(--wght-text);
+  font-stretch: var(--wdth-text);
+  font-size: var(--fs-body);
+  line-height: var(--lh-text);
+}
+.t-label {
+  font-family: var(--font-text);
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-label);
+  font-size: var(--fs-label);
+  line-height: 1;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+}
+.t-voice {
+  font-family: var(--font-voice);
+  font-style: italic;
+  font-weight: var(--wght-voice);
+  font-variation-settings: "opsz" 60, "SOFT" 0, "WONK" 1;
+  font-size: var(--fs-voice);
+  line-height: var(--lh-voice);
+}
