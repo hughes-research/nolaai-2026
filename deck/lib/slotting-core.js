@@ -52,6 +52,7 @@
  * API
  *   Slotting.defaults                      the default parameters
  *   Slotting.params(overrides)             defaults <- window.YOUR.slotting.sim <- overrides
+ *   Slotting.layout(params)                -> the building alone (cheap: no parts, no orders)
  *   Slotting.build(params)                 -> world { params, layout, slots, parts, orders, ... }
  *   Slotting.asIs(world)                   -> assignment   (the as-is move)
  *   Slotting.seedLayout(world)             -> assignment   (the rule-of-thumb start)
@@ -1344,6 +1345,7 @@
     LEVELS: LEVELS,
     ZONES: ZONES.slice(),
     params: params,
+    layout: function (input) { return buildLayout(params(input)); },
     build: build,
     asIs: asIs,
     seedLayout: seedLayout,

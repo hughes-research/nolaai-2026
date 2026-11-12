@@ -15,6 +15,18 @@
  * the <script src="slides/_demo.js"> tag to stay in index.html.)
  *
  * Prints one PASS / FAIL line per test and exits 1 if anything failed.
+ *
+ * BEHAVIOUR, NOT LOOKS. The theme (deck/theme/) is free to restyle reveals,
+ * the progress bar, the timer and the slide transition. So:
+ *   - tests that run with the theme loaded only assert what the engine DOES:
+ *     classes, attributes, visibility, text, positions in the running order;
+ *   - the engine's own default looks (the rise offset, the thin progress bar,
+ *     the outlined paused digits...) are asserted in the tests named
+ *     "engine defaults (theme off)", on a page whose theme stylesheets were
+ *     taken out. They say what deck.css does when no theme overrides it.
+ * If a theme change makes a test here fail, either the theme broke the engine
+ * (a hidden step that shows, a P key that no longer hides the bar), or the
+ * test is wrong and must be moved under "engine defaults".
  */
 'use strict';
 
@@ -76,9 +88,28 @@ function watch(page, problems) {
   page.on('pageerror', (err) => { problems.push('uncaught: ' + err.message); });
 }
 
+/*
+ * Runs in the page before anything else (opts.theme === false): removes the
+ * theme's stylesheets as the parser adds them, so the page shows the engine's
+ * own defaults. Works for the source deck (<link href="theme/...">) and for
+ * the single-file build (<style data-href="theme/...">). theme/theme.js stays:
+ * it draws on canvases and styles nothing.
+ */
+function themeOff() {
+  const isTheme = (n) => n.nodeType === 1 &&
+    ((n.tagName === 'LINK' && /(^|\/)theme\//.test(n.getAttribute('href') || '')) ||
+     (n.tagName === 'STYLE' && /(^|\/)theme\//.test(n.getAttribute('data-href') || '')));
+  new MutationObserver((records) => {
+    for (const r of records) { for (const n of r.addedNodes) { if (isTheme(n)) { n.remove(); } } }
+  }).observe(document, { childList: true, subtree: true });
+  window.__themeOff = true;
+}
+
 /**
  * Open the deck in a fresh browser context.
- * opts: { flags: 'fast&debug', hash: 'demo-counter/1', viewport, dpr, touch, init }
+ * opts: { flags: 'fast&debug', hash: 'demo-counter/1', viewport, dpr, touch, init,
+ *         theme: false (take the theme's stylesheets out),
+ *         contextInit: a function run in EVERY page of the context, pop-ups included }
  */
 async function open(opts) {
   opts = opts || {};
@@ -87,9 +118,11 @@ async function open(opts) {
     deviceScaleFactor: opts.dpr || 1,
     hasTouch: !!opts.touch
   });
+  if (opts.contextInit) { await context.addInitScript(opts.contextInit); }
   const page = await context.newPage();
   const problems = [];
   watch(page, problems);
+  if (opts.theme === false) { await page.addInitScript(themeOff); }
   if (opts.init) { await page.addInitScript(opts.init); }
   await page.goto(deckUrl(opts.flags, opts.hash === undefined ? 'demo-reveals/0' : opts.hash));
   await ready(page);
@@ -172,6 +205,51 @@ function sceneSpy() {
   });
 }
 const sceneLog = (page, name) => page.evaluate((n) => window.__sceneLog.filter((e) => e[1] === n), name);
+
+/** The progress parts the engine keeps up to date. `box` is only used by the "engine defaults" test. */
+function progressState(page) {
+  return page.evaluate(() => {
+    const root = document.querySelector('.deck-progress');
+    const track = root.querySelector('.deck-progress-track').getBoundingClientRect();
+    const num = root.querySelector('.deck-progress-num').getBoundingClientRect();
+    const stage = document.querySelector('.deck-stage').getBoundingClientRect();
+    return {
+      segments: root.querySelectorAll('.deck-progress-act').length,
+      fills: Array.from(root.querySelectorAll('.deck-progress-fill')).map((f) => parseFloat(f.style.width)),
+      num: root.querySelector('.deck-progress-num').textContent,
+      hidden: root.classList.contains('is-hidden'),
+      visibility: getComputedStyle(root).visibility,
+      box: {
+        atBottom: Math.abs(track.bottom - stage.bottom) < 1.5,
+        fullWidth: Math.abs(track.width - stage.width) < 2,
+        thin: track.height / stage.height < 0.02,
+        numBottomRight: num.width > 0 && num.left > stage.left + stage.width * 0.7 && num.top > stage.top + stage.height * 0.85
+      }
+    };
+  });
+}
+
+/** The timer on the current slide: what it says, its state, and (for the "engine defaults" test) its look. */
+function timerState(page) {
+  return page.evaluate(() => {
+    const root = document.querySelector('.deck-slides > .slide.is-current .timer');
+    if (!root) { return null; }
+    const digits = root.querySelector('.timer-digits');
+    const scale = window.__deck.scale() || 1;
+    return {
+      text: digits.textContent,
+      state: root.getAttribute('data-state'),
+      lastMinute: root.hasAttribute('data-last-minute'),
+      label: root.querySelector('.timer-label').textContent,
+      remaining: window.__deck.scene('timer').state().remaining,
+      digitsHeight: digits.getBoundingClientRect().height / scale,       // stage units
+      // the look of a state: its ink, its ground, and whether the digits are outlined
+      look: [getComputedStyle(root).color, getComputedStyle(root).backgroundColor,
+        getComputedStyle(digits).webkitTextStrokeWidth !== '0px' ? 'outlined' : 'solid'].join(' | '),
+      fontSize: parseFloat(getComputedStyle(digits).fontSize)
+    };
+  });
+}
 
 /* ==================================================================== tests */
 
@@ -405,7 +483,7 @@ test('steps: forward and back visibility, data-step-only, data-step-out, slide b
     await settle(p);
     await expectAt(p, 'demo-reveals', 1);
     v = await look(p, '[data-step="1"]');
-    eq([v.shown, v.visibility, v.opacity], [true, 'visible', 1], 'step 1 element revealed');
+    eq([v.shown, v.visibility], [true, 'visible'], 'step 1 element revealed');
     v = await look(p, '[data-step-out="1"]');
     eq([v.shown, v.visibility], [false, 'hidden'], 'step-out element gone at step 1');
     eq((await look(p, '[data-step="2"]')).shown, false, 'step 2 element still hidden');
@@ -418,7 +496,7 @@ test('steps: forward and back visibility, data-step-only, data-step-out, slide b
     await p.keyboard.press('ArrowRight');
     await settle(p);
     eq((await look(p, '[data-step-only="3"]')).visibility, 'hidden', 'step-only element hidden at step 4');
-    eq((await look(p, '[data-step="4"]')).opacity, 1, 'step 4 element revealed');
+    eq((await look(p, '[data-step="4"]')).visibility, 'visible', 'step 4 element revealed');
 
     // back: step 4 element hides again
     await p.keyboard.press('ArrowLeft');
@@ -438,16 +516,52 @@ test('steps: forward and back visibility, data-step-only, data-step-out, slide b
     await expectAt(p, 'demo-reveals', 5, 'back lands on the last step');
     for (const n of [1, 2, 3, 4, 5]) {
       v = await look(p, '[data-step="' + n + '"]');
-      eq([v.shown, v.opacity], [true, 1], 'step ' + n + ' element visible after coming back');
+      eq([v.shown, v.visibility], [true, 'visible'], 'step ' + n + ' element visible after coming back');
     }
     eq(t.problems, [], 'console errors');
   } finally { await t.close(); }
 });
 
-test('data-anim: rise, fade, wipe, stamp and pop each have their own hidden state', async () => {
+test('data-anim: every variant is hidden before its step and shown from it on, whatever the theme', async () => {
   const t = await open({ flags: 'fast' });
   try {
     const p = t.page;
+    // [selector, the step that reveals it]
+    const variants = [['[data-anim="rise"]', 1], ['[data-step="2"][data-anim="fade"]', 2], ['[data-anim="wipe"]', 3], ['[data-anim="pop"]', 4], ['[data-anim="stamp"]', 5]];
+    for (const [sel] of variants) {
+      const v = await look(p, sel);
+      eq([v.shown, v.visibility], [false, 'hidden'], sel + ' is hidden at step 0');
+    }
+    for (const [sel, step] of variants) {
+      await p.keyboard.press('ArrowRight');
+      eq(await settle(p), true, 'the reveal at step ' + step + ' settles');
+      const v = await look(p, sel);
+      eq([v.shown, v.visibility], [true, 'visible'], sel + ' is shown at step ' + step);
+      // "shown" must mean it: something of it is really painted inside the stage
+      const painted = await p.evaluate((q) => {
+        const el = document.querySelector('.deck-slides > .slide.is-current ' + q);
+        const r = el.getBoundingClientRect();
+        const stage = document.querySelector('.deck-stage').getBoundingClientRect();
+        return r.width > 0 && r.height > 0 && r.right > stage.left && r.left < stage.right && r.bottom > stage.top && r.top < stage.bottom &&
+          Number(getComputedStyle(el).opacity) > 0;
+      }, sel);
+      eq(painted, true, sel + ' has a box on the stage and is not transparent');
+    }
+    for (const [sel, step] of variants.slice().reverse()) {
+      await p.keyboard.press('ArrowLeft');
+      await settle(p);
+      const v = await look(p, sel);
+      eq([v.shown, v.visibility], [false, 'hidden'], sel + ' is hidden again below step ' + step);
+    }
+    eq(t.problems, [], 'console errors');
+  } finally { await t.close(); }
+});
+
+test('engine defaults (theme off): rise, fade, wipe, stamp and pop each have their own hidden state; reveals take time', async () => {
+  const t = await open({ flags: 'fast', theme: false });
+  try {
+    const p = t.page;
+    eq(await p.evaluate(() => [window.__themeOff, document.querySelectorAll('link[href*="theme/"], style[data-href*="theme/"]').length]), [true, 0], 'the theme stylesheets are out');
     const rise = await look(p, '[data-anim="rise"]');
     const fade = await look(p, '[data-step="2"][data-anim="fade"]');
     const wipe = await look(p, '[data-anim="wipe"]');
@@ -466,6 +580,21 @@ test('data-anim: rise, fade, wipe, stamp and pop each have their own hidden stat
       eq([v.visibility, v.opacity, v.translate, v.scale, v.rotate], ['visible', 1, 'none', 'none', 'none'], sel + ' final state');
     }
   } finally { await t.close(); }
+
+  // without ?fast the default reveal is a CSS transition: it is under way right after the key press
+  const slow = await open({ theme: false });
+  try {
+    const p = slow.page;
+    const t0 = Date.now();
+    await p.keyboard.press('ArrowRight');
+    const midway = (await look(p, '[data-step="1"]')).opacity;
+    eq(await settle(p), true, 'settle resolves true');
+    const waited = Date.now() - t0;
+    assert(midway < 1, 'the default reveal was still running right after the key press (opacity ' + midway + ')');
+    assert(waited >= 300 && waited < 3000, 'settle() waited for the reveal: ' + waited + ' ms');
+    eq((await look(p, '[data-step="1"]')).opacity, 1, 'finished when settle() resolved');
+    eq(slow.problems, [], 'the deck runs without a theme and logs no errors');
+  } finally { await slow.close(); }
 });
 
 test('counters count up when revealed, reset when hidden, and are instant in ?fast', async () => {
@@ -503,7 +632,8 @@ test('counters count up when revealed, reset when hidden, and are instant in ?fa
       const host = document.querySelector('.deck-slides > .slide.is-current .demo-body');
       host.insertAdjacentHTML('beforeend',
         '<p data-step="1"><span data-demo="ticks" data-count-to="100" data-count-format="d"></span> ' +
-        '<span data-demo="own" data-count-to="100" data-count-format="d" data-count-duration="1" data-count-ease="linear" data-count-steps="0"></span></p>');
+        '<span data-demo="own" data-count-to="100" data-count-format="d" data-count-duration="1" data-count-ease="linear" data-count-steps="0"></span> ' +
+        '<span data-demo="plain" data-count-to="15.4" data-count-duration="1" data-count-ease="linear" data-count-steps="0"></span></p>');
     });
     await p.keyboard.press('ArrowRight');
     const seen = [];
@@ -513,8 +643,10 @@ test('counters count up when revealed, reset when hidden, and are instant in ?fa
     }
     eq(seen.map((x) => x[0]), ['0', '25', '50', '75', '100'], 'four ticks over two seconds (deck-wide default from Deck.config)');
     eq(seen.map((x) => x[1]), ['10', '60', '100', '100', '100'], 'the element\'s own attributes win over the defaults');
+    eq((await look(p, '[data-demo="plain"]')).text, '15.4', 'no format: the decimals of the target are kept');
     await p.evaluate(() => { window.Deck.config({ counters: null }); });
     await p.keyboard.press('ArrowLeft');
+    eq((await look(p, '[data-demo="plain"]')).text, '0.0', 'and a counter waiting hidden is written the same way as when it counts');
 
     // with the real clock the same thing finishes by itself
     await p.evaluate(() => window.Motion.useRealClock());
@@ -810,6 +942,9 @@ test('scenes: mounted on enter, step(current, 0) then step(n, dir), destroyed on
     const idle = await loops(p);
     eq(idle, 0, 'no animation loops on a slide without scenes');
     eq(await sceneLog(p, 'demo-orbit'), [], 'the scene is not mounted before its slide');
+    // This test watches a slide change in progress. Give it one of a known length:
+    // a theme may well set a hard cut (0s), which is tested further down.
+    await p.evaluate(() => { document.documentElement.style.setProperty('--deck-slide-duration', '400ms'); });
 
     // enter at step 1: mount, then exactly one step(1, 0)
     await goto(p, 'demo-scene', 1);
@@ -898,26 +1033,14 @@ test('timer scene: T start/pause, R reset, last-minute and finished states, time
   const t = await open({ hash: 'demo-timer/0' });
   try {
     const p = t.page;
-    const timer = () => p.evaluate(() => {
-      const root = document.querySelector('.deck-slides > .slide.is-current .timer');
-      return {
-        text: root.querySelector('.timer-digits').textContent,
-        state: root.getAttribute('data-state'),
-        lastMinute: root.hasAttribute('data-last-minute'),
-        // the look of a state: its ink, its ground, and whether the digits are outlined
-        color: [getComputedStyle(root).color, getComputedStyle(root).backgroundColor,
-          getComputedStyle(root.querySelector('.timer-digits')).webkitTextStrokeWidth !== '0px' ? 'outlined' : 'solid'].join(' | '),
-        size: parseFloat(getComputedStyle(root.querySelector('.timer-digits')).fontSize),
-        label: root.querySelector('.timer-label').textContent
-      };
-    });
+    const timer = () => timerState(p);
     const idle = await loops(p);
     await p.evaluate(() => window.Motion.useManualClock(1000));
 
     let s = await timer();
     eq([s.text, s.state, s.lastMinute, s.label], ['2:00', 'idle', false, 'Timer demo'], 'initial');
-    assert(s.size >= 300, 'digits are very large: ' + s.size + 'px on the 1080px stage');
-    const normalColor = s.color;
+    // readable from the back of the room: the digits are the biggest thing on the slide by far
+    assert(s.digitsHeight >= 150, 'the digits are very large: ' + Math.round(s.digitsHeight) + 'px tall on the 1080px stage');
 
     await p.keyboard.press('t');
     eq((await timer()).state, 'running', 'T starts');
@@ -929,7 +1052,6 @@ test('timer scene: T start/pause, R reset, last-minute and finished states, time
     await p.keyboard.press('t');
     s = await timer();
     eq(s.state, 'paused', 'T pauses');
-    assert(/outlined/.test(s.color) && s.color !== normalColor, 'paused looks different (outlined digits): ' + s.color);
     eq(await loops(p), idle, 'no loop while paused');
     await p.evaluate(() => window.Motion.setTime(1100));
     eq((await timer()).text, '1:30', 'time stands still while paused');
@@ -939,14 +1061,11 @@ test('timer scene: T start/pause, R reset, last-minute and finished states, time
     await settle(p);                       // the colour change is a short CSS transition
     s = await timer();
     eq([s.text, s.state, s.lastMinute], ['1:00', 'running', true], 'last minute');
-    assert(s.color !== normalColor, 'the last minute has its own look: ' + s.color + ' vs ' + normalColor);
-    const warnColor = s.color;
 
     await p.evaluate(() => window.Motion.setTime(1100 + 95));
     eq(await settle(p), true, 'settle() waits out the finishing flashes (they are finite)');
     s = await timer();
     eq([s.text, s.state, s.lastMinute], ['0:00', 'finished', false], 'finished');
-    assert(s.color !== normalColor && s.color !== warnColor, 'finished has its own look: ' + s.color);
     eq(await loops(p), idle, 'the loop stops at zero');
     await p.keyboard.press('t');
     eq((await timer()).state, 'finished', 'T does nothing once time is up');
@@ -954,7 +1073,7 @@ test('timer scene: T start/pause, R reset, last-minute and finished states, time
     await p.keyboard.press('r');
     await settle(p);
     s = await timer();
-    eq([s.text, s.state, s.color], ['2:00', 'idle', normalColor], 'R resets');
+    eq([s.text, s.state, s.lastMinute], ['2:00', 'idle', false], 'R resets');
 
     // clicking the timer also starts it, and does not advance the deck
     await p.click('.deck-slides > .slide.is-current .timer');
@@ -1235,15 +1354,31 @@ test('?fast: 20x motion, instant CSS, settles quickly; settle() really waits wit
   const slow = await open({});
   try {
     const p = slow.page;
-    // without ?fast a reveal takes real time, and settle() waits for it
+    // Without ?fast, settle() waits for CSS that is still moving. The transition
+    // is one this test starts itself, so its length does not depend on the theme
+    // (a theme may turn every reveal into a cut).
+    eq(await p.evaluate(() => window.Motion.timeScale), 1, 'no ?fast: Motion runs at normal speed');
+    await p.evaluate(() => {
+      const probe = document.createElement('div');
+      probe.id = 't-probe';
+      probe.style.cssText = 'position:absolute;left:0;top:0;width:10px;height:10px;opacity:1;transition:opacity 600ms linear';
+      document.querySelector('.deck-slides > .slide.is-current').appendChild(probe);
+      void probe.offsetWidth;
+      probe.style.opacity = '0';
+    });
     const t0 = Date.now();
-    await p.keyboard.press('ArrowRight');
-    const midway = (await look(p, '[data-step="1"]')).opacity;
+    const midway = await p.evaluate(() => Number(getComputedStyle(document.getElementById('t-probe')).opacity));
     eq(await settle(p), true, 'settle resolves true');
     const waited = Date.now() - t0;
-    assert(midway < 1, 'the reveal was still running right after the key press (opacity ' + midway + ')');
-    assert(waited >= 300 && waited < 3000, 'settle() waited for the transition: ' + waited + ' ms');
-    eq((await look(p, '[data-step="1"]')).opacity, 1, 'finished when settle() resolved');
+    assert(midway > 0, 'the transition was still running when settle() was called (opacity ' + midway + ')');
+    assert(waited >= 400 && waited < 3000, 'settle() waited for the transition: ' + waited + ' ms');
+    eq(await p.evaluate(() => Number(getComputedStyle(document.getElementById('t-probe')).opacity)), 0, 'finished when settle() resolved');
+
+    // ...and for a finite Motion tween
+    const t2 = Date.now();
+    await p.evaluate(() => { window.Motion.tween({ from: 0, to: 1, duration: 0.5 }); });
+    eq(await settle(p), true, 'settle resolves true after a tween');
+    assert(Date.now() - t2 >= 400, 'settle() waited for the tween: ' + (Date.now() - t2) + ' ms');
 
     // infinite loops are ignored: the scene slide (raf loop) settles
     eq(await goto(p, 'demo-scene', 0), true, 'a slide with an endless loop still settles');
@@ -1375,34 +1510,27 @@ test('progress bar (P), notes overlay (N), fullscreen key (F)', async () => {
   try {
     const p = t.page;
     const ids = await p.evaluate(() => window.__deck.ids());
-    const bar = () => p.evaluate(() => {
-      const root = document.querySelector('.deck-progress');
-      const r = root.querySelector('.deck-progress-track').getBoundingClientRect();
-      const stage = document.querySelector('.deck-stage').getBoundingClientRect();
-      return {
-        segments: root.querySelectorAll('.deck-progress-act').length,
-        fills: Array.from(root.querySelectorAll('.deck-progress-fill')).map((f) => parseFloat(f.style.width)),
-        num: root.querySelector('.deck-progress-num').textContent,
-        hidden: root.classList.contains('is-hidden'),
-        atBottom: Math.abs(r.bottom - stage.bottom) < 1.5,
-        thin: r.height / stage.height < 0.02
-      };
-    });
+    const bar = () => progressState(p);
     await goto(p, 'demo-reveals', 0);
     let b = await bar();
-    assert(b.segments >= 1, 'one segment per act');
+    const acts = await p.evaluate(() => window.__deck.ids().map((id) => window.__deck.info(id).act));
+    eq(b.segments, acts.filter((a, i) => i === 0 || a !== acts[i - 1]).length, 'one segment per act (per run of slides in the same act)');
     eq(b.num, (ids.indexOf('demo-reveals') + 1) + ' / ' + ids.length, 'slide number');
-    eq([b.atBottom, b.thin, b.hidden], [true, true, false], 'a thin bar at the bottom of the stage');
+    eq([b.hidden, b.visibility], [false, 'visible'], 'shown to begin with');
     const before = b.fills.reduce((x, y) => x + y, 0);
-    await goto(p, 'demo-throws', 0);
+    await goto(p, ids[ids.length - 1], 0);
     b = await bar();
-    assert(b.fills.reduce((x, y) => x + y, 0) > before, 'the bar fills as the deck advances');
+    assert(b.fills.reduce((x, y) => x + y, 0) > before, 'the fill grows as the deck advances');
     eq(b.fills[b.fills.length - 1], 100, 'full on the last slide');
 
     await p.keyboard.press('p');
-    eq((await bar()).hidden, true, 'P hides it');
+    await settle(p);
+    b = await bar();
+    eq([b.hidden, b.visibility], [true, 'hidden'], 'P hides it (and it really is not painted)');
     await p.keyboard.press('p');
-    eq((await bar()).hidden, false, 'P shows it again');
+    await settle(p);
+    b = await bar();
+    eq([b.hidden, b.visibility], [false, 'visible'], 'P shows it again');
 
     // hooks for the theme: one tick per slide, the act name, where-we-are attributes on the stage
     await goto(p, 'demo-scene', 1);
@@ -1495,6 +1623,669 @@ test('Motion in the browser: manual clock, splitText, same random numbers as Nod
       return { mid, end, pending: window.Motion.stats().pending };
     });
     eq(count, { mid: '$750/yr', end: '$1,500/yr', pending: 0 }, 'Motion.count on the manual clock');
+    eq(t.problems, [], 'console errors');
+  } finally { await t.close(); }
+});
+
+test('engine defaults (theme off): a thin progress bar along the bottom with the slide number; timer states look different', async () => {
+  const t = await open({ flags: 'fast', theme: false, hash: 'demo-reveals/0' });
+  try {
+    const p = t.page;
+    const b = await progressState(p);
+    eq([b.box.atBottom, b.box.fullWidth, b.box.thin, b.hidden], [true, true, true, false], 'a thin bar across the bottom of the stage');
+    eq(b.box.numBottomRight, true, 'the slide number sits at the bottom right');
+    eq(await p.evaluate(() => {
+      const root = document.querySelector('.deck-progress');
+      return [getComputedStyle(root.querySelector('.deck-progress-ticks')).display, getComputedStyle(root.querySelector('.deck-progress-label')).display];
+    }), ['none', 'none'], 'ticks and the act label are there for a theme, switched off by default');
+
+    // the timer: each state has its own look, and not by colour alone
+    await goto(p, 'demo-timer', 0);
+    await p.evaluate(() => { window.Motion.timeScale = 1; window.Motion.useManualClock(0); });
+    let s = await timerState(p);
+    assert(s.fontSize >= 300, 'digits are very large by default: ' + s.fontSize + 'px on the 1080px stage');
+    const idleLook = s.look;
+    await p.keyboard.press('t');
+    await p.evaluate(() => window.Motion.setTime(5));
+    await p.keyboard.press('t');
+    await settle(p);
+    s = await timerState(p);
+    eq(s.state, 'paused', 'paused');
+    assert(/outlined/.test(s.look) && s.look !== idleLook, 'paused: the digits are outlined: ' + s.look);
+    await p.keyboard.press('t');
+    await p.evaluate(() => window.Motion.setTime(70));
+    await settle(p);
+    s = await timerState(p);
+    eq([s.state, s.lastMinute], ['running', true], 'last minute');
+    assert(s.look !== idleLook, 'the last minute has its own look: ' + s.look + ' vs ' + idleLook);
+    const warnLook = s.look;
+    await p.evaluate(() => window.Motion.setTime(200));
+    await settle(p);
+    s = await timerState(p);
+    eq(s.state, 'finished', 'finished');
+    assert(s.look !== idleLook && s.look !== warnLook, 'finished has its own look: ' + s.look);
+    await p.keyboard.press('r');
+    await settle(p);
+    eq((await timerState(p)).look, idleLook, 'R brings the normal look back');
+    eq(t.problems, [], 'console errors');
+  } finally { await t.close(); }
+});
+
+/* ---------------------------------------------------------------------------
+ * Regression tests for defects found in review. Each one names what went wrong.
+ * ------------------------------------------------------------------------- */
+
+test('timer keeps its countdown when the slide is left and when the page is reloaded', async () => {
+  const t = await open({ hash: 'demo-timer/0' });
+  try {
+    const p = t.page;
+    const timer = () => timerState(p);
+    const idle = await loops(p);
+    const leave = async () => {
+      await p.keyboard.press('ArrowRight');
+      await settle(p);
+      assert((await cur(p)).id !== 'demo-timer', 'left the timer slide');
+      eq(await p.evaluate(() => !!window.__deck.scene('timer')), false, 'the timer scene is destroyed while its slide is away');
+    };
+    const back = async () => {
+      await goto(p, 'demo-timer', 0);
+      await settle(p);
+    };
+
+    // running: one stray clicker press and back again
+    await p.evaluate(() => window.Motion.useManualClock(1000));
+    await p.keyboard.press('t');
+    await p.evaluate(() => window.Motion.setTime(1003));
+    let s = await timer();
+    eq([s.state, s.text], ['running', '1:57'], 'running before leaving');
+    await leave();
+    await goto(p, 'demo-reveals', 0);
+    eq(await loops(p), idle, 'no loop runs for a countdown whose slide is away');
+    await p.evaluate(() => window.Motion.setTime(1010));
+    await back();
+    s = await timer();
+    eq([s.state, s.text], ['running', '1:50'], 'still running after coming back, and the time away was counted');
+    eq(await loops(p), idle + 1, 'its loop is running again');
+
+    // paused: stays paused at the same time
+    await p.keyboard.press('t');
+    await leave();
+    await p.evaluate(() => window.Motion.setTime(1500));
+    await back();
+    s = await timer();
+    eq([s.state, s.text], ['paused', '1:50'], 'a paused countdown is still paused at the same time');
+
+    // a reload keeps it too (paused)
+    await p.reload();
+    await ready(p);
+    s = await timer();
+    eq([s.state, s.text], ['paused', '1:50'], 'paused countdown after a reload');
+
+    // ...and running: it kept counting through the reload
+    await p.keyboard.press('t');
+    await p.waitForTimeout(1200);
+    const before = (await timer()).remaining;
+    await p.reload();
+    await ready(p);
+    s = await timer();
+    eq(s.state, 'running', 'a running countdown is still running after a reload');
+    assert(s.remaining < before && s.remaining > before - 15, 'and has not lost or gained time: ' + before.toFixed(1) + ' s before, ' + s.remaining.toFixed(1) + ' s after');
+    eq(await loops(p), idle + 1, 'one loop after the reload');
+
+    // it runs out while the slide is away: finished when you come back
+    await p.evaluate(() => window.Motion.useManualClock(5000));
+    await leave();
+    await p.evaluate(() => window.Motion.setTime(5600));
+    await back();
+    s = await timer();
+    eq([s.state, s.text], ['finished', '0:00'], 'a countdown that ran out while away is over');
+
+    // R resets and forgets: nothing comes back after leaving or reloading
+    await p.keyboard.press('r');
+    await leave();
+    await back();
+    eq((await timer()).state, 'idle', 'reset stays reset after leaving');
+    await p.reload();
+    await ready(p);
+    s = await timer();
+    eq([s.state, s.text], ['idle', '2:00'], 'reset stays reset after a reload');
+
+    // a paused countdown is forgotten ten minutes after its slide was last on screen
+    // (so a rehearsal does not leave a half-used timer behind), but not before
+    await p.keyboard.press('t');
+    await p.waitForTimeout(1100);
+    await p.keyboard.press('t');
+    eq((await timer()).state, 'paused', 'paused again');
+    await leave();
+    await p.evaluate(() => { const real = Date.now; window.__realNow = real; Date.now = () => real() + 9 * 60 * 1000; });
+    await back();
+    eq((await timer()).state, 'paused', 'nine minutes later it is still there');
+    await leave();
+    await p.evaluate(() => { const real = window.__realNow; Date.now = () => real() + 9 * 60 * 1000 + 11 * 60 * 1000; });
+    await back();
+    s = await timer();
+    eq([s.state, s.text], ['idle', '2:00'], 'eleven minutes after it was last seen it is a fresh countdown');
+    eq(t.problems, [], 'console errors');
+  } finally { await t.close(); }
+});
+
+test('blackout comes first: with the overview involved, B, "." and next/back still bring the picture back', async () => {
+  const t = await open({ flags: 'fast', hash: 'demo-counter/0' });
+  try {
+    const p = t.page;
+    const st = () => p.evaluate(() => {
+      const c = window.__deck.current();
+      return { black: window.__deck.blackout(), overview: window.__deck.overview(), at: c.id + '/' + c.step };
+    });
+    const here = 'demo-counter/0';
+
+    // black screen, then Escape (or O): the picture comes back; no overview opens unseen
+    for (const key of ['Escape', 'o']) {
+      await p.keyboard.press('.');
+      eq(await st(), { black: true, overview: false, at: here }, '"." blacks out');
+      await p.keyboard.press(key);
+      eq(await st(), { black: false, overview: false, at: here }, key + ' on a black screen only brings the picture back');
+    }
+
+    // black screen: every next / back key only brings the picture back, Home and End included
+    for (const key of ['PageDown', 'PageUp', 'ArrowRight', 'ArrowLeft', 'Space', 'Enter', 'Backspace', 'Home', 'End']) {
+      await p.keyboard.press('b');
+      await p.keyboard.press(key);
+      eq(await st(), { black: false, overview: false, at: here }, key + ' on a black screen');
+    }
+
+    // overview open: B and "." black the screen and bring it back; the grid is as it was
+    await p.keyboard.press('o');
+    for (const key of ['b', '.']) {
+      await p.keyboard.press(key);
+      eq(await st(), { black: true, overview: true, at: here }, key + ' blacks out over the overview');
+      await p.keyboard.press(key);
+      eq(await st(), { black: false, overview: true, at: here }, key + ' brings the overview back');
+    }
+    // black over the overview: a clicker press brings the picture back and selects nothing
+    await p.keyboard.press('.');
+    await p.keyboard.press('ArrowRight');
+    eq(await st(), { black: false, overview: true, at: here }, 'ArrowRight on a black screen does not move the hidden selection');
+    await p.keyboard.press('.');
+    await p.keyboard.press('Enter');
+    eq(await st(), { black: false, overview: true, at: here }, 'Enter on a black screen does not jump unseen');
+    await p.keyboard.press('Enter');
+    eq(await st(), { black: false, overview: false, at: here }, 'the selection never moved: Enter in the overview stays on the same slide');
+
+    // the black layer really is on top of the overview
+    await p.keyboard.press('o');
+    await p.keyboard.press('b');
+    await settle(p);
+    eq(await p.evaluate(() => document.elementFromPoint(innerWidth / 2, innerHeight / 2).className), 'deck-blackout', 'the black layer covers the overview');
+    await p.keyboard.press('b');
+
+    // a clicker only has next and back: in the overview they close it and stay put
+    await p.keyboard.press('PageDown');
+    eq(await st(), { black: false, overview: false, at: here }, 'PageDown closes the overview without moving');
+    await p.keyboard.press('o');
+    await p.keyboard.press('PageUp');
+    eq(await st(), { black: false, overview: false, at: here }, 'PageUp closes the overview without moving');
+    await p.keyboard.press('PageDown');
+    eq((await st()).at, 'demo-counter/1', 'and the next press advances as usual');
+    eq(t.problems, [], 'console errors');
+  } finally { await t.close(); }
+});
+
+test('held keys: a toggle fires once however long the key is held; only the arrow keys repeat', async () => {
+  const t = await open({ flags: 'fast', hash: 'demo-timer/0' });
+  try {
+    const p = t.page;
+    /** One key press held long enough for `repeats` auto-repeats. */
+    const hold = async (key, repeats) => {
+      await p.keyboard.down(key);                                  // the real press
+      for (let i = 0; i < repeats; i++) { await p.keyboard.down(key); }   // Playwright marks these as event.repeat
+      await p.keyboard.up(key);
+    };
+    for (const repeats of [1, 2, 3, 4]) {
+      await hold('t', repeats);
+      eq((await timerState(p)).state, 'running', 'T held with ' + repeats + ' auto-repeat(s) starts the timer once');
+      await p.keyboard.press('r');
+    }
+    for (const key of ['.', 'b']) {
+      for (const repeats of [1, 2]) {
+        await hold(key, repeats);
+        eq(await p.evaluate(() => window.__deck.blackout()), true, JSON.stringify(key) + ' held with ' + repeats + ' auto-repeat(s) blacks out once');
+        await p.keyboard.press(key);
+        eq(await p.evaluate(() => window.__deck.blackout()), false, 'and one more press brings the picture back');
+      }
+    }
+    await hold('o', 3);
+    eq(await p.evaluate(() => window.__deck.overview()), true, 'O held opens the overview once');
+    await hold('Escape', 2);
+    eq(await p.evaluate(() => window.__deck.overview()), false, 'Escape held closes it once');
+    await hold('n', 1);
+    eq(await p.evaluate(() => document.querySelector('.deck-notes-overlay').hidden), false, 'N held shows the notes once');
+    await p.keyboard.press('n');
+    await hold('p', 1);
+    eq(await p.evaluate(() => document.querySelector('.deck-progress').classList.contains('is-hidden')), true, 'P held hides the progress bar once');
+    await p.keyboard.press('p');
+
+    // navigation: a clicker button held a moment too long must not skip a build
+    await goto(p, 'demo-reveals', 0);
+    const at = async () => { const c = await cur(p); return c.id + '/' + c.step; };
+    await hold('PageDown', 3); eq(await at(), 'demo-reveals/1', 'PageDown held advances once');
+    await hold('Space', 3); eq(await at(), 'demo-reveals/2', 'Space held advances once');
+    await hold('Enter', 3); eq(await at(), 'demo-reveals/3', 'Enter held advances once');
+    await hold('PageUp', 3); eq(await at(), 'demo-reveals/2', 'PageUp held goes back once');
+    await hold('Backspace', 3); eq(await at(), 'demo-reveals/1', 'Backspace held goes back once');
+    // ...the arrow keys do repeat, to run through builds
+    await hold('ArrowRight', 2); eq(await at(), 'demo-reveals/4', 'ArrowRight held repeats');
+    await hold('ArrowLeft', 3); eq(await at(), 'demo-reveals/0', 'ArrowLeft held repeats');
+    // a held digit is typed once
+    await hold('4', 3);
+    eq(await p.evaluate(() => document.querySelector('.deck-jump').textContent.replace(/\D/g, '')), '4', 'a held digit is one digit');
+    await p.keyboard.press('Escape');
+    eq(t.problems, [], 'console errors');
+  } finally { await t.close(); }
+});
+
+test('a stray digit is dropped by the next key: it cannot turn a later Enter into a jump', async () => {
+  const t = await open({ flags: 'fast' });
+  try {
+    const p = t.page;
+    const chip = () => p.evaluate(() => { const c = document.querySelector('.deck-jump'); return c.hidden ? '' : c.textContent; });
+    await p.keyboard.press('4');
+    assert((await chip()).includes('4'), 'the digit is shown');
+    await p.keyboard.press('ArrowRight');
+    await expectAt(p, 'demo-reveals', 1, 'ArrowRight still advances');
+    eq(await chip(), '', 'and the pending number is gone');
+    await p.keyboard.press('Enter');
+    await expectAt(p, 'demo-reveals', 2, 'Enter is "next" again, not "go to slide 4"');
+
+    // the same for other keys that are not part of typing a number
+    for (const key of ['PageDown', 'PageUp', 'Space', 't', 'n', 'p']) {
+      const start = await cur(p);
+      await p.keyboard.press('7');
+      await p.keyboard.press(key);
+      eq(await chip(), '', key + ' drops the pending number');
+      if (key === 'n' || key === 'p') { await p.keyboard.press(key); }       // undo the toggle
+      await goto(p, start.id, start.step);
+    }
+    // Shift on its own is not a key press: typing a number is not disturbed by it
+    await p.keyboard.press('2');
+    await p.keyboard.down('Shift');
+    await p.keyboard.up('Shift');
+    assert((await chip()).includes('2'), 'Shift alone leaves the number in place');
+    // Backspace edits the number, Enter jumps
+    await p.keyboard.press('9');
+    await p.keyboard.press('Backspace');
+    await p.keyboard.press('Enter');
+    eq((await cur(p)).index, 1, 'digits + Enter still jumps (slide 2)');
+    eq(t.problems, [], 'console errors');
+  } finally { await t.close(); }
+});
+
+test('presenter view: timer and pacing are fully on screen at every window size, without scrolling', async () => {
+  const t = await open({ hash: 'demo-counter/0' });
+  try {
+    const p = t.page;
+    const [pv] = await Promise.all([p.waitForEvent('popup'), p.keyboard.press('s')]);
+    const pvProblems = [];
+    watch(pv, pvProblems);
+    await ready(pv);
+    // the size the engine itself asks for
+    eq(await pv.evaluate(() => [innerWidth, innerHeight]), [1280, 820], 'the presenter window opens at 1280 x 820');
+    await p.keyboard.press('ArrowRight');           // first advance: the timer starts, the status line reads Ahead / Behind / On pace
+    await pv.waitForFunction(() => window.__deck.pacing().started, null, { timeout: 4000 });
+
+    const measure = () => pv.evaluate(() => {
+      const side = document.querySelector('.deck-pv-side').getBoundingClientRect();
+      const fully = (sel) => {
+        const el = document.querySelector(sel);
+        const r = el.getBoundingClientRect();
+        // inside the window, inside the side column's box, and really the thing under that point (not covered, not clipped)
+        const inside = r.height > 0 && r.width > 0 && r.top >= Math.max(0, side.top) - 0.5 && r.bottom <= Math.min(innerHeight, side.bottom) + 0.5 &&
+          r.left >= -0.5 && r.right <= innerWidth + 0.5;
+        const hit = (x, y) => { const e = document.elementFromPoint(x, y); return !!e && (e === el || el.contains(e)); };
+        return inside && hit(r.left + 3, r.top + 2) && hit(r.left + 3, r.bottom - 2);
+      };
+      const sideEl = document.querySelector('.deck-pv-side');
+      return {
+        status: document.querySelector('.deck-pv-status').textContent,
+        statusOk: fully('.deck-pv-status'), elapsedOk: fully('.deck-pv-elapsed'), plannedOk: fully('.deck-pv-planned'),
+        actualOk: fully('.deck-pv-actual'), nextTitleOk: fully('.deck-pv-next-title'),
+        sideScrolls: sideEl.scrollHeight > sideEl.clientHeight + 1,
+        pageScrolls: document.documentElement.scrollHeight > innerHeight + 1 || document.documentElement.scrollWidth > innerWidth + 1,
+        notesHeight: document.querySelector('.deck-pv-notes').getBoundingClientRect().height,
+        thumbs: Array.from(document.querySelectorAll('.deck-pv-thumb')).filter((x) => !x.hidden).map((x) => {
+          const r = x.getBoundingClientRect();
+          const slot = x.parentNode.getBoundingClientRect();
+          const slide = x.querySelector('.slide').getBoundingClientRect();
+          // the slide copy fills the box exactly, inside whatever border the theme gives it
+          const filled = Math.abs(slide.width - x.clientWidth) < 1.5 && Math.abs(slide.height - x.clientHeight) < 1.5;
+          return { ratio: slide.width / slide.height, inSlot: r.right <= slot.right + 0.5 && r.bottom <= slot.bottom + 0.5, filled };
+        })
+      };
+    });
+    const sizes = [[1280, 820], [1280, 720], [1440, 800], [1536, 760], [1366, 680], [1920, 980], [1024, 600], [1000, 500], [800, 600], [700, 900]];
+    const seen = [];
+    for (const [w, h] of sizes) {
+      await pv.setViewportSize({ width: w, height: h });
+      await pv.waitForTimeout(80);
+      const m = await measure();
+      const label = w + 'x' + h;
+      assert(/^(Ahead|Behind) by \d+:\d\d$|^On pace/.test(m.status), label + ' status text: ' + m.status);
+      eq([m.statusOk, m.elapsedOk, m.plannedOk, m.actualOk], [true, true, true, true], label + ': status line, elapsed time, planned and actual rows are fully visible');
+      eq(m.nextTitleOk, true, label + ': the next slide\'s title is visible');
+      eq([m.sideScrolls, m.pageScrolls], [false, false], label + ': nothing needs scrolling to reach them');
+      assert(m.notesHeight >= 200, label + ': the notes keep a usable height (' + Math.round(m.notesHeight) + 'px)');
+      for (const th of m.thumbs) {
+        near(th.ratio, 16 / 9, 0.05, label + ': a thumbnail that is shown is 16:9');
+        eq([th.inSlot, th.filled], [true, true], label + ': it fits its slot and the slide copy fills it');
+      }
+      seen.push(label + ' ' + m.thumbs.length + ' thumb(s)');
+    }
+    // roomy windows show both thumbnails
+    await pv.setViewportSize({ width: 1280, height: 820 });
+    await pv.waitForTimeout(80);
+    eq((await measure()).thumbs.length, 2, 'at 1280 x 820 both thumbnails are shown');
+
+    // the worst case for height: a two-line next title, a "behind" status, the largest notes
+    await pv.evaluate(() => { for (let i = 0; i < 20; i++) { document.querySelector('.deck-pv-bigger').click(); } });
+    await pv.evaluate(() => { window.Motion.useManualClock(); window.Motion.setTime(window.Motion.now() + 5 * 3600); });   // five hours pass
+    await pv.waitForFunction(() => /^Behind by/.test(document.querySelector('.deck-pv-status').textContent), null, { timeout: 3000 });
+    await pv.evaluate(() => { document.querySelector('.deck-pv-next-title').textContent = 'A next-slide title that is long enough to need a second line, and then some more words after that'; });
+    for (const [w, h] of [[1280, 820], [1366, 680], [1024, 600]]) {
+      await pv.setViewportSize({ width: w, height: h });
+      await pv.waitForTimeout(80);
+      const m = await measure();
+      eq([m.statusOk, m.elapsedOk, m.plannedOk, m.actualOk, m.nextTitleOk], [true, true, true, true, true], w + 'x' + h + ' while behind, with a long next title and the largest notes');
+      eq([m.sideScrolls, m.pageScrolls], [false, false], w + 'x' + h + ' still nothing to scroll');
+    }
+    console.log('      ' + seen.join(' · '));
+    eq(pvProblems, [], 'presenter console errors');
+  } finally { await t.close(); }
+});
+
+test('presenter window gets the same flags, so the same running order (demo slides switched off by default)', async () => {
+  // As at the real talk: the demo slides are off unless ?demo says otherwise, in every window.
+  const t = await open({ flags: 'debug&myflag=1&fast', hash: 'demo-timer/0', contextInit: () => { window.DECK_DEMO = false; } });
+  try {
+    const p = t.page;
+    const [pv] = await Promise.all([p.waitForEvent('popup'), p.keyboard.press('s')]);
+    await ready(pv);
+    const query = new URL(pv.url()).search;
+    const flags = query.replace(/^\?/, '').split('&').map((x) => x.split('=')[0]);
+    assert(flags.includes('presenter') && flags.includes('demo') && flags.includes('debug') && flags.includes('myflag'), 'presenter URL keeps ?demo, ?debug and unknown flags: ' + query);
+    assert(/[?&]myflag=1(&|$)/.test(query), 'a flag keeps its value: ' + query);
+    assert(!flags.includes('fast') && !flags.includes('print'), 'but not ?fast or ?print (they would change what the presenter window is): ' + query);
+    eq(await pv.evaluate(() => window.__deck.ids()), await p.evaluate(() => window.__deck.ids()), 'both windows hold the same slides in the same order');
+    await waitAt(pv, 'demo-timer', 0, 'presenter opens on the same slide');
+    eq(await pv.evaluate(() => window.__deck.mode()), { fast: false, print: false, presenter: true, debug: true }, 'presenter mode flags');
+    // and the link works in both directions on that order
+    await p.keyboard.press('ArrowRight');
+    await waitAt(pv, 'demo-scene', 0, 'deck -> presenter');
+    await pv.keyboard.press('ArrowLeft');
+    await waitAt(p, 'demo-timer', 0, 'presenter -> deck');
+  } finally { await t.close(); }
+});
+
+test('presenter view: closing and reopening the window keeps the elapsed timer; "Set" puts it right', async () => {
+  const t = await open({ hash: 'demo-reveals/0' });
+  try {
+    const p = t.page;
+    const openPresenter = async () => {
+      // (after a close: the opener sees window.closed a moment later, as a person pressing S would)
+      await p.waitForFunction(() => window.__deck.linked() === false, null, { timeout: 4000 });
+      const [w] = await Promise.all([p.waitForEvent('popup'), p.keyboard.press('s')]);
+      await ready(w);
+      await w.waitForFunction(() => document.querySelector('.deck-pv-link').getAttribute('data-linked') === 'yes', null, { timeout: 5000 });
+      return w;
+    };
+    const pacing = (w) => w.evaluate(() => window.__deck.pacing());
+    const kept = () => p.evaluate(() => window.__deck.keptPace());
+
+    let pv = await openPresenter();
+    eq((await pacing(pv)).started, false, 'a first presenter window starts from zero');
+    eq(await kept(), null, 'the deck window holds no copy yet');
+
+    // "Set": type the elapsed time. 93:11 on a timer that never started: it starts running from there.
+    pv.once('dialog', (d) => d.accept('93:11'));
+    await pv.click('.deck-pv-set');
+    let pc = await pacing(pv);
+    assert(pc.started && pc.running && pc.elapsed >= 5591 && pc.elapsed < 5600, 'Set 93:11 -> ' + JSON.stringify(pc));
+    eq(await pv.evaluate(() => document.querySelector('.deck-pv-elapsed').textContent.slice(0, 4)), '93:1', 'the display follows');
+    pv.once('dialog', (d) => d.accept('not a time'));
+    await pv.click('.deck-pv-set');
+    assert((await pacing(pv)).elapsed >= 5591, 'an answer that is not a time changes nothing');
+    pv.once('dialog', (d) => d.dismiss());
+    await pv.click('.deck-pv-set');
+    assert((await pacing(pv)).elapsed >= 5591, 'Cancel changes nothing');
+
+    // pause, so the value is exact; the deck window gets a copy
+    await pv.click('.deck-pv-elapsed');
+    const paused = (await pacing(pv)).elapsed;
+    await p.waitForFunction((v) => { const k = window.__deck.keptPace(); return !!k && !k.running && Math.abs(k.elapsed - v) < 0.01; }, paused, { timeout: 4000 });
+
+    // close the presenter window by accident, press S again
+    await pv.close();
+    pv = await openPresenter();
+    await pv.waitForFunction(() => window.__deck.pacing().started, null, { timeout: 5000 });
+    pc = await pacing(pv);
+    eq([pc.started, pc.running], [true, false], 'the reopened window has the timer, still paused');
+    near(pc.elapsed, paused, 0.01, 'at the same elapsed time');
+    assert(/^93:1/.test(await pv.evaluate(() => document.querySelector('.deck-pv-elapsed').textContent)), 'and shows it');
+
+    // running this time: resume, close, reopen. It kept counting while no presenter window existed.
+    await pv.click('.deck-pv-elapsed');
+    await p.waitForFunction(() => { const k = window.__deck.keptPace(); return !!k && k.running; }, null, { timeout: 4000 });
+    const before = (await pacing(pv)).elapsed;
+    await pv.close();
+    await p.waitForTimeout(1200);
+    pv = await openPresenter();
+    await pv.waitForFunction(() => window.__deck.pacing().started, null, { timeout: 5000 });
+    pc = await pacing(pv);
+    eq([pc.started, pc.running], [true, true], 'the reopened window has the timer, still running');
+    assert(pc.elapsed >= before + 1 && pc.elapsed < before + 20, 'the time without a presenter window was counted: ' + before.toFixed(1) + ' -> ' + pc.elapsed.toFixed(1));
+
+    // the copy survives a reload of the deck window as well
+    await p.reload();
+    await ready(p);
+    assert((await kept()) && (await kept()).started, 'the deck window still holds the copy after its own reload');
+
+    // Reset means reset: the copy is cleared, and a reopened window starts from zero
+    await pv.click('.deck-pv-reset');
+    await p.waitForFunction(() => window.__deck.keptPace() === null, null, { timeout: 4000 });
+    await pv.close();
+    pv = await openPresenter();
+    await pv.waitForTimeout(2600);                  // long enough for a second hello / answer round
+    eq((await pacing(pv)).started, false, 'after Reset a reopened window starts from zero');
+    eq(t.problems, [], 'deck console errors');
+  } finally { await t.close(); }
+});
+
+test('presenter view: a reload keeps the "arrived early / late" figure instead of inventing one', async () => {
+  const t = await open({ hash: 'demo-reveals/0' });
+  try {
+    const p = t.page;
+    const [pv] = await Promise.all([p.waitForEvent('popup'), p.keyboard.press('s')]);
+    await ready(pv);
+    await pv.waitForFunction(() => document.querySelector('.deck-pv-link').getAttribute('data-linked') === 'yes', null, { timeout: 5000 });
+    const pacing = () => pv.evaluate(() => window.__deck.pacing());
+    const actualRow = () => pv.evaluate(() => document.querySelector('.deck-pv-actual').textContent);
+    eq((await pacing()).arrived, null, 'no arrival before anyone has moved');
+
+    // start the clock at 0, arrive on demo-scene at 2:30, then let a lot of time pass
+    await pv.evaluate(() => window.Motion.useManualClock(0));
+    await pv.keyboard.press('ArrowRight');
+    await pv.evaluate(() => window.Motion.setTime(150));
+    await pv.evaluate(() => { window.Deck.goto('demo-scene', 0); });
+    await waitAt(p, 'demo-scene', 0, 'the deck follows');
+    const first = await pacing();
+    eq(first.arrived, 150 - first.plannedStart, 'arrived at 2:30 against the planned start');
+    await pv.evaluate(() => window.Motion.setTime(5585));
+    await pv.waitForFunction(() => /arrived/.test(document.querySelector('.deck-pv-actual').textContent), null, { timeout: 3000 });
+    const rowBefore = (await actualRow()).replace(/^Actual\s*\d+:\d\d/, '');
+    assert(/arrived \d+:\d\d (early|late)|arrived on time/.test(rowBefore), 'the Actual row says how we arrived: ' + rowBefore);
+
+    // reload the presenter window: same slide, so the arrival is the same
+    await pv.reload();
+    await ready(pv);
+    await pv.waitForFunction(() => document.querySelector('.deck-pv-link').getAttribute('data-linked') === 'yes', null, { timeout: 5000 });
+    await waitAt(pv, 'demo-scene', 0, 'presenter is back on the slide');
+    let after = await pacing();
+    assert(after.started && after.elapsed >= 5585, 'the elapsed time survived: ' + after.elapsed);
+    eq(after.arrived, first.arrived, 'the arrival figure is the one from before the reload, not the reload time');
+    await pv.waitForFunction(() => /arrived/.test(document.querySelector('.deck-pv-actual').textContent), null, { timeout: 3000 });
+    eq((await actualRow()).replace(/^Actual\s*\d+:\d\d/, ''), rowBefore, 'and the Actual row reads the same');
+
+    // a build step on the same slide does not change the arrival
+    await p.keyboard.press('ArrowRight');
+    await waitAt(pv, 'demo-scene', 1, 'build step');
+    eq((await pacing()).arrived, first.arrived, 'a build step is not a new arrival');
+
+    // The deck moves on while there is no presenter window. The one opened afterwards
+    // has the timer (kept by the deck) but was not there for the arrival: it says nothing.
+    await p.waitForFunction(() => { const k = window.__deck.keptPace(); return !!k && k.arrivedId === 'demo-scene'; }, null, { timeout: 4000 });
+    await pv.close();
+    await goto(p, 'demo-counter', 0);
+    await p.waitForFunction(() => window.__deck.linked() === false, null, { timeout: 4000 });
+    const [pv2] = await Promise.all([p.waitForEvent('popup'), p.keyboard.press('s')]);
+    await ready(pv2);
+    await pv2.waitForFunction(() => window.__deck.pacing().started, null, { timeout: 5000 });
+    await waitAt(pv2, 'demo-counter', 0, 'the new presenter window is on the deck\'s slide');
+    after = await pv2.evaluate(() => window.__deck.pacing());
+    assert(after.elapsed >= 5585, 'it carried the elapsed time over: ' + after.elapsed);
+    eq(after.arrived, null, 'finding its place is not an arrival: no figure');
+    const row = await pv2.evaluate(() => document.querySelector('.deck-pv-actual').textContent);
+    assert(!/arrived/.test(row), 'the Actual row makes no claim: ' + row);
+
+    // a real move records an arrival again
+    await p.keyboard.press('ArrowRight');
+    await p.keyboard.press('ArrowRight');
+    await waitAt(pv2, 'demo-timer', 0, 'deck moved on');
+    after = await pv2.evaluate(() => window.__deck.pacing());
+    near(after.arrived, after.elapsed - after.plannedStart, 5, 'arriving by navigation is recorded at the current elapsed time');
+    eq(t.problems, [], 'deck console errors');
+  } finally { await t.close(); }
+});
+
+test('overview and the presenter window: the presenter says when the grid is on screen, and moving from it closes the grid', async () => {
+  const t = await open({ hash: 'demo-counter/0' });
+  try {
+    const p = t.page;
+    const [pv] = await Promise.all([p.waitForEvent('popup'), p.keyboard.press('s')]);
+    await ready(pv);
+    await pv.waitForFunction(() => document.querySelector('.deck-pv-link').getAttribute('data-linked') === 'yes', null, { timeout: 5000 });
+    const chip = () => pv.evaluate(() => { const c = document.querySelector('.deck-pv-overview'); return !c.hidden && getComputedStyle(c).display !== 'none'; });
+    const overview = () => p.evaluate(() => window.__deck.overview());
+    eq(await chip(), false, 'no overview chip to begin with');
+
+    // O in the deck window: the presenter view says so
+    await p.keyboard.press('o');
+    await pv.waitForFunction(() => !document.querySelector('.deck-pv-overview').hidden, null, { timeout: 4000 });
+    assert(/overview/i.test(await pv.evaluate(() => document.querySelector('.deck-pv-overview').textContent)), 'the chip names the overview');
+
+    // moving from the presenter window: the audience gets the slide, not the grid
+    await pv.keyboard.press('ArrowRight');
+    await waitAt(p, 'demo-counter', 1, 'presenter -> deck');
+    eq(await overview(), false, 'the overview closed when the presenter window moved');
+    eq(await p.evaluate(() => document.querySelector('.deck-overview').hidden), true, 'and is really gone from the screen');
+    await pv.waitForFunction(() => document.querySelector('.deck-pv-overview').hidden, null, { timeout: 4000 });
+
+    // the presenter's own buttons do the same
+    await p.keyboard.press('o');
+    await pv.waitForFunction(() => !document.querySelector('.deck-pv-overview').hidden, null, { timeout: 4000 });
+    await pv.click('.deck-pv-go');
+    await waitAt(p, 'demo-timer', 0, 'Next button');
+    eq(await overview(), false, 'the Next button closes the overview too');
+
+    // O in the presenter window opens and closes the deck's overview; Escape there only ever closes it
+    await pv.waitForFunction(() => document.querySelector('.deck-pv-overview').hidden, null, { timeout: 4000 });
+    await pv.keyboard.press('o');
+    await p.waitForFunction(() => window.__deck.overview() === true, null, { timeout: 4000 });
+    await pv.waitForFunction(() => !document.querySelector('.deck-pv-overview').hidden, null, { timeout: 4000 });
+    await pv.keyboard.press('Escape');
+    await p.waitForFunction(() => window.__deck.overview() === false, null, { timeout: 4000 });
+    await pv.waitForFunction(() => document.querySelector('.deck-pv-overview').hidden, null, { timeout: 4000 });
+    await pv.keyboard.press('Escape');
+    await p.waitForTimeout(400);
+    eq(await overview(), false, 'Escape in the presenter window never opens the overview');
+    await expectAt(p, 'demo-timer', 0, 'none of this moved the deck');
+
+    // a reopened or reloaded presenter learns about an open overview from the hello answer
+    await p.keyboard.press('o');
+    await pv.reload();
+    await ready(pv);
+    await pv.waitForFunction(() => !document.querySelector('.deck-pv-overview').hidden, null, { timeout: 5000 });
+    eq(t.problems, [], 'deck console errors');
+  } finally { await t.close(); }
+});
+
+test('Motion: switching to the manual clock while things run never steps backwards and never freezes a tween', async () => {
+  // Node: the pure logic
+  const Motion = require(path.join(ROOT, 'deck', 'lib', 'motion.js'));
+  Motion.useRealClock();
+  const dts = [];
+  const stop = Motion.raf((now, dt) => dts.push(dt));
+  const tw = Motion.tween({ from: 0, to: 100, duration: 1, ease: 'linear' });
+  let x = 0;
+  const tl = Motion.timeline().add({ from: 0, to: 100, duration: 1, ease: 'linear', onUpdate: (v) => { x = v; } });
+  tl.play();
+  let shift = null;
+  const off = Motion.onRebase((d) => { shift = d; });
+  await new Promise((r) => setTimeout(r, 250));
+  const age = Motion.now();
+  Motion.useManualClock(0);
+  near(shift, -age, 0.02, 'onRebase listeners are told how far the clock jumped');
+  dts.length = 0;
+  Motion.setTime(0);
+  const v0 = tw.value;
+  assert(dts[0] >= 0 && dts[0] < 0.1, 'the first manual frame has a small, non-negative dt: ' + dts[0]);
+  assert(v0 > 15 && v0 < 60, 'the tween carried on from where it was (about 25 of 100): ' + v0.toFixed(1));
+  near(x, v0, 2, 'so did the playing timeline');
+  Motion.setTime(0.25);
+  near(tw.value, v0 + 25, 0.5, 'a quarter second later the tween has moved a quarter');
+  near(dts[dts.length - 1], 0.25, 1e-9, 'dt follows the manual clock');
+  Motion.setTime(0.1);
+  eq(dts[dts.length - 1], 0, 'setting the clock back gives dt = 0, never a negative step');
+  Motion.setTime(2);
+  eq([tw.value, tw.active, tl.playing, x], [100, false, false, 100], 'both finish on the manual clock');
+  // re-basing again while manual: nothing in flight jumps
+  const tw2 = Motion.tween({ from: 0, to: 100, duration: 1, ease: 'linear' });
+  Motion.setTime(2.5);
+  Motion.useManualClock(0);
+  Motion.setTime(0);
+  near(tw2.value, 50, 1e-6, 'useManualClock(t) moves the time base, not the animation');
+  Motion.setTime(0.5);
+  eq([tw2.value, tw2.active], [100, false], 'and it ends on time');
+  stop(); off();
+  Motion.useRealClock();
+  eq(Motion.stats(), { loops: 0, tweens: 0, pending: 0 }, 'nothing left behind');
+
+  // Browser: the reviewer's case. A scene is already running when the capture tool takes the clock.
+  const t = await open({ hash: 'demo-scene/1' });
+  try {
+    const p = t.page;
+    await p.waitForTimeout(400);
+    const r = await p.evaluate(() => {
+      const M = window.Motion;
+      const d = [];
+      const stopLoop = M.raf((now, dt) => d.push(dt));
+      const tween = M.tween({ from: 0, to: 100, duration: 1, ease: 'linear' });
+      return new Promise((resolve) => setTimeout(() => {
+        const age = M.now();
+        const before = tween.value;
+        M.useManualClock(0);
+        d.length = 0;
+        const values = [];
+        for (const time of [0, 1 / 60, 0.25, 0.5, 1.5]) { M.setTime(time); values.push(Math.round(tween.value * 10) / 10); }
+        stopLoop();
+        M.useRealClock();
+        resolve({ age, before, d, values, active: tween.active });
+      }, 300));
+    });
+    assert(r.age > 0.5, 'the page had been running for a while: ' + r.age);
+    assert(r.d.every((dt) => dt >= 0), 'no negative dt after the switch: ' + JSON.stringify(r.d));
+    assert(r.d[0] < 0.1, 'the first dt is a frame, not the page\'s age: ' + r.d[0]);
+    assert(r.values[0] >= r.before - 0.01 && r.values[0] < r.before + 10, 'the tween is where it was at manual t = 0: ' + r.before.toFixed(1) + ' -> ' + r.values[0]);
+    assert(r.values[2] > r.values[0] + 20 && r.values[3] > r.values[2] + 20, 'and it moves with the manual clock from the first frame: ' + JSON.stringify(r.values));
+    eq([r.values[4], r.active], [100, false], 'it finishes');
     eq(t.problems, [], 'console errors');
   } finally { await t.close(); }
 });

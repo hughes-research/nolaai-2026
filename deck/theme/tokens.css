@@ -117,11 +117,17 @@
    ========================================================================== */
 
 :root {
-  /* the three printing colours by name */
+  /* the three printing colours by name. These keep their value everywhere,
+     also inside a block that swaps the semantic tokens (a Lampblack slide,
+     the negative hold), so use them when you mean the ink itself. */
   --card: var(--c-bg);
   --lampblack: var(--c-ink);
   --flare: var(--c-accent);
   --rack: var(--c-muted);
+  --card-alt: var(--c-bg-alt);       /* the second stock on Card */
+  --soft-on-card: var(--c-ink-soft); /* secondary text on Card */
+  --lampblack-alt: #1E1C1A;          /* the second stock on a Lampblack field */
+  --soft-on-ink: #D3CBB9;            /* secondary text on Lampblack, 32px and above */
 
   /* stage grid */
   --spine-w: 88px;            /* the record spine, left edge, every slide */

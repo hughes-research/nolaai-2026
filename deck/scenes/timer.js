@@ -6,7 +6,8 @@
  * opts
  *   minutes    length of the countdown (default 5; fractions are fine: 0.5 = 30 s)
  *   label      small caption above the digits (optional)
- *   autostart  true starts counting as soon as the slide appears (default false)
+ *   autostart  true starts counting as soon as the slide appears (default false;
+ *              a countdown that is being picked up again is left as it was)
  *   hint       false hides the "T start" line under the bar (default true)
  *   keep       minutes a paused or finished countdown is remembered after its
  *              slide was last on screen (default 10). 0 = remember nothing:

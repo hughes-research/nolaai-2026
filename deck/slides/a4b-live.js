@@ -51,8 +51,13 @@
     '<style>' +
       /* the headline sits under the kicker, and stays on one line above the map */
       '.layout-scene > .headline.wh-head{top:124px;white-space:nowrap;max-width:none;margin:0;}' +
+      /* thumbnails do not run scenes: they get a still of the empty building instead */
+      '.wh-preview{display:none;position:absolute;left:0;top:0;width:100%;height:100%;color:var(--c-ink);}' +
+      '.slide.is-static .wh-preview{display:block;}' +
+      '.slide.is-static [data-scene="warehouse"].wh-host::after{content:none;}' +
     '</style>' +
-    '<div class="scene" data-scene="warehouse" data-opts=\'{}\'></div>' +
+    '<div class="scene wh-host" data-scene="warehouse" data-opts=\'{}\'></div>' +
+    (window.WarehouseScene && window.WarehouseScene.preview ? window.WarehouseScene.preview() : '') +
     captions.map(function (c, i) {
       return '<p class="kicker" data-step-only="' + i + '">' + (i + 1) + ' of ' + captions.length + ' · ' + c[0] + '</p>' +
         '<h2 class="headline is-s wh-head" data-step-only="' + i + '" data-anim="pop">' + c[1] + '</h2>';
@@ -68,26 +73,26 @@
     steps: captions.length - 1,
     html: html,
     notes: [
-      'SAY: This is not our building. It is a made-up warehouse, running the same method, in this browser.',
-      'Every dot is a part on a shelf. Big dot, fast mover.',
-      'Everything on this slide is synthetic. The real numbers are the next slide.',
+      'SAY: This is not our building. It is a made-up warehouse running the same method, in this browser.\n' +
+      'Every dot is a part on a shelf. Big dot, fast mover.\n' +
+      'All of it is synthetic. The real numbers are the next slide.',
 
-      'DO, step 1 (on screen when the slide opens): Point at the pack station, bottom left. Then the side view on the right: floor, golden zone, reach, ladder.',
+      'DO, step 1 (on screen when the slide opens): Point at the pack station. Then the side view: floor, golden zone, reach, ladder.',
 
-      'DO, step 2: Click. A year of orders rains in. Let the dots grow. Point at the hatched bars: those picks need a ladder.',
+      'DO, step 2: Click. A year of orders rains in. Point at the hatched bars: those picks need a ladder.',
 
-      'DO, step 3: Click. The as-is move. Pickers walk the busiest day. Let it run to the end. Watch the ladder count, not the map.',
+      'DO, step 3: Click. The as-is move. Pickers walk the busiest day. Let it finish. Watch the ladder count.',
 
-      'DO, step 4: Click. First a rule of thumb: fast movers to the golden zone, nearest the pack station. Then the search. Swap two parts, replay the orders, keep the swap if the walk got shorter. Point at the curve coming down.',
+      'DO, step 4: Click. Rule of thumb first. Then the search: swap two parts, replay the orders, keep the swap if pick time dropped.',
 
-      'DO, step 5: Click. Same orders, same pickers, same speed. Say nothing until they are done.',
+      'DO, step 5: Click. Same orders, same pickers, same speed. Say nothing until they finish.',
 
-      'DO, step 6: Click. Read the four lines, before then after.',
+      'DO, step 6: Click. Read the four lines, before then after. The 100% is a rule the search has to keep, not something it found.',
 
       'DO, step 7: Click. Read the headline, then the block. Stop.',
 
-      'SAY: What you watched was a replay of a search this laptop finished a moment ago. The time on screen is how long the arithmetic really took.',
-      'Plain math. I used an AI assistant to help write it. Nothing here calls a model.',
+      'SAY: You watched a replay of a search this laptop finished a moment ago. The time on screen is how long the arithmetic took.\n' +
+      'Nothing on this slide calls a model.',
 
       'NEXT: That was a toy on made-up data. Here are the real numbers.'
     ].join('\n\n')

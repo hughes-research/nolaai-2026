@@ -12,7 +12,8 @@ repository root.
 | `node tools/bundle.js` | Builds one self-contained HTML file and checks it | `dist/deck.html` |
 | `node tools/export-pdf.js` | Exports the deck as a PDF, one slide per page | `dist/deck.pdf` |
 
-`out/` and `dist/` are ignored by git.
+`out/` is scratch output and is ignored by git. `dist/` is not ignored: the
+single-file build and the PDF are the fallbacks you take to the venue.
 
 The night before the talk, run these four in order. If all four exit
 without complaint, the deck opens, every slide renders, and you have a
@@ -25,6 +26,11 @@ node tools/bundle.js
 node tools/export-pdf.js
 ```
 
+On the day, open the deck in a new tab rather than reusing the tab you
+rehearsed in. Exercise countdowns and the presenter view's elapsed timer are
+remembered per tab (that is what lets them survive a reload), so a fresh tab
+starts with all of them at zero.
+
 ## Opening the deck
 
 Double-click `deck/index.html`. No server, no network.
@@ -34,14 +40,27 @@ Double-click `deck/index.html`. No server, no network.
 | → ↓ Space PageDown Enter | next step or slide |
 | ← ↑ PageUp Backspace Shift+Space | back |
 | Home / End | first / last slide |
-| digits, then Enter | jump to that slide number |
-| O or Escape | overview grid (arrows + Enter, or click) |
+| digits, then Enter | jump to that slide number (any other key drops the number) |
+| O or Escape | overview grid (arrows + Enter, or click; PageDown / PageUp close it) |
 | S | presenter view in a second window |
 | N | speaker notes over the bottom of this window |
 | F | fullscreen |
-| B or . | black screen (any next/back key brings the picture back) |
+| B or . | black screen, on top of everything, the overview included |
 | P | show / hide the progress bar |
 | T / R | start or pause / reset the timer on the current slide |
+
+Three rules keep the keys safe on stage:
+
+- **A black screen hides nothing that moves.** While the screen is black, B
+  and `.` bring the picture back, and so does every key that would otherwise
+  move or change it (next, back, Home, End, O, Escape). That key does nothing
+  else: the next press acts as usual.
+- **One press, one action.** A key held a moment too long is not repeated,
+  so a held T cannot start and pause the timer, and a clicker button held
+  down advances one step. Only the arrow keys repeat when held.
+- **A mistyped digit cannot ambush you.** A number waits for Enter for four
+  seconds, and is dropped at once by any key that is not a digit, Backspace
+  or Enter. Enter after that is plain "next".
 
 The deck asks the browser to keep the screen awake while it is open (Screen
 Wake Lock, where the browser supports it). Still set the laptop not to sleep
@@ -64,7 +83,22 @@ Add these to the address after `index.html`:
 
 Flags combine with `&`, for example `index.html?fast&debug`. The current
 slide and step are in the address (`#/gate-cost/1`), so a reload comes back
-to the same place.
+to the same place. The presenter window is opened with the same flags as the
+deck window (all but `fast` and `print`), so both hold the same slides.
+
+### Exercise countdowns
+
+A countdown belongs to its slide, not to one visit. T starts and pauses it,
+R resets it. If a stray clicker press takes you off the slide in the middle
+of an exercise, come back: a running countdown has kept counting, a paused
+one is still paused. The same holds for a reload of the page. If the time
+ran out while you were away, the slide shows it as over.
+
+A countdown that is paused or over is forgotten ten minutes after its slide
+was last on screen, and R forgets it at once, so going back to an exercise
+slide later gives a fresh countdown. (A slide can change the ten minutes
+with `"keep": minutes` in the scene's `data-opts`; `"keep": 0` remembers
+nothing.)
 
 ### Presenter view
 
@@ -76,19 +110,37 @@ work in both, and T / R / B pressed in the presenter window act on the deck.
 
 - Open the presenter view first, then press F in the deck window. Opening a
   new window can drop a browser out of fullscreen.
+- The window opens at 1280 × 820 and can be any size. The elapsed timer and
+  the pacing lines always fit without scrolling; the two thumbnails take the
+  room that is left and disappear on a small window. Below 860 px wide the
+  timer and pacing become a strip above the notes.
 - The elapsed timer starts on your first advance. Click the time to pause
-  or resume. Reset sets it back to zero. It survives a reload of the
-  presenter window, and starts from zero in a newly opened one.
+  or resume. **Reset** sets it back to zero. **Set** lets you type the
+  elapsed time (`43` or `43:30`), for when the timer was started late or
+  lost.
+- The timer survives accidents. Reload the presenter window and it carries
+  on. Close the presenter window and press S again: the deck window kept a
+  copy, and the new window carries on from it, counting the time in between.
+  Only Reset, or closing the deck's tab, clears it.
 - Pacing uses each slide's `minutes`: a slide's planned start is the sum of
   the minutes before it. "Ahead" means you reached the slide before its
   planned start. "Behind" means you are still on it after its planned end.
+  "Arrived m:ss early / late" is recorded when you move to a slide. A
+  presenter window that was reloaded or opened afterwards keeps the figure
+  for the slide it was recorded on, and shows none when it was not there
+  for the arrival.
+- The bottom bar says when the audience is not looking at the slide:
+  "Screen is black (B)" and "Overview is on the screen (O)". Moving on from
+  the presenter window closes an overview left open in the deck window. O in
+  the presenter window opens and closes the deck's overview; Escape there
+  only ever closes it.
 - If the two windows drift apart (for example after closing one), reload
   either window. They find each other again within two seconds.
 
 ## test-engine.js
 
 ```
-node tools/test-engine.js                 run everything (about 35 seconds)
+node tools/test-engine.js                 run everything (36 tests, one to two minutes)
 node tools/test-engine.js timer           only tests whose name contains "timer"
 node tools/test-engine.js --list          list the test names
 node tools/test-engine.js --entry dist/deck.html     test the single-file build
@@ -97,15 +149,30 @@ node tools/test-engine.js --entry dist/deck.html     test the single-file build
 Prints one `PASS` or `FAIL` line per test and exits 1 if anything failed.
 It drives the demo slides in `deck/slides/_demo.js` by id, through the
 `file://` address with `?demo`, so it keeps working after the real slides
-exist and after the demo slides are switched off. It needs the
-`<script src="slides/_demo.js">` tag to stay in `deck/index.html`.
+exist and after the demo slides are switched off (the presenter window is
+opened with the same `?demo`). It needs the `<script src="slides/_demo.js">`
+tag to stay in `deck/index.html`.
+
+**The tests check what the engine does, not how the theme makes it look.**
+With the theme loaded they only assert classes, attributes, visibility, text
+and positions in the running order, so restyling a reveal or moving the
+progress bar cannot break them, and the theme does not need to leave the
+demo slides alone. The engine's own default looks (the rise offset, the thin
+bar along the bottom, the outlined digits of a paused timer) are asserted
+in the two tests named "engine defaults (theme off)", on a page whose theme
+stylesheets were removed. If a theme change does make a test fail, the theme
+has broken something that matters: a hidden step that shows, a P key that no
+longer hides the bar, a timer that is no longer large.
 
 Covered: stage scaling, step visibility forward and back, every `data-anim`,
-counters, hash and reload, all keys, digit jump, overview, blackout, `skip()`,
-slides and scenes that throw, scene mount / step / destroy and leaked loops,
-the timer, the presenter window in both directions, pacing, print mode and
-PDF page count, fast mode, `settle()`, focus inside inputs, mouse, touch,
-and `motion.js` under Node and in the browser.
+counters, hash and reload, all keys, held keys, digit jump, overview,
+blackout (also over the overview), `skip()`, slides and scenes that throw,
+scene mount / step / destroy and leaked loops, the timer and its memory
+across leaving the slide and reloading, the presenter window in both
+directions, its layout at ten window sizes, its flags, pacing, the elapsed
+timer across reload and close / reopen, print mode and PDF page count, fast
+mode, `settle()`, focus inside inputs, mouse, touch, and `motion.js` under
+Node and in the browser, including a switch to the manual clock in mid-flight.
 
 ## shoot.js
 
@@ -192,6 +259,17 @@ The full contract is at the top of `deck/engine/deck.js`. The short version:
   suite counts leaked loops.
 - Read time from `Motion.now()` only. Never `Date.now()` or
   `performance.now()` in a scene, or `?fast` and video capture break.
+- `Motion.useManualClock(t)` may be called while scenes are running: tweens,
+  timelines and `Motion.raf` loops are moved onto the new time base and carry
+  on from where they are (`dt` is never negative and never jumps). If your
+  scene keeps a `Motion.now()` value of its own across frames (a start time,
+  say), register `Motion.onRebase(function (delta) { myStart += delta; })`
+  and call the function it returns in `destroy()`. For a capture that must
+  begin at the very start of an animation, switch clocks before the deck
+  starts.
+- A scene is built afresh on every visit to its slide. If it has to remember
+  something between visits, keep that outside the instance
+  (`deck/scenes/timer.js` shows how).
 - `enter(ctx)` runs before step visibility is applied and before scenes
   mount, so it may add markup, including `data-step` and `data-scene`
   elements. Set `steps` yourself in that case. The overview and presenter
@@ -243,8 +321,8 @@ of that file is the reference. In short:
   an inverted block that flashes three times at zero.
 - **Counters:** `Deck.config({ counters: { duration, ease, steps } })`.
 
-`deck/theme/tokens.css` and `deck/theme/components.css` are placeholders
-until the real theme lands. The placeholder defines every canonical token.
+The engine also runs with no theme at all (that is how its default looks
+are tested): every token it reads has a plain fallback in `deck.css`.
 
 ### Demo slides
 

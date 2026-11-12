@@ -11,6 +11,7 @@
  *   --out dir         where to write (default: out/shots)
  *   --contact         also write contact sheets: labelled thumbnails, 12 per sheet
  *   --demo            force the engine demo slides on (adds ?demo)
+ *   --kit             include the theme's reference slides (adds ?kit)
  *   --entry file      shoot another build, e.g. --entry dist/deck.html
  *
  * Opens the deck through file:// with ?fast, in headless Chromium at
@@ -42,7 +43,7 @@ function requirePlaywright() {
 const ROOT = path.resolve(__dirname, '..');
 
 function parseArgs(argv) {
-  const opts = { only: null, act: null, steps: 'final', out: path.join(ROOT, 'out', 'shots'), contact: false, demo: false, entry: path.join(ROOT, 'deck', 'index.html') };
+  const opts = { only: null, act: null, steps: 'final', out: path.join(ROOT, 'out', 'shots'), contact: false, demo: false, kit: false, entry: path.join(ROOT, 'deck', 'index.html') };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const value = () => {
@@ -56,6 +57,7 @@ function parseArgs(argv) {
     else if (a === '--entry') { opts.entry = path.resolve(value()); }
     else if (a === '--contact') { opts.contact = true; }
     else if (a === '--demo') { opts.demo = true; }
+    else if (a === '--kit') { opts.kit = true; }
     else if (a === '--help' || a === '-h') { usage(0); }
     else { fail('Unknown option: ' + a); }
   }
@@ -65,7 +67,7 @@ function parseArgs(argv) {
 }
 
 function usage(code) {
-  console.log('Usage: node tools/shoot.js [--only id,id] [--act n] [--steps final|all] [--out dir] [--contact] [--demo] [--entry file]');
+  console.log('Usage: node tools/shoot.js [--only id,id] [--act n] [--steps final|all] [--out dir] [--contact] [--demo] [--kit] [--entry file]');
   process.exit(code);
 }
 
@@ -114,7 +116,7 @@ async function writeContactSheets(browser, shots, outDir) {
   if (!fs.existsSync(opts.entry)) { console.error('Not found: ' + opts.entry); process.exit(2); }
   const { chromium } = requirePlaywright();
 
-  const url = pathToFileURL(opts.entry).href + '?fast' + (opts.demo ? '&demo' : '');
+  const url = pathToFileURL(opts.entry).href + '?fast' + (opts.demo ? '&demo' : '') + (opts.kit ? '&kit' : '');
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
 

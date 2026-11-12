@@ -65,7 +65,7 @@
 /* The spine: the edge of the record sleeve, on every slide. It is part of the
    slide (so thumbnails and the PDF have it); the engine's progress parts are
    laid over it on stage (section 9). */
-.slide::before {
+.slide:not(.layout-demo)::before {
   content: "";
   position: absolute;
   left: 0;
@@ -93,9 +93,9 @@
 .slide.on-ink,
 .on-ink {
   --c-bg: var(--lampblack);
-  --c-bg-alt: #1E1C1A;
+  --c-bg-alt: var(--lampblack-alt);
   --c-ink: var(--card);
-  --c-ink-soft: #D3CBB9;
+  --c-ink-soft: var(--soft-on-ink);
   --c-line: var(--card);
   --c-no: var(--card);
   --c-no-ink: var(--lampblack);
@@ -108,9 +108,9 @@
 /* a Card block on a Lampblack slide (the note beside a statement) */
 .on-card {
   --c-bg: var(--card);
-  --c-bg-alt: #E8E0CE;
+  --c-bg-alt: var(--card-alt);
   --c-ink: var(--lampblack);
-  --c-ink-soft: #3D3934;
+  --c-ink-soft: var(--soft-on-card);
   --c-line: var(--lampblack);
   --c-no: var(--lampblack);
   --c-no-ink: var(--card);
@@ -1122,13 +1122,13 @@ ol.list > li::before {
   position: relative;
   display: flex;
   align-items: center;
-  padding: 10px 18px 0 20px;
+  padding: 0 18px 0 20px;
   font-weight: inherit;
   border-top: var(--w-hair) solid var(--c-line);
   border-left: var(--w-hair) solid var(--c-line);
 }
 .gate-strip > b:last-child { border-right: var(--w-hair) solid var(--c-line); }
-.gate-strip > b.is-pass { box-shadow: inset 0 13px 0 var(--c-pass); }
+.gate-strip > b.is-pass { box-shadow: inset 0 11px 0 var(--c-pass); }
 .gate-strip > b.is-no {
   background: var(--c-no);
   color: var(--c-no-ink);
@@ -1142,7 +1142,6 @@ ol.list > li::before {
 .gate-strip[data-now="4"] > b:nth-child(4) {
   background: var(--c-ink);
   color: var(--c-bg);
-  padding-top: 0;
 }
 .gate-strip > b.is-now::after,
 .gate-strip[data-now="1"] > b:nth-child(1)::after,
@@ -1253,6 +1252,7 @@ ol.list > li::before {
 
 /* ---- edit-mark: OUR edit of someone else's sentence ------------------------
      <span class="edit-mark"><s>Information theory</s><ins>AI<small>our edit</small></ins></span>
+   (the flag inside the <ins>, or right after it: both are supported)
    The original words stay, struck through. The replacement is written in a
    different hand (Archivo caps on a Flare block) and carries its own
    "our edit" flag, so nobody takes it for the author's.
@@ -1307,8 +1307,8 @@ ol.list > li::before {
   display: flex;
   align-items: center;
   width: min-content;
-  margin: -0.12em 0 -0.1em 0.16em;
-  padding: 0 0.13em 0 0.14em;
+  margin: -0.36em 0 -0.3em 0.48em;       /* covers the plate's own padding (in the flag's smaller em) */
+  padding: 0 0.42em;
   background: var(--c-ink);
   color: var(--c-bg);
   font-family: var(--f-mono);
@@ -1319,7 +1319,31 @@ ol.list > li::before {
   letter-spacing: 0.08em;
   white-space: normal;
 }
-.edit-mark > ins > small { padding: 0 0.42em; margin: -0.36em 0 -0.3em 0.48em; }
+
+/* The flag may also be written as a sibling of the replacement:
+     <span class="edit-mark"><s>…</s><ins>AI</ins><small>our edit</small></span>
+   It then sits right after the plate, on the same line, at the same height. */
+.edit-mark > ins:not(:has(> small)) { padding-right: 0.16em; }
+.edit-mark > small {
+  display: inline-block;
+  width: min-content;
+  margin-left: 0;
+  padding: 0.392em 0.42em;
+  background: var(--c-ink);
+  color: var(--c-bg);
+  font-family: var(--f-mono);
+  font-size: max(var(--t-small), 0.34em);
+  font-style: normal;
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-label-tight);
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-indent: 0;
+  white-space: normal;
+  vertical-align: 0.198em;
+}
+.edit-mark:has(> ins[data-step]:not(.is-visible)) > small { display: none; }
 
 /* written above */
 .edit-mark.is-above { position: relative; display: inline-block; }
@@ -1394,7 +1418,9 @@ ol.list > li::before {
 .pair {
   --ps: 112px;
   display: grid;
-  grid-template-columns: var(--pair-what, 440px) auto 96px auto 1fr;
+  /* fixed columns, so the arrows of a run of pairs line up: set --pair-what and
+     --pair-col on the parent if your labels or figures are wider */
+  grid-template-columns: var(--pair-what, 440px) var(--pair-col, 400px) 96px var(--pair-col, 400px) 1fr;
   align-items: end;
   column-gap: var(--s-4);
   padding: 20px 0 22px;
@@ -1407,7 +1433,7 @@ ol.list > li::before {
   flex-wrap: wrap;
   align-items: baseline;
   column-gap: 10px;
-  min-width: calc(var(--ps) * 2.3);
+  min-width: 0;
   font-family: var(--f-display);
   font-size: var(--ps);
   font-weight: var(--wght-display);
@@ -1660,9 +1686,6 @@ ol.list > li::before {
 .rule { flex: none; height: var(--w-rule); border: 0; margin: 0; background: var(--c-line); }
 .rule.is-double { height: 18px; background: none; border-top: 6px solid var(--c-line); border-bottom: 6px solid var(--c-line); }
 
-/* swatches for the kit's palette page */
-.swatch { display: flex; flex-direction: column; justify-content: flex-end; min-height: 200px; padding: var(--s-3); }
-
 /* ==========================================================================
    7. Controls for interactive scenes
    --------------------------------------------------------------------------
@@ -1902,11 +1925,15 @@ input[type="range"].slider::-moz-range-thumb {
                         sixteenth, then its left edge retreats in an eighth and
                         leaves the line behind. Display lines.
    Stagger with style="--delay: 333ms": long-short, never even.
+
+   The engine's own demo slides (layout "demo", shown only with ?demo) keep the
+   engine's default reveals and its default progress bar: they are the fixtures
+   tools/test-engine.js measures, so the theme leaves them alone.
    ========================================================================== */
 
 /* every variant: no fade in, and stepping back is a cut */
-.slide :is([data-step], [data-step-only], [data-step-out]) { opacity: 1; }
-.slide :is([data-step], [data-step-only], [data-step-out]):not(.is-visible) {
+.slide:not(.layout-demo) :is([data-step], [data-step-only], [data-step-out]) { opacity: 1; }
+.slide:not(.layout-demo) :is([data-step], [data-step-only], [data-step-out]):not(.is-visible) {
   opacity: 1;
   translate: none;
   scale: none;
@@ -1914,22 +1941,22 @@ input[type="range"].slider::-moz-range-thumb {
 }
 
 /* cut: the default, and "fade" */
-.slide :is([data-step], [data-step-only], [data-step-out]):not([data-anim]),
-.slide [data-anim="fade"] { transition-duration: 0s; }
+.slide:not(.layout-demo) :is([data-step], [data-step-only], [data-step-out]):not([data-anim]),
+.slide:not(.layout-demo) [data-anim="fade"] { transition-duration: 0s; }
 
 /* lift */
-.slide [data-anim="rise"].is-visible { clip-path: inset(-0.4em -0.4em -0.4em -2em); }
-.slide [data-anim="rise"]:not(.is-visible) { clip-path: inset(100% -0.4em -0.4em -2em); }
+.slide:not(.layout-demo) [data-anim="rise"].is-visible { clip-path: inset(-0.4em -0.4em -0.4em -2em); }
+.slide:not(.layout-demo) [data-anim="rise"]:not(.is-visible) { clip-path: inset(100% -0.4em -0.4em -2em); }
 
 /* voice wipe (the engine's wipe, on the direction's clock) */
-.slide [data-anim="wipe"].is-visible { clip-path: inset(-0.4em -0.4em -0.4em -2em); }
-.slide [data-anim="wipe"]:not(.is-visible) { clip-path: inset(-0.4em 100% -0.4em -2em); }
+.slide:not(.layout-demo) [data-anim="wipe"].is-visible { clip-path: inset(-0.4em -0.4em -0.4em -2em); }
+.slide:not(.layout-demo) [data-anim="wipe"]:not(.is-visible) { clip-path: inset(-0.4em 100% -0.4em -2em); }
 
 /* drop: the element comes down from above its place, like a shutter, and is
    only seen below its own top edge. Whatever is printed at its foot (a NO)
    leads the way down and arrives with the weight of the block. */
-.slide [data-anim="stamp"].is-visible { clip-path: inset(-0.4em -0.4em -0.4em -2em); }
-.slide [data-anim="stamp"]:not(.is-visible) {
+.slide:not(.layout-demo) [data-anim="stamp"].is-visible { clip-path: inset(-0.4em -0.4em -0.4em -2em); }
+.slide:not(.layout-demo) [data-anim="stamp"]:not(.is-visible) {
   translate: 0 -100%;
   clip-path: inset(100% -0.4em -0.4em -2em);
 }
@@ -1937,10 +1964,10 @@ input[type="range"].slider::-moz-range-thumb {
 /* block reveal: the element is uncovered left to right in a sixteenth, with a
    bar of its own ink lying exactly over the uncovered part; then the bar's
    left edge retreats in an eighth. */
-:where(.slide [data-anim="pop"]) { position: relative; }
-.slide [data-anim="pop"].is-visible { clip-path: inset(-0.12em -0.12em -0.12em -0.12em); }
-.slide [data-anim="pop"]:not(.is-visible) { clip-path: inset(-0.12em 100% -0.12em -0.12em); }
-.slide [data-anim="pop"]::after {
+:where(.slide:not(.layout-demo) [data-anim="pop"]) { position: relative; }
+.slide:not(.layout-demo) [data-anim="pop"].is-visible { clip-path: inset(-0.12em -0.12em -0.12em -0.12em); }
+.slide:not(.layout-demo) [data-anim="pop"]:not(.is-visible) { clip-path: inset(-0.12em 100% -0.12em -0.12em); }
+.slide:not(.layout-demo) [data-anim="pop"]::after {
   content: "";
   position: absolute;
   inset: -0.08em;
@@ -1949,14 +1976,14 @@ input[type="range"].slider::-moz-range-thumb {
   clip-path: inset(0 0 0 0);
   pointer-events: none;
 }
-.slide [data-anim="pop"].is-visible::after {
+.slide:not(.layout-demo) [data-anim="pop"].is-visible::after {
   clip-path: inset(0 0 0 100%);
   transition: clip-path var(--d-block-out) var(--e-arrive) calc(var(--delay) + var(--d-block-in));
 }
-.slide .punch[data-anim="pop"]::after,
-.slide .is-punch[data-anim="pop"]::after,
-.slide .is-point[data-anim="pop"]::after,
-.slide .plate.is-accent[data-anim="pop"]::after { background: var(--c-accent-ink); }
+.slide:not(.layout-demo) .punch[data-anim="pop"]::after,
+.slide:not(.layout-demo) .is-punch[data-anim="pop"]::after,
+.slide:not(.layout-demo) .is-point[data-anim="pop"]::after,
+.slide:not(.layout-demo) .plate.is-accent[data-anim="pop"]::after { background: var(--c-accent-ink); }
 
 /* ---- the sleeve pull: the slide transition ------------------------------
    The spine widens to cover the stage, the slide changes under it, and the
@@ -1965,16 +1992,22 @@ input[type="range"].slider::-moz-range-thumb {
 .deck-transition {
   display: block;
   background: var(--lampblack);
-  animation: sleeve-pull var(--deck-slide-duration) linear both;
+  /* two moves on one block: it runs across with gravity, holds, then pulls
+     back fast and stops dead */
+  animation:
+    sleeve-cover calc(var(--deck-slide-duration) * 0.38) var(--e-drop) both,
+    sleeve-pull calc(var(--deck-slide-duration) * 0.5) var(--e-arrive) calc(var(--deck-slide-duration) * 0.5) forwards;
 }
 /* a Lampblack slide has a Card spine, so its sleeve is Card */
 .deck-stage:has(.slide.is-current.on-ink) > .deck-transition { background: var(--card); }
 
+@keyframes sleeve-cover {
+  from { clip-path: inset(0 calc(100% - var(--spine-w)) 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
 @keyframes sleeve-pull {
-  0% { clip-path: inset(0 calc(100% - var(--spine-w)) 0 0); animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.5); }
-  38% { clip-path: inset(0 0 0 0); animation-timing-function: linear; }
-  50% { clip-path: inset(0 0 0 0); animation-timing-function: var(--e-arrive); }
-  100% { clip-path: inset(0 calc(100% - var(--spine-w)) 0 0); }
+  from { clip-path: inset(0 0 0 0); }
+  to { clip-path: inset(0 calc(100% - var(--spine-w)) 0 0); }
 }
 
 /* the new slide is put on stage only once the sleeve covers it */
@@ -1999,9 +2032,9 @@ input[type="range"].slider::-moz-range-thumb {
 .slide.is-negative,
 .is-negative {
   --c-bg: var(--lampblack);
-  --c-bg-alt: #1E1C1A;
+  --c-bg-alt: var(--lampblack-alt);
   --c-ink: var(--card);
-  --c-ink-soft: #D3CBB9;
+  --c-ink-soft: var(--soft-on-ink);
   --c-line: var(--card);
   --c-no: var(--card);
   --c-no-ink: var(--lampblack);
@@ -2012,9 +2045,9 @@ input[type="range"].slider::-moz-range-thumb {
 }
 .slide.on-ink.is-negative {
   --c-bg: var(--card);
-  --c-bg-alt: #E8E0CE;
+  --c-bg-alt: var(--card-alt);
   --c-ink: var(--lampblack);
-  --c-ink-soft: #3D3934;
+  --c-ink-soft: var(--soft-on-card);
   --c-line: var(--lampblack);
   --c-no: var(--lampblack);
   --c-no-ink: var(--card);
@@ -2028,10 +2061,14 @@ input[type="range"].slider::-moz-range-thumb {
    9. Engine chrome
    ========================================================================== */
 
+/* P shows and hides the tracker: on or off, on the grid, like every cut here
+   (and so that it is really gone the moment it is switched off, in ?fast too) */
+.deck-progress { transition-property: none; }
+
 /* ---- the spine tracker (the engine's progress parts, laid over the spine) --
    Slide number at the head, the act name down the side, and a tick ruler
    with one tick per slide in the running order; the current one is the block. */
-.deck-progress {
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress {
   left: 0;
   top: 0;
   right: auto;
@@ -2039,11 +2076,11 @@ input[type="range"].slider::-moz-range-thumb {
   width: var(--spine-w);
   color: var(--card);
 }
-.deck-stage:has(.slide.is-current.on-ink) > .deck-progress,
-.deck-stage:has(.slide.is-current.is-negative) > .deck-progress { color: var(--lampblack); }
-.deck-stage:has(.slide.is-current.on-ink.is-negative) > .deck-progress { color: var(--card); }
+.deck-stage:not([data-current-layout="demo"]):has(.slide.is-current.on-ink) > .deck-progress,
+.deck-stage:not([data-current-layout="demo"]):has(.slide.is-current.is-negative) > .deck-progress { color: var(--lampblack); }
+.deck-stage:not([data-current-layout="demo"]):has(.slide.is-current.on-ink.is-negative) > .deck-progress { color: var(--card); }
 
-.deck-progress-num {
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-num {
   position: absolute;
   left: 0;
   right: 0;
@@ -2058,12 +2095,12 @@ input[type="range"].slider::-moz-range-thumb {
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
-.deck-progress-sep,
-.deck-progress-total { display: none; }
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-sep,
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-total { display: none; }
 /* 1 to 9 are printed 01 to 09, record-sleeve style */
-.deck-progress:is([data-index="1"], [data-index="2"], [data-index="3"], [data-index="4"], [data-index="5"], [data-index="6"], [data-index="7"], [data-index="8"], [data-index="9"]) .deck-progress-current::before { content: "0"; }
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress:is([data-index="1"], [data-index="2"], [data-index="3"], [data-index="4"], [data-index="5"], [data-index="6"], [data-index="7"], [data-index="8"], [data-index="9"]) .deck-progress-current::before { content: "0"; }
 
-.deck-progress-label {
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-label {
   display: block;
   position: absolute;
   left: 30px;
@@ -2080,11 +2117,11 @@ input[type="range"].slider::-moz-range-thumb {
   text-transform: uppercase;
   white-space: nowrap;
 }
-.deck-progress-actnum::before { content: "Act "; }
-.deck-progress-actnum::after { content: "\a0\b7\a0"; }
-.deck-progress-actname:empty { display: none; }
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-actnum::before { content: "Act "; }
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-actnum::after { content: "\a0\b7\a0"; }
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-actname:empty { display: none; }
 
-.deck-progress-track {
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-track {
   position: absolute;
   left: 0;
   top: 132px;
@@ -2095,29 +2132,29 @@ input[type="range"].slider::-moz-range-thumb {
   align-items: stretch;
   gap: 16px;
 }
-.deck-progress-act {
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-act {
   flex-basis: 0;
   width: auto;
   height: auto;
   min-height: 0;
   border: 0;
 }
-.deck-progress-fill { display: none; }
-.deck-progress-ticks {
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-fill { display: none; }
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-ticks {
   display: flex;
   flex-direction: column;
   justify-content: space-around;
   height: 100%;
 }
-.deck-progress-tick {
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-tick {
   display: block;
   flex: none;
   width: 10px;
   height: 3px;
   background: currentColor;
 }
-.deck-progress-tick.is-done { width: 16px; }
-.deck-progress-tick.is-current { width: 26px; height: 10px; margin: -3.5px 0; }
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-tick.is-done { width: 16px; }
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-tick.is-current { width: 26px; height: 10px; margin: -3.5px 0; }
 
 /* ---- overview (O) ---- */
 html.deck-on .deck-overview { font-family: var(--f-body); }

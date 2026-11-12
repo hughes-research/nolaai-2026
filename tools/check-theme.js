@@ -149,6 +149,8 @@ var PAIRS = [
   ['--c-ink-soft', '--c-bg-alt', 4.5, 'secondary text on a panel'],
   ['--c-accent-ink', '--c-accent', 7, 'text on the accent'],
   ['--c-accent', '--c-ink', 7, 'accent as display type on a Lampblack field'],
+  ['--card', '--lampblack-alt', 7, 'text on a panel on a Lampblack field'],
+  ['--soft-on-ink', '--lampblack', 4.5, 'secondary text on a Lampblack field'],
   ['--c-no-ink', '--c-no', 7, 'text on a NO block'],
   ['--c-pass-ink', '--c-pass', 7, 'text on a PASS block'],
   ['--c-no', '--c-bg', 7, 'a NO mark on the stage'],

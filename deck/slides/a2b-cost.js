@@ -55,11 +55,13 @@
     priced: '', rows: '', cheapest: '', dearest: '', dearestName: '', spread: '', rate: '',
     secDear: '', secFrontier: '', secSmall: '', small100k: '', premium100k: '',
     sentence: copy.frontierSentence || '', strict: '', same: '', frontier: '',
-    up1: '', up1pts: '', up2: '', up2pts: '', estimated: '', volume: copy.volumeText || ''
+    up1: '', up1pts: '', up2: '', up2pts: '', estimated: '', volume: copy.volumeText || '', task: 'the same size of job'
   };
   if (f && CM) {
     var tier = f.tier;
     var s = f.summary;
+    // the brief's plain-words gloss of the default task size; any other size is given in tokens
+    n.task = f.tokensAreDefault ? 'read about a page and a half, write a few paragraphs' : f.tokensText;
     n.priced = String(f.counts.priced);
     n.rows = String(f.counts.rows);
     n.cheapest = CM.money(f.spread.cheapestPrice);
@@ -106,9 +108,9 @@
       '<p class="source-line">' + esc(copy.ladderSource) + '</p>',
     notes: [
       'SAY: Gate one. What does it cost to run?',
-      'Every dot is a model on a public price list. ' + n.priced + ' of them have a price. Same task for every one: read about a page and a half, write a few paragraphs.',
+      'Every dot is a model from the BenchLM leaderboard file. ' + n.priced + ' of the ' + n.rows + ' have a price. Same task for every one: ' + n.task + '.',
       'The cheapest does it for ' + n.cheapest + '. The dearest for ' + n.dearest + '.',
-      'You look this up before you start. Not after the invoice shows up.',
+      'You look this up before you start. Not after.',
       '',
       'DO: Click once for the spread: ' + n.spread + ' between the cheapest and the dearest. The scale is a log scale: each tick is ten times the last. If someone asks about a dot, point at it with the mouse and its name comes up.',
       '',
@@ -130,7 +132,7 @@
     html:
       gateStrip(1) +
       '<p class="kicker">Gate 1 · Cost · People scale</p>' +
-      '<h2 class="headline">For one person, cost almost never says no.</h2>' +
+      '<h2 class="headline is-s">For one person, cost almost never says no.</h2>' +
       '<div class="scene cg-host cg-be" data-scene="cost-breakeven">' + poster('breakeven') + '</div>' +
       '<p class="source-line">' + esc(copy.breakevenSource) + '</p>',
     notes: [

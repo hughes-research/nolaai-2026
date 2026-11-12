@@ -40,10 +40,18 @@
  * OPTIONS (data-opts)
  *   ground   "dark" draws the scene on a Lampblack field. Default: Card.
  *   pickers  how many pickers walk the day at once (default 5)
- *   sim      overrides for the synthetic warehouse (see Slotting.defaults);
- *            normally these come from window.YOUR.slotting.sim
+ *   sim      overrides for the synthetic warehouse (see Slotting.defaults).
+ *            Normally these come from window.YOUR.slotting.sim, and the first
+ *            mount on a page decides: the model is shared.
  *
- * Test hook: __deck.scene('warehouse').debug() returns what is on screen.
+ * A different warehouse (another seed, more parts, the door at another aisle)
+ * needs no change here: the map is fitted to the building, to scale.
+ *
+ * ALSO HERE
+ *   window.WarehouseScene.preview()  inline SVG of the empty building, for the
+ *                                    slide's thumbnails (they do not run scenes)
+ *   __deck.scene('warehouse').debug()      what is on screen, for tests
+ *   __deck.scene('warehouse').seek(step, seconds)   draw any moment (frame capture)
  */
 (function () {
   'use strict';
@@ -53,6 +61,17 @@
   var DESIGN_H = 1080;
   var SPINE = 88;
   var STEPS = 6;                   // last step index
+
+  /* Where things sit, in stage px. Shared by the scene and by the still
+   * preview the slide shows in the overview and the presenter view. */
+  var MAP_LEFT = 128;              // the building's left wall
+  var MAP_TOP = 262;               // the building's back wall (the top of the drawing)
+  var MAP_MAX_W = 1104, MAP_MAX_H = 718;
+  /* px per foot, the same both ways: the map is to scale. The default
+   * building (120 ft x 78 ft) comes out at 9.2; a bigger one is drawn smaller. */
+  function fitScale(L) { return Math.min(MAP_MAX_W / L.width, MAP_MAX_H / L.length); }
+  var SIDE_LEFT = 1280, SIDE_RIGHT = 1864;
+  var ELEV = { top: 274, rowH: 46, postL: SIDE_LEFT + 190, postR: SIDE_LEFT + 478, post: 8 };
 
   /* ======================================================================
    * Small helpers
@@ -255,13 +274,17 @@
     /* chips: the line or mark a number refers to */
     '.wh-chip{display:block;flex:none;width:54px;height:24px;}',
     '.wh-chip.is-solid{background:var(--c-ink);height:14px;}',
-    '.wh-chip.is-dashed{height:6px;background:repeating-linear-gradient(90deg,var(--c-ink) 0 12px,transparent 12px 20px);}',
+    '.wh-chip.is-dashed{height:6px;background:repeating-linear-gradient(90deg,var(--c-ink) 0 12px,transparent 12px 21px);}',
     '.wh-chip.is-ladder{width:28px;height:28px;border:4px solid var(--c-ink);background:repeating-linear-gradient(135deg,var(--c-ink) 0 3px,transparent 3px 8px);}',
     /* before / after table */
     '.wh-table{position:absolute;display:flex;flex-direction:column;}',
-    '.wh-th{display:grid;grid-template-columns:262px 60px 1fr;align-items:end;height:40px;}',
+    '.wh-th{display:grid;grid-template-columns:262px 60px 1fr;align-items:start;height:56px;}',
+    /* the head of each column is underlined in the line style its walk has on the map */
+    '.wh-th .wh-label{padding-bottom:16px;}',
+    '.wh-th .is-before{background:repeating-linear-gradient(90deg,var(--c-ink) 0 14px,transparent 14px 24px) left bottom / 100% 6px no-repeat;}',
+    '.wh-th .is-after{border-bottom:10px solid var(--c-ink);padding-bottom:12px;}',
     '.wh-row{display:grid;grid-template-columns:262px 60px 1fr;align-items:end;row-gap:12px;padding:14px 0 18px;border-top:var(--w-hair,3px) solid var(--c-line);}',
-    '.wh-row.is-first{border-top:var(--w-rule,6px) solid var(--c-line);margin-top:12px;}',
+    '.wh-row.is-first{border-top:0;margin-top:0;}',
     '.wh-row .wh-body{grid-column:1 / -1;}',
     '.wh-v{font-size:84px;display:flex;align-items:baseline;gap:6px;}',
     '.wh-v small{font-size:38px;font-weight:inherit;text-transform:none;}',
@@ -272,6 +295,42 @@
     '.wh-punch{position:absolute;background:var(--c-accent);color:var(--c-accent-ink);display:flex;flex-direction:column;justify-content:center;padding:0 56px 0 40px;}',
     '.wh-punch .wh-num{font-size:104px;line-height:.78;}'
   ].join('\n');
+
+  /* ======================================================================
+   * A still of the empty building, as inline SVG in stage px. Thumbnails (the
+   * overview, the presenter view) do not run scenes, so the slide puts this
+   * in its markup and shows it only there.
+   * ==================================================================== */
+
+  function previewSvg() {
+    var S = window.Slotting;
+    if (!S || typeof S.layout !== 'function') { return ''; }
+    var L = S.layout();
+    var K = fitScale(L);
+    var x0 = MAP_LEFT, y0 = MAP_TOP, w = L.width * K, h = L.length * K;
+    function r(x, y, rw, rh, sw) {
+      return '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + rw.toFixed(1) + '" height="' + rh.toFixed(1) + '" stroke-width="' + sw + '"/>';
+    }
+    var out = '<svg class="wh-preview" viewBox="0 0 1920 1080" aria-hidden="true"><g fill="none" stroke="currentColor">';
+    out += r(x0, y0, w, h, 6);
+    L.racks.forEach(function (k) {
+      out += r(x0 + k.x0 * K + 1.5, y0 + (L.length - k.y1) * K + 1.5, (k.x1 - k.x0) * K - 3, (k.y1 - k.y0) * K - 3, 3);
+    });
+    out += '</g><g fill="currentColor">';
+    // the side view: two posts, a floor line, six shelves
+    var bottom = ELEV.top + 6 * ELEV.rowH;
+    out += '<rect x="' + ELEV.postL + '" y="' + ELEV.top + '" width="' + ELEV.post + '" height="' + (bottom - ELEV.top) + '"/>';
+    out += '<rect x="' + ELEV.postR + '" y="' + ELEV.top + '" width="' + ELEV.post + '" height="' + (bottom - ELEV.top) + '"/>';
+    out += '<rect x="' + (ELEV.postL - 14) + '" y="' + bottom + '" width="' + (ELEV.postR + ELEV.post + 28 - ELEV.postL) + '" height="6"/>';
+    for (var row = 0; row < 6; row++) {
+      out += '<rect x="' + ELEV.postL + '" y="' + (ELEV.top + row * ELEV.rowH - 1.5) + '" width="' + (ELEV.postR - ELEV.postL) + '" height="3"/>';
+    }
+    // the pack station plate
+    out += '<rect x="' + (x0 - 3) + '" y="' + (y0 + h + 2) + '" width="340" height="56"/>';
+    return out + '</g></svg>';
+  }
+
+  window.WarehouseScene = { preview: previewSvg };
 
   /* ======================================================================
    * The scene
@@ -297,13 +356,13 @@
      * Geometry (design px; the origin is the top-left of the scene host)
      * ---------------------------------------------------------------- */
 
-    var K = 9.2;                                   // px per foot, both ways: the map is to scale
-    var MAP_X = 128 - SPINE;                       // the building's left wall
-    var MAP_Y = 262;                               // the building's back wall (top of the drawing)
+    var K = fitScale(L);
+    var MAP_X = MAP_LEFT - SPINE;
+    var MAP_Y = MAP_TOP;
     var MAP_W = L.width * K, MAP_H = L.length * K;
     var PAD = 16;                                  // canvas margin around the building
     var CV = { x: MAP_X - PAD, y: MAP_Y - PAD, w: Math.ceil(MAP_W + 2 * PAD), h: Math.ceil(MAP_H + 2 * PAD) };
-    var SIDE_X = 1280 - SPINE, SIDE_R = 1864 - SPINE;
+    var SIDE_X = SIDE_LEFT - SPINE, SIDE_R = SIDE_RIGHT - SPINE;
     var SIDE = { x: SIDE_X - 8, y: 214, w: DESIGN_W - SIDE_X + 8, h: DESIGN_H - 214 };
     var WALL = 6, RACK = 3;
 
@@ -338,14 +397,14 @@
     }
 
     /* the side view of one bay */
-    var EL = { top: 274, rowH: 46, postL: SIDE_X + 190, postR: SIDE_X + 478, post: 8 };
+    var EL = { top: ELEV.top, rowH: ELEV.rowH, postL: ELEV.postL - SPINE, postR: ELEV.postR - SPINE, post: ELEV.post };
     EL.bottom = EL.top + 6 * EL.rowH;
     EL.x0 = EL.postL + EL.post;                    // where a bar starts
     EL.full = EL.postR - EL.x0;                    // bar length that stands for FULL_SHARE of all picks
     var FULL_SHARE = 0.5;
 
     /* the cost curve */
-    var CH = { x: SIDE_X + 8, y: 852, w: 392, h: 182 };
+    var CH = { x: SIDE_X + 8, y: 860, w: 392, h: 174 };
 
     /* ------------------------------------------------------------------
      * Colours: read from the tokens once per mount
@@ -354,13 +413,16 @@
     var dark = opts.ground === 'dark';
     var slideEl = host.closest ? host.closest('.slide') : null;
     if (dark && slideEl) { slideEl.classList.add('on-ink'); }
-    var INK, BG, FLARE, WARN, MUTED;
+    var INK, BG, FLARE, WARN;
+    var HEAT = [];                                 // ink second: four screens of the base ink, cold to hot
+    var HEAT_AT = [0.55, 0.7, 0.85, 1];
     function readTokens() {
       INK = api.token('--c-ink', '#050505');
       BG = api.token('--c-bg', '#F4EDDE');
       FLARE = api.token('--c-accent', '#FF6842');
       WARN = api.token('--c-warn', INK);
-      MUTED = api.token('--c-muted', '#8A8275');
+      // the theme's heat ramp is a screen of Lampblack on Card; on a dark ground every dot takes the full ink
+      HEAT = HEAT_AT.map(function (v) { return (!dark && THEME && typeof THEME.heat === 'function') ? THEME.heat(v) : INK; });
     }
     readTokens();
 
@@ -416,8 +478,9 @@
     });
 
     /* pack station: a plate hanging off the front wall, under its door */
-    var packX = CV.x + fx(L.pack.x);
-    dom.pack = text('wh-plate wh-label', 'Pack station', MAP_X - WALL / 2, MAP_Y + MAP_H + WALL / 2 - 1);
+    var packX = CV.x + fx(L.pack.x);               // the door, in scene px
+    var plateLeft = Math.max(MAP_X - WALL / 2, Math.min(packX - 60, MAP_X + MAP_W - 336));
+    dom.pack = text('wh-plate wh-label', 'Pack station', plateLeft, MAP_Y + MAP_H + WALL / 2 - 1);
     dom.dock = text('wh-label', 'Dock side', 0, MAP_Y + MAP_H + 16);
     dom.dock.style.left = 'auto';
     dom.dock.style.right = (DESIGN_W - (MAP_X + MAP_W)) + 'px';
@@ -432,13 +495,27 @@
     dom.blockFront = plateAt('Front block', L.width / 2, L.blockY0[0] + L.blockLength / 2, 'is-ground');
     dom.cross = plateAt('Cross-aisle', L.width / 2, L.crossY[1], 'is-bare');
 
-    /* legend: dot size first, ink second */
+    /* legend: dot size first, ink second. It sits beside the pack station
+     * plate, on whichever side has more room; with the default door (aisle 1)
+     * that is the right, and all three keys fit. */
+    var PLATE_W = 336;
+    var roomLeft = plateLeft - MAP_X - 30, roomRight = MAP_X + MAP_W - (plateLeft + PLATE_W) - 30;
+    var legendRoom = Math.max(roomLeft, roomRight);
+    var keys3 = [['is-c', 'Slow', HEAT[1], 150], ['is-b', 'Steady', HEAT[3], 195], ['is-a', 'Fast mover', null, 300]];
+    var used = 0;
+    for (var ki = keys3.length - 1; ki >= 0; ki--) {             // the fast mover's key matters most
+      used += keys3[ki][3] + (ki < keys3.length - 1 ? 44 : 0);
+      keys3[ki].fits = used <= legendRoom;
+    }
     dom.legend = el('div', 'wh-t wh-legend');
-    dom.legend.style.left = (MAP_X + 372) + 'px';
+    dom.legend.style.left = (roomRight >= roomLeft ? plateLeft + PLATE_W + 39 : MAP_X) + 'px';
     dom.legend.style.top = (MAP_Y + MAP_H + 4) + 'px';
-    [['is-c', 'Slow'], ['is-b', 'Steady'], ['is-a', 'Fast mover']].forEach(function (k) {
+    keys3.forEach(function (k) {
+      if (!k.fits) { return; }
       var item = el('div', 'wh-key wh-label');
-      item.appendChild(el('i', k[0]));
+      var dot = el('i', k[0]);
+      if (k[2]) { dot.style.background = k[2]; }
+      item.appendChild(dot);
       item.appendChild(document.createTextNode(k[1]));
       dom.legend.appendChild(item);
     });
@@ -492,8 +569,8 @@
       root.appendChild(f);
       return { box: f, chip: chip, label: labelText, value: b, unit: unit, sub: sub, subChip: subChip, subText: subText };
     }
-    dom.figA = figure(590);
-    dom.figB = figure(808);
+    dom.figA = figure(580);
+    dom.figB = figure(802);
 
     function setFigure(fig, o) {
       show(fig.box, !!o);
@@ -528,12 +605,12 @@
     dom.table.style.top = '222px';
     dom.table.style.width = (SIDE_R - SIDE_X) + 'px';
     var th = el('div', 'wh-th');
-    th.appendChild(el('div', 'wh-label', 'As-is move'));
+    th.appendChild(el('div', 'wh-label is-before', 'As-is move'));
     th.appendChild(el('div'));
-    th.appendChild(el('div', 'wh-label', 'Optimized'));
+    th.appendChild(el('div', 'wh-label is-after', 'Optimized'));
     dom.table.appendChild(th);
     dom.rows = [];
-    ['Feet per pick run', 'Pick hours per year', 'Picks that need a ladder', 'Fast movers in the golden zone'].forEach(function (what) {
+    ['Walk per pick run', 'Pick time per year', 'Picks that need a ladder', 'Fast movers in the golden zone'].forEach(function (what) {   // the wording of the real-results slide that follows
       var row = el('div', 'wh-row' + (dom.rows.length ? '' : ' is-first'));
       row.appendChild(el('div', 'wh-body', what));
       var before = el('div', 'wh-num wh-v is-before');
@@ -588,13 +665,16 @@
     var counts = new Int32Array(nParts);           // picks counted so far (the rain); F.picks when full
     var countsN = -1;                              // how many orders are in `counts`
     var px = new Float32Array(nParts), py = new Float32Array(nParts), pr = new Float32Array(nParts);
-    var pink = new Uint8Array(nParts);             // 0 hidden, 1 base ink, 2 Flare (a fast mover)
+    var pink = new Uint8Array(nParts);             // 0 hidden, 1-4 a screen of the base ink (cold to hot), 5 Flare (a fast mover)
+    var FLARE_INK = 5;
+    function heatInk(count) { return count <= 0 ? 1 : (count === 1 ? 2 : (count < 4 ? 3 : 4)); }
     var cur = S.copyAssignment(M.seed);            // the placement during the search playback
     var curK = 0;                                  // kept swaps already applied to `cur`
     var curFor = 'seed';
 
     /* dot size first: radius from the pick count, in tiers that survive a projector */
-    var R0 = 1.5, R1 = 2.4, RB = 4.1, RA0 = 5.6, RA1 = 7.3;
+    var RS = K / 9.2;                               // dots shrink with the map
+    var R0 = 1.5 * RS, R1 = 2.4 * RS, RB = 4.1 * RS, RA0 = 5.6 * RS, RA1 = 7.3 * RS;
     var sqA = Math.sqrt(M.aMin), sqMax = Math.sqrt(M.maxPicks);
     function radius(count, isA) {
       if (count <= 0) { return R0; }
@@ -619,25 +699,27 @@
         var isA = F.cls[p] === 0;
         px[p] = slotX[s]; py[p] = slotY[s];
         pr[p] = radius(counts[p], isA);
-        pink[p] = (isA && counts[p] >= M.aMin) ? 2 : 1;
+        pink[p] = (isA && counts[p] >= M.aMin) ? FLARE_INK : heatInk(counts[p]);
       }
     }
 
     function paintParts(g) {
       var p;
       g.clearRect(0, 0, CV.w, CV.h);
-      g.fillStyle = INK;
-      g.beginPath();
-      for (p = 0; p < nParts; p++) {
-        if (pink[p] !== 1) { continue; }
-        g.moveTo(px[p] + pr[p], py[p]);
-        g.arc(px[p], py[p], pr[p], 0, 6.2832);
+      for (var ink = 1; ink <= 4; ink++) {
+        g.fillStyle = HEAT[ink - 1];
+        g.beginPath();
+        for (p = 0; p < nParts; p++) {
+          if (pink[p] !== ink) { continue; }
+          g.moveTo(px[p] + pr[p], py[p]);
+          g.arc(px[p], py[p], pr[p], 0, 6.2832);
+        }
+        g.fill();
       }
-      g.fill();
       // fast movers: Flare, ringed in the base ink (Flare alone is too faint on Card)
       g.beginPath();
       for (p = 0; p < nParts; p++) {
-        if (pink[p] !== 2) { continue; }
+        if (pink[p] !== FLARE_INK) { continue; }
         g.moveTo(px[p] + pr[p], py[p]);
         g.arc(px[p], py[p], pr[p], 0, 6.2832);
       }
@@ -645,8 +727,8 @@
       g.fill();
       g.beginPath();
       for (p = 0; p < nParts; p++) {
-        if (pink[p] !== 2) { continue; }
-        var ri = pr[p] - 1.9;
+        if (pink[p] !== FLARE_INK) { continue; }
+        var ri = Math.max(0.5, pr[p] - 1.9);
         g.moveTo(px[p] + ri, py[p]);
         g.arc(px[p], py[p], ri, 0, 6.2832);
       }
@@ -837,7 +919,7 @@
     var fullBefore = trafficAt(dayBefore, Infinity);
     var fullAfter = null;
     var TRAFFIC_MAX = trafficMax(fullBefore);
-    var BAND_MIN = 6, BAND_MAX = 15;
+    var BAND_MIN = Math.max(4, 6 * K / 9.2), BAND_MAX = Math.max(BAND_MIN + 2, Math.min(15, L.aisleWidth * K - 6));
 
     function needOptimized() {
       if (!M.ready) { M.finishNow(); }
@@ -886,9 +968,9 @@
     /* the footprint of a walk: a dashed line wherever anyone walked */
     function drawFootprint(g, tr) {
       g.strokeStyle = INK;
-      g.lineWidth = 4;
+      g.lineWidth = 6;
       g.lineCap = 'butt';
-      g.setLineDash([10, 9]);
+      g.setLineDash([12, 10]);
       g.beginPath();
       var a, c, i, start;
       for (a = 0; a < tr.v.length; a++) {
@@ -915,7 +997,15 @@
       g.setLineDash([]);
     }
 
+    /* The caution hatch (ladder levels). The theme's own drawing kit draws it
+     * when it is on the page, so the pattern is the same on every slide. */
+    var kit = (THEME && THEME.draw) || null;
+    var GROUND = dark ? 'ink' : 'card';
     function hatchRect(g, x, y, w, h, gap, lw) {
+      if (kit && typeof kit.hatch === 'function') {
+        kit.hatch(g, x, y, w, h, { gap: gap, width: lw, frame: false, ground: GROUND });
+        return;
+      }
       g.save();
       g.beginPath();
       g.rect(x, y, w, h);
@@ -1005,12 +1095,12 @@
         var len = Math.min(1.2, shares[level] / FULL_SHARE) * EL.full;
         if (len <= 0.5) { continue; }
         var y = sy(EL.top + row * EL.rowH) + 8, bh = EL.rowH - 15;
-        if (level >= 4) {
+        if (level >= 4 && len >= 8) {
           // ladder levels: the caution hatch
           hatchRect(g, sx(EL.x0), y, len, bh, 11, 4);
           g.strokeStyle = WARN;
           g.lineWidth = 3;
-          g.strokeRect(sx(EL.x0) + 1.5, y + 1.5, Math.max(0, len - 3), bh - 3);
+          g.strokeRect(sx(EL.x0) + 1.5, y + 1.5, len - 3, bh - 3);
         } else {
           g.fillStyle = INK;
           g.fillRect(sx(EL.x0), y, len, bh);
@@ -1029,8 +1119,8 @@
       g.fillRect(x0 - 6, sy(CH.y) - 2, 6, CH.h + 8);                 // the scale
       // the as-is level
       g.strokeStyle = INK;
-      g.lineWidth = 4;
-      g.setLineDash([12, 9]);
+      g.lineWidth = 6;
+      g.setLineDash([14, 10]);
       g.beginPath();
       g.moveTo(x0, sy(hoursY(top, top)));
       g.lineTo(x0 + CH.w, sy(hoursY(top, top)));
@@ -1048,14 +1138,19 @@
       g.stroke();
       var head = o.points[o.points.length - 1];
       var hx = x0 + head.x * CH.w, hy = sy(hoursY(head.hours, top));
-      g.fillStyle = INK;
-      g.beginPath();
-      g.arc(hx, hy, 12, 0, 6.2832);
-      g.fill();
-      g.fillStyle = FLARE;
-      g.beginPath();
-      g.arc(hx, hy, 7.5, 0, 6.2832);
-      g.fill();
+      // the head of the curve is the thing to watch: the theme's "point" mark
+      if (kit && typeof kit.dot === 'function') {
+        kit.dot(g, hx, hy, 8, { kind: 'point', ring: 4, ground: GROUND });
+      } else {
+        g.fillStyle = INK;
+        g.beginPath();
+        g.arc(hx, hy, 12, 0, 6.2832);
+        g.fill();
+        g.fillStyle = FLARE;
+        g.beginPath();
+        g.arc(hx, hy, 7.5, 0, 6.2832);
+        g.fill();
+      }
     }
 
     /* ------------------------------------------------------------------
@@ -1202,7 +1297,7 @@
           px[p] = lerp(slotX[a], slotX[b], e);
           py[p] = lerp(slotY[a], slotY[b], e);
           pr[p] = radius(F.picks[p], isA);
-          pink[p] = isA ? 2 : 1;
+          pink[p] = isA ? FLARE_INK : heatInk(F.picks[p]);
           if (u <= 0) { by[F.slotLevel[a]] += F.picks[p]; }
           else if (u >= 1) { by[F.slotLevel[b]] += F.picks[p]; }
           // a ring where a fast mover used to live
@@ -1257,7 +1352,7 @@
         searching = uS < 1;
         if (searching) {
           var log = an.log;
-          var since = triedNow - an.tried * (0.07 / T_SEARCH);
+          var since = triedNow - an.tried * (0.04 / T_SEARCH);
           gLive.strokeStyle = INK;
           gLive.lineWidth = 3;
           gLive.beginPath();
@@ -1291,6 +1386,7 @@
       var elevSec = step === 0 ? t - T_IN : Infinity;
       if (elevOn) { drawElevation(gSide, elevSec, step >= 1 ? shares : null); }
       show(dom.elTitle, elevOn && elevSec >= 0.5);
+      setText(dom.elTitle, step === 0 ? 'One bay, from the side' : 'Picks by shelf level');
       dom.zones.forEach(function (n, zi) { show(n, elevOn && elevSec >= 1.3 + 0.12 * (3 - zi)); });
       dom.levelVals.forEach(function (n, row) {
         var on = elevOn && step >= 1 && !!shares;
@@ -1333,7 +1429,7 @@
       show(dom.chAsIs, chartOn);
       show(dom.chHead, chartOn);
       show(dom.chNote, chartOn && end);
-      if (chartOn) { dom.chAsIsLabel.style.top = (CH.y - 60) + 'px'; }
+      if (chartOn) { dom.chAsIsLabel.style.top = (CH.y - 58) + 'px'; }
       if (chartOn) {
         var topH = M.before.pickHoursPerYear;
         var pts;
@@ -1350,7 +1446,7 @@
         drawCurve(gSide, { points: pts });
         var head = pts[pts.length - 1];
         var headShown = end ? M.after.pickHoursPerYear : head.hours;
-        dom.chTitle.style.top = (CH.y - 60) + 'px';
+        dom.chTitle.style.top = (CH.y - 58) + 'px';
         var numX = CH.x + CH.w + 22;
         setText(dom.chAsIs, fixed1(topH));
         dom.chAsIs.style.left = numX + 'px';
@@ -1359,7 +1455,7 @@
         dom.chHead.style.left = numX + 'px';
         dom.chHead.style.top = Math.min(CH.y + CH.h - 40, Math.max(hoursY(topH, topH) + 34, hoursY(head.hours, topH) - 22)) + 'px';
         dom.chNote.style.left = (CH.x + 26) + 'px';
-        dom.chNote.style.top = (CH.y + 16) + 'px';
+        dom.chNote.style.top = (CH.y + 14) + 'px';
       }
 
       /* ---- before / after (step 5), and the last word (step 6) ---- */
@@ -1368,7 +1464,7 @@
         var b = M.before, a2 = M.after;
         var rowsData = [
           [Math.round(b.ftPerRun), Math.round(a2.ftPerRun), 'ft', commas],
-          [b.pickHoursPerYear, a2.pickHoursPerYear, 'h', fixed1],
+          [b.pickHoursPerYear, a2.pickHoursPerYear, 'hours', fixed1],
           [b.ladderPickShare, a2.ladderPickShare, '', pct],
           [b.aGoldenShare, a2.aGoldenShare, '', pct]
         ];
@@ -1470,7 +1566,7 @@
       debug: function () {
         return {
           step: view.step, t: view.t, playing: current.playing, ready: M.ready,
-          durations: [0, 1, 2, 3, 4, 5, 6].map(function (s) { return (s >= 3 && !M.ready) ? null : duration(s); }),
+          durations: [0, 1, 2, 3, 4, 5, 6].map(function (s) { if (s >= 3 && !M.ready) { return null; } if (s >= 3) { needOptimized(); } return duration(s); }),
           timings: { fly: T_FLY, search: T_SEARCH, rain: RAIN, structure: T_IN + T_STRUCT },
           totals: world.totals,
           day: { day: M.day, orders: M.dayOrders.length, before: { feet: dayBefore.feet, setups: dayBefore.setups, seconds: dayBefore.duration }, after: dayAfter ? { feet: dayAfter.feet, setups: dayAfter.setups, seconds: dayAfter.duration } : null },

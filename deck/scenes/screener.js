@@ -29,9 +29,23 @@
  * The one rule it adds is the gate logic from the design direction: after a
  * gate says NO, the gates after it are shown as NOT YET.
  *
- * Needs: Gates, CostMath (and so BENCHLM), window.YOUR. Uses Motion for the
- * walkthrough's animation when it is there, and works without it. Classic
- * script, no modules, no network.
+ * Needs: Gates, CostMath (and so BENCHLM), window.YOUR. Classic script, no
+ * modules, no network.
+ *
+ * Looks come from the theme (deck/theme/components.css): the dock and its
+ * gates (.dock .gate, whose class changes play the theme's own moves), the
+ * verdict marks (.verdict, .gate-glyph), the tag, the labels and the controls
+ * (.btn .seg .stepper). This file adds only the layout around them, scoped
+ * under .scr. On the stage sizes are stage pixels; on the standalone page the
+ * same markup is sized again for a phone. THEME.landNo runs the recoil and
+ * the stop-time hold in negative when a NO lands (with a plain fallback).
+ * Motion is used for the walkthrough's timing when it is there; the live
+ * scorecard needs neither Motion nor THEME.
+ *
+ * What is typed: on the stage it is kept in memory only, so it survives
+ * leaving the slide and coming back, and a reload of the deck starts from the
+ * examples again (no surprises from a rehearsal). The page passes
+ * persist: 'local' and keeps it in the browser's local storage when it can.
  *
  * For tests (tools/test-screener.js) every instance exposes:
  *   snapshot()            { candidates, assumptions, selected, rulesOpen }: exactly what is handed to Gates
@@ -87,8 +101,6 @@
       return 3 * y1 * t * v * v + 3 * y2 * t * t * v + t * t * t;
     };
   }
-  var EASE_LIFT = bezier(0.2, 0.8, 0.2, 1);       // --e-lift: a shutter going up
-  var EASE_DROP = bezier(0.55, 0, 1, 0.45);       // --e-drop: gravity, no bounce
   var EASE_ARRIVE = bezier(0.16, 1, 0.3, 1);      // --e-arrive: fast in, dead stop
 
   /* Tier names short enough for a control: "Plain code", "Premium model". */
@@ -136,10 +148,10 @@
     return m ? { main: m[1], sub: m[2] } : { main: String(text || ''), sub: '' };
   }
 
-  /* The small verdict chip: shape and word, in the base inks. */
-  function chipHtml(state) {
+  /* The small verdict mark, in the theme's own markup: shape and word, in the base inks. */
+  function verdictHtml(state) {
     var word = state === 'pass' ? 'Pass' : (state === 'no' ? 'No' : 'Not yet');
-    return '<span class="verdict scr-chip" data-verdict="' + state + '">' + word + '</span>';
+    return '<span class="verdict is-' + (state === 'pass' || state === 'no' ? state : 'notyet') + '">' + word + '</span>';
   }
 
   /* "about 15 weeks" -> { about: true, text: "15 weeks" } so the word "about" can be set in the second voice. */
@@ -197,259 +209,208 @@
    * ------------------------------------------------------------------------ */
 
   var CSS = `
-:root { --scr-card: var(--c-bg, #F4EDDE); --scr-lamp: var(--c-ink, #050505); }
-
-/* The stop-time hold after a NO: the slide prints in negative. Card and
-   Lampblack swap; Flare stays. Set on the slide by the walkthrough. */
-.slide.scr-negative {
-  --c-bg: var(--scr-lamp); --c-ink: var(--scr-card); --c-line: var(--scr-card); --c-ink-soft: var(--scr-card);
-  --c-bg-alt: var(--scr-lamp); --c-no: var(--scr-card); --c-no-ink: var(--scr-lamp); --c-pass: var(--scr-card);
-  --c-pass-ink: var(--scr-lamp); --card: var(--scr-lamp); --lampblack: var(--scr-card);
-  background: var(--scr-lamp); color: var(--scr-card);
-}
-
-.scr {
-  --k: var(--c-ink, #050505); --g: var(--c-bg, #F4EDDE); --g2: var(--c-bg-alt, #E8E0CE);
-  --fl: var(--c-accent, #FF6842); --fl-k: var(--c-accent-ink, #050505);
-  --disp: var(--f-display, "Archivo", "Arial Narrow", Helvetica, Arial, sans-serif);
-  --text: var(--f-body, "Archivo", "Helvetica Neue", Helvetica, Arial, sans-serif);
-  --voice: var(--f-voice, "Fraunces", Georgia, serif);
-  color: var(--k); font-family: var(--text); font-weight: 500; font-synthesis: none; text-align: left;
-}
+.scr { text-align: left; }
 .scr, .scr *, .scr *::before, .scr *::after { box-sizing: border-box; }
-.scr :is(h3, p, ul, li, button, input) { margin: 0; }
 .scr [hidden] { display: none !important; }
-.scr .scr-d { font-family: var(--disp); font-weight: 900; font-stretch: 62%; text-transform: uppercase; letter-spacing: 0; }
-.scr .scr-l { font-family: var(--text); font-weight: 700; font-stretch: 112%; letter-spacing: 0.08em; text-transform: uppercase; }
-.scr .scr-v { font-family: var(--voice); font-style: italic; font-weight: 600; font-variation-settings: var(--voice-settings, "opsz" 72, "SOFT" 0, "WONK" 0); text-transform: none; letter-spacing: 0; }
-
-/* ---- the verdict chip: PASS is a hollow frame with a raised lintel, NO a
-        solid block, NOT YET the frame only. Shape and word, never colour. ---- */
-.scr .scr-chip {
-  display: inline-flex; align-items: center; justify-content: center; flex: none; height: var(--chip-h);
-  padding: 0 calc(var(--chip-h) * 0.26); white-space: nowrap; line-height: 1; color: var(--k);
-  font-family: var(--disp); font-weight: 900; font-stretch: 62%; text-transform: uppercase;
-}
-.scr .scr-chip[data-verdict="no"] { background: var(--k); color: var(--g); font-size: var(--chip-no); }
-.scr .scr-chip[data-verdict="pass"] { border: var(--chip-line) solid var(--k); border-top-width: calc(var(--chip-h) * 0.26); font-size: var(--chip-pass); }
-.scr .scr-chip[data-verdict="notyet"] {
-  border: var(--chip-line) dashed var(--k); font-family: var(--text); font-weight: 700; font-stretch: 100%;
-  letter-spacing: 0.06em; font-size: var(--chip-ny);
-}
+/* These are measured while their width axis is being fitted. In ?fast and ?print the engine gives every
+   element a 1ms transition, which would make a measurement read the old width, so they never transition. */
+.scr .scr-measure, .scr .scr-name, .scr .scr-tab-name, .scr .scr-src { transition: none !important; }
+.scr .scr-d { font-family: var(--f-display, "Archivo", sans-serif); font-weight: 900; font-stretch: 62%; text-transform: uppercase; letter-spacing: 0; }
 
 /* =============================================================================
-   1. WALKTHROUGH (stage only). The host is the whole slide; everything is
-      placed in stage pixels.
+   1. WALKTHROUGH (stage only). The host is the whole slide; the dock is the
+      theme's own .dock / .gate, placed in stage pixels. Three candidates
+      stand on the lintel as tabs; four gates below.
    ========================================================================== */
-.scr-walk { position: absolute; inset: 0; --chip-h: 44px; --chip-line: 4px; --chip-no: 36px; --chip-pass: 28px; --chip-ny: 28px; }
+.scr-walk { position: absolute; inset: 0; }
 
-/* ---- three candidates: tabs standing on the lintel ---- */
-.scr-walk .scr-tabs { position: absolute; left: 128px; top: 166px; width: 1736px; height: 154px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 16px; }
-.scr-walk .scr-tab { position: relative; min-width: 0; padding: 10px 18px 0; border: 6px solid var(--k); border-bottom: 0; background: var(--g); color: var(--k); }
-.scr-walk .scr-tab[data-status="current"] { background: var(--k); color: var(--g); }
-.scr-walk .scr-tab-pitch { font-size: 32px; line-height: 36px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* ---- three candidates ---- */
+.scr-walk .scr-tabs { position: absolute; left: 128px; top: 150px; width: 1736px; height: 158px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 16px; }
+.scr-walk .scr-tab { position: relative; min-width: 0; padding: 10px 20px 0; border: 6px solid var(--c-ink); border-bottom: 0; background: var(--c-bg); color: var(--c-ink); }
+.scr-walk .scr-tab.on-ink { border-color: var(--c-bg); }
+.scr-walk .scr-tab-pitch { line-height: 36px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .scr-walk .scr-tab-name { margin-top: 2px; font-size: 38px; line-height: 46px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.scr-walk .scr-tab-foot { display: flex; align-items: center; gap: 16px; height: 44px; margin-top: 4px; }
+.scr-walk .scr-tab-foot { display: flex; align-items: flex-start; gap: 18px; height: 48px; margin-top: 4px; }
 .scr-walk .scr-track { display: flex; gap: 6px; flex: none; }
-.scr-walk .scr-track i { position: relative; display: block; width: 20px; height: 40px; border: 4px solid currentColor; }
-.scr-walk .scr-track i[data-s="pass"]::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 10px; background: currentColor; }
-.scr-walk .scr-track i[data-s="no"] { background: currentColor; }
-.scr-walk .scr-tab-result { font-size: 32px; line-height: 40px; white-space: nowrap; }
+.scr-walk .scr-tab-result { line-height: 48px; white-space: nowrap; }
 
-/* ---- four gates: the dock ---- */
-.scr-walk .scr-dock { position: absolute; left: 88px; top: 320px; width: 1832px; height: 512px; }
-.scr-walk .scr-lintel, .scr-walk .scr-floor { position: absolute; left: 0; width: 1832px; height: 8px; background: var(--k); }
-.scr-walk .scr-lintel { top: 0; }
-.scr-walk .scr-floor { top: 504px; }
-.scr-walk .scr-post { position: absolute; top: 0; width: 8px; height: 504px; background: var(--k); }
-.scr-walk .scr-bay { position: absolute; top: 0; width: 456px; height: 512px; }
+/* ---- four gates ---- */
+.scr-walk .scr-dock { position: absolute; left: 88px; top: 308px; --gw: 464px; --gh: 512px; }
+.scr-walk .gate { --gcap: 72px; --gy-q: 284px; }
+/* the bay is shorter than the kit's, so PASS is set a size smaller to sit inside the raised shutter */
+.scr-walk .gate.is-pass > .gate-shutter::after { font-size: 94px; top: 17px; }
+.scr-walk .gate.is-no > .gate-shutter::after { font-size: 272px; }
+.scr-walk .gate-q { font-size: 36px; line-height: 42px; }
+.scr-walk .gate-q > span { display: block; }
+.scr-walk .gate-q .scr-q { font-size: 40px; line-height: 46px; }
+.scr-walk .gate-q .scr-in + .scr-in { margin-top: 6px; }
+.scr-walk .gate-q .scr-metric { font-size: 56px; line-height: 0.92; text-wrap: balance; font-variant-numeric: tabular-nums; }
+.scr-walk .gate-q .scr-sub { margin-top: 8px; font-weight: 600; }
+/* inside a gate everything is drawn in one ink and blended, so the mark borrows the text colour */
+.scr-walk .gate-q .verdict { --vh: 56px; display: inline-flex; border-color: currentColor; color: inherit; }
+.scr-walk .gate-why { padding-right: 16px; }
+.scr-walk[data-band="1"] .gate-why { visibility: hidden; }
+/* the tell-tale: where an earlier NO hit, the floor stays cut and dropped */
+.scr-walk .scr-scar { display: none; position: absolute; left: 16px; right: 16px; top: 504px; height: 16px; background: linear-gradient(var(--c-bg) 50%, var(--c-line) 50%); }
+.scr-walk .gate[data-scar="1"] .scr-scar { display: block; }
 
-/* the tell-tale: where an earlier NO hit, the floor is cut and dropped */
-.scr-walk .scr-scar { display: none; position: absolute; left: 16px; top: 504px; width: 432px; height: 8px; background: var(--g); }
-.scr-walk .scr-scar::after { content: ""; position: absolute; left: 0; top: 8px; width: 100%; height: 8px; background: var(--k); }
-.scr-walk .scr-bay[data-scar="1"] .scr-scar { display: block; }
-
-/* what is printed in the bay (and again, in the other ink, on a NO shutter) */
-.scr-walk .scr-open { position: absolute; left: 40px; top: 0; width: 392px; height: 504px; }
-.scr-walk .scr-n { position: absolute; left: 0; top: 148px; font-size: 32px; line-height: 32px; white-space: nowrap; }
-.scr-walk .scr-name { position: absolute; left: 0; top: 190px; font-size: 86px; line-height: 0.708; white-space: nowrap; }
-.scr-walk .scr-body { position: absolute; left: 0; top: 274px; width: 392px; }
-.scr-walk .scr-q { font-size: 40px; line-height: 48px; font-weight: 500; }
-.scr-walk .scr-in { font-size: 36px; line-height: 42px; font-weight: 500; }
-.scr-walk .scr-in + .scr-in { margin-top: 6px; }
-.scr-walk .scr-metric { font-size: 58px; line-height: 0.9; text-wrap: balance; }
-.scr-walk .scr-sub { margin-top: 10px; font-size: 36px; line-height: 42px; font-weight: 600; }
-.scr-walk .scr-thru { position: absolute; left: 0; top: 440px; width: 392px; height: 56px; }
-.scr-walk .scr-thru path { fill: var(--k); stroke: none; }
-
-/* which of those show, by state */
-.scr-walk .scr-bay .scr-when { display: none; }
-.scr-walk .scr-bay[data-state="vacant"] .scr-when-vacant,
-.scr-walk .scr-bay[data-state="shut"] .scr-when-pass,
-.scr-walk .scr-bay[data-state="pass"] .scr-when-pass,
-.scr-walk .scr-bay[data-state="notyet"] .scr-when-notyet { display: block; }
-
-/* the shutter hangs 8px inside the frame. Its height is the whole animation. */
-.scr-walk .scr-shutter { position: absolute; left: 16px; top: 16px; width: 432px; height: 0; overflow: hidden; background: var(--k); color: var(--g); z-index: 2; }
-.scr-walk .scr-bay[data-state="shut"] .scr-shutter { height: 488px; }
-.scr-walk .scr-bay[data-state="pass"] .scr-shutter { height: 104px; }
-.scr-walk .scr-bay[data-state="no"] .scr-shutter { height: 544px; }
-.scr-walk .scr-pull { display: none; position: absolute; left: 192px; top: 120px; width: 72px; height: 14px; background: var(--k); z-index: 2; }
-.scr-walk .scr-bay[data-state="pass"] .scr-pull { display: block; }
-.scr-walk .scr-word-pass { display: none; position: absolute; left: 24px; top: 20px; font-size: 92px; line-height: 0.708; }
-.scr-walk .scr-bay[data-state="pass"] .scr-word-pass, .scr-walk .scr-bay[data-word="1"] .scr-word-pass { display: block; }
-.scr-walk .scr-no { display: none; position: absolute; inset: 0; }
-.scr-walk .scr-bay[data-state="no"] .scr-no, .scr-walk .scr-bay[data-dropping="1"] .scr-no { display: block; }
-.scr-walk .scr-no .scr-n { left: 24px; top: 24px; }
-.scr-walk .scr-no .scr-name { left: 24px; top: 66px; }
-.scr-walk .scr-no .scr-metric { position: absolute; left: 24px; top: 150px; width: 392px; font-size: 54px; }
-/* NO rides on the bottom edge of the shutter: it arrives with the weight of the block */
-.scr-walk .scr-word-no { position: absolute; left: 10px; bottom: 22px; font-size: 340px; line-height: 0.708; }
-
-/* ---- the reason, under the dock ---- */
-.scr-walk .scr-cap { position: absolute; left: 128px; top: 892px; width: 1736px; font-size: 40px; line-height: 48px; font-weight: 500; text-wrap: pretty; }
+/* ---- the reason, under the dock, in the gate's own words ---- */
+.scr-walk .scr-cap { position: absolute; left: 128px; top: 902px; width: 1736px; font-size: 40px; line-height: 46px; font-weight: 500; text-wrap: balance; }
 .scr-walk .scr-cap b { font-weight: 800; }
-.scr-walk .scr-src { position: absolute; left: 128px; top: 1010px; width: 1736px; font-size: 28px; line-height: 32px; font-weight: 600; white-space: nowrap; overflow: hidden; z-index: 3; }
+.scr-walk .scr-src { position: absolute; left: 128px; top: 1010px; width: 1736px; max-width: none; line-height: 32px; white-space: nowrap; overflow: hidden; z-index: 3; }
 
 /* ---- the survivor: the one Flare block on this slide ---- */
-.scr-walk .scr-band { display: none; position: absolute; left: 88px; top: 856px; width: 1832px; height: 224px; background: var(--fl); color: var(--fl-k); z-index: 2; }
+.scr-walk .scr-band { display: none; position: absolute; left: 88px; top: 836px; width: 1832px; height: 244px; background: var(--c-accent); color: var(--c-accent-ink); z-index: 2; }
 .scr-walk[data-band="1"] .scr-band { display: block; }
-.scr-walk[data-band="1"] .scr-src { color: var(--fl-k); }
-.scr-walk .scr-band.is-plain { background: var(--g); color: var(--k); border-top: 8px solid var(--k); }
+.scr-walk[data-band="1"] .scr-src { color: var(--c-accent-ink); }
+.scr-walk[data-band="1"][data-plain="1"] .scr-band { background: var(--c-bg); color: var(--c-ink); border-top: 8px solid var(--c-ink); }
+.scr-walk[data-band="1"][data-plain="1"] .scr-src { color: var(--c-ink); }
 .scr-walk .scr-fig { position: absolute; top: 0; width: 560px; height: 150px; }
 .scr-walk .scr-fig[data-shown="0"] { visibility: hidden; }
-.scr-walk .scr-fig-label { position: absolute; left: 0; top: 22px; font-size: 32px; line-height: 32px; white-space: nowrap; }
-.scr-walk .scr-fig-value { position: absolute; left: 0; top: 70px; display: flex; align-items: baseline; gap: 16px; white-space: nowrap; }
-.scr-walk .scr-fig-value .scr-v { font-size: 56px; line-height: 1; }
-.scr-walk .scr-fig-value .scr-d { font-size: 104px; line-height: 0.708; font-variant-numeric: tabular-nums; }
+.scr-walk .scr-fig-label { position: absolute; left: 0; top: 22px; white-space: nowrap; }
+.scr-walk .scr-fig-value { position: absolute; left: 0; top: 68px; display: flex; align-items: baseline; gap: 16px; white-space: nowrap; }
+.scr-walk .scr-fig-value .voice { font-size: 56px; line-height: 1; }
+.scr-walk .scr-fig-value .num { font-size: 100px; text-transform: uppercase; }
 
 /* =============================================================================
-   2. LIVE SCORECARD, shared structure
+   2. LIVE SCORECARD. The controls are the theme's (.btn .seg .stepper
+      .verdict); this file lays them out. Shared structure first.
    ========================================================================== */
-.scr-live .scr-btn {
-  appearance: none; -webkit-appearance: none; border: var(--line) solid var(--k); background: var(--g); color: var(--k);
-  font-family: var(--text); font-weight: 700; font-stretch: 112%; letter-spacing: 0.08em; text-transform: uppercase;
-  cursor: pointer; white-space: nowrap; border-radius: 0;
-}
-.scr-live .scr-btn[aria-expanded="true"], .scr-live .scr-btn[aria-pressed="true"] { background: var(--k); color: var(--g); }
-.scr-live .scr-btn:focus-visible, .scr-live .scr-pick:focus-visible, .scr-live .scr-step:focus-visible, .scr-live .scr-seg button:focus-visible { outline: var(--line) solid var(--k); outline-offset: 3px; }
-.scr-live input { border-radius: 0; font-family: var(--text); color: var(--k); background: transparent; }
-.scr-live input:focus { outline: none; background: var(--g2); }
-
+.scr-live { color: var(--c-ink); font-family: var(--f-body, "Archivo", sans-serif); font-weight: 500; font-synthesis: none; }
+.scr-live :is(h3, p, ul, li) { margin: 0; padding: 0; }
 .scr-live .scr-board { display: grid; }
-.scr-live .scr-corner, .scr-live .scr-head, .scr-live .scr-tagcell, .scr-live .scr-glabel, .scr-live .scr-cell, .scr-live .scr-rlabel, .scr-live .scr-result { min-width: 0; }
+.scr-live .scr-board > * { min-width: 0; }
 .scr-live .scr-pick {
-  appearance: none; -webkit-appearance: none; flex: none; border: var(--line) solid var(--k); border-radius: 0; background: var(--g); color: var(--k);
-  font-family: var(--disp); font-weight: 900; font-stretch: 62%; line-height: 1; cursor: pointer; padding: 0;
+  appearance: none; -webkit-appearance: none; flex: none; margin: 0; padding: 0; border: var(--scr-line) solid var(--c-ink); border-radius: 0;
+  background: var(--c-bg); color: var(--c-ink); cursor: pointer; line-height: 1; font-family: var(--f-body, "Archivo", sans-serif);
 }
-.scr-live .scr-head[data-selected="1"] .scr-pick { background: var(--k); color: var(--g); }
-.scr-live .scr-name { min-width: 0; border: 0; border-bottom: var(--hair) solid var(--k); font-weight: 700; text-overflow: ellipsis; }
+.scr-live .scr-head[data-selected="1"] .scr-pick { background: var(--c-ink); color: var(--c-bg); }
+.scr-live .scr-pick:focus-visible { outline: 6px solid var(--c-ink); outline-offset: -6px; }
+.scr-live .scr-measure { position: absolute; left: -9999px; top: 0; visibility: hidden; white-space: pre; pointer-events: none; }
+.scr-live .scr-name {
+  appearance: none; -webkit-appearance: none; min-width: 0; margin: 0; border: 0; border-bottom: var(--w-hair, 3px) solid var(--c-ink); border-radius: 0;
+  background: transparent; color: var(--c-ink); font-family: var(--f-body, "Archivo", sans-serif); font-weight: 700; text-overflow: ellipsis; outline: 0;
+}
+.scr-live .scr-name:focus { background: var(--c-bg-alt); border-bottom-width: var(--w-rule, 6px); }
+.scr-live .scr-name::placeholder { color: var(--c-ink-soft); opacity: 1; }
 .scr-live .scr-cell { display: flex; align-items: center; }
-.scr-live .scr-metric { min-width: 0; }
-.scr-live .scr-result[data-outcome="winner"] { background: var(--fl); color: var(--fl-k); }
+.scr-live .scr-chipslot { display: flex; flex: none; }
+.scr-live .scr-result[data-outcome="winner"] { background: var(--c-accent); color: var(--c-accent-ink); }
 
-/* controls */
 .scr-live .scr-ctl { display: flex; flex-direction: column; min-width: 0; }
 .scr-live .scr-ctl-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; min-width: 0; }
-.scr-live .scr-ctl-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; font-weight: 600; }
-.scr-live .scr-ctl-note { flex: none; white-space: nowrap; font-weight: 600; }
-.scr-live .scr-stepper, .scr-live .scr-seg { display: flex; align-items: stretch; min-width: 0; border: var(--line) solid var(--k); background: var(--g); }
-.scr-live .scr-step {
-  appearance: none; -webkit-appearance: none; flex: none; border: 0; border-radius: 0; background: var(--k); color: var(--g); cursor: pointer; padding: 0;
-  font-family: var(--disp); font-weight: 900; font-stretch: 62%; line-height: 1;
+.scr-live .scr-ctl-label { min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scr-live .scr-ctl-note { flex: none; font-weight: 600; white-space: nowrap; }
+.scr-live .scr-ctl .stepper, .scr-live .scr-ctl .seg { display: flex; width: 100%; }
+.scr-live .scr-ctl .seg > button { flex: 1 1 0; min-width: 0; padding: 0; }
+.scr-live .scr-mid {
+  flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 0.12em; overflow: hidden; cursor: text;
+  border-top: var(--w-rule, 6px) solid var(--c-ink); border-bottom: var(--w-rule, 6px) solid var(--c-ink); background: var(--c-bg);
+  font-family: var(--f-display, "Archivo", sans-serif); font-weight: 900; font-stretch: 62%; font-variant-numeric: tabular-nums; line-height: 1;
 }
-.scr-live .scr-stepper input { flex: 1 1 0; min-width: 0; width: 100%; border: 0; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
-.scr-live .scr-unit { flex: none; align-self: center; font-weight: 700; }
-.scr-live .scr-unit:empty { display: none; }
-.scr-live .scr-cycle-value { flex: 1 1 0; min-width: 0; align-self: center; text-align: center; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.scr-live .scr-seg button {
-  appearance: none; -webkit-appearance: none; flex: 1 1 0; min-width: 0; border: 0; border-radius: 0; background: transparent; color: var(--k);
-  font-family: var(--text); font-weight: 700; cursor: pointer; padding: 0;
+.scr-live .scr-mid > input {
+  appearance: none; -webkit-appearance: none; min-width: 0; max-width: 100%; margin: 0; padding: 0; border: 0; border-radius: 0; outline: 0;
+  background: transparent; color: var(--c-ink); font: inherit; font-stretch: inherit; text-align: center;
 }
-.scr-live .scr-seg button + button { border-left: var(--line) solid var(--k); }
-.scr-live .scr-seg button[aria-pressed="true"] { background: var(--k); color: var(--g); }
-.scr-live .scr-ctl[aria-invalid="true"] .scr-stepper { background-image: var(--hatch, repeating-linear-gradient(135deg, var(--k) 0 4px, transparent 4px 12px)); }
-.scr-live .scr-ctl[aria-invalid="true"] .scr-stepper input { background: var(--g); }
+.scr-live .scr-mid:focus-within { background: var(--c-bg-alt); }
+.scr-live .scr-mid.is-text { justify-content: flex-start; font-family: var(--f-body, "Archivo", sans-serif); font-weight: 700; font-stretch: 100%; border: var(--w-hair, 3px) solid var(--c-ink); border-bottom-width: var(--w-rule, 6px); }
+.scr-live .scr-mid.is-text > input { flex: 1 1 0; width: 100%; text-align: left; }
+.scr-live .scr-ctl > .scr-mid { flex: none; }
+.scr-live .scr-mid.is-word { font-family: var(--f-body, "Archivo", sans-serif); font-weight: 700; font-stretch: 100%; white-space: nowrap; cursor: default; }
+.scr-live .scr-ctl[aria-invalid="true"] .scr-mid { background-image: var(--hatch, repeating-linear-gradient(135deg, var(--c-ink) 0 4px, transparent 4px 12px)); }
+.scr-live .scr-ctl[aria-invalid="true"] .scr-mid > input, .scr-live .scr-ctl[aria-invalid="true"] .scr-unit { background: var(--c-bg); }
 
 /* =============================================================================
    3. LIVE SCORECARD on the stage (1920 x 1080). The component is a
       1736 x 920 box; the slide puts it at (128, 120).
    ========================================================================== */
-.scr-live.scr--stage {
-  position: absolute; inset: 0; --line: 4px; --hair: 3px;
-  --chip-h: 60px; --chip-line: 4px; --chip-no: 48px; --chip-pass: 34px; --chip-ny: 30px;
-}
-.scr--stage .scr-tools { position: absolute; right: 0; top: -80px; height: 64px; display: flex; gap: 16px; }
-.scr--stage .scr-btn { height: 64px; padding: 0 22px; font-size: 32px; }
+.scr-live.scr--stage { position: absolute; inset: 0; --scr-line: 6px; }
+.scr--stage .scr-tools { position: absolute; right: 0; top: -84px; display: flex; gap: 16px; }
 
-.scr--stage .scr-board { position: absolute; left: 0; top: 0; width: 1736px; grid-template-columns: 248px repeat(3, 496px); grid-template-rows: 72px 40px repeat(4, 72px) 120px; }
-.scr--stage .scr-corner { font-size: 32px; line-height: 34px; align-self: center; }
-.scr--stage .scr-head { display: flex; align-items: center; gap: 14px; padding: 0 22px; }
-.scr--stage .scr-pick { width: 56px; height: 56px; font-size: 46px; }
-.scr--stage .scr-name { flex: 1 1 0; height: 56px; padding: 0 4px; font-size: 36px; }
+.scr--stage .scr-board { position: absolute; left: 0; top: 0; width: 1736px; grid-template-columns: 248px repeat(3, 496px); grid-template-rows: 128px repeat(4, 68px) 102px; }
+.scr--stage .scr-head { display: flex; flex-direction: column; padding: 0; }
+.scr--stage .scr-pick { display: flex; align-items: center; gap: 18px; width: 100%; height: 64px; padding: 0 22px; border-width: 0 0 3px; text-align: left; }
+.scr--stage .scr-pick b { font-family: var(--f-display); font-size: 52px; font-weight: 900; font-stretch: 62%; line-height: 1; }
+.scr--stage .scr-pick span { line-height: 1; }
+.scr--stage .scr-name { width: 100%; height: 64px; padding: 0 22px; border-bottom: 6px solid var(--c-line); font-size: 34px; }
+.scr--stage .scr-name:focus { border-bottom-width: 6px; }
 .scr--stage .scr-pickname { display: none; }
-.scr--stage .scr-tagcell { padding: 0 22px; border-bottom: 6px solid var(--k); font-size: 28px; line-height: 34px; }
-.scr--stage .scr-tagcell.scr-l { letter-spacing: 0.1em; }
-.scr--stage .scr-glabel { display: flex; align-items: center; border-bottom: 3px solid var(--k); font-size: 56px; line-height: 1; }
-.scr--stage .scr-cell { gap: 16px; padding: 0 22px; border-bottom: 3px solid var(--k); }
+.scr--stage .scr-corner { border-bottom: 6px solid var(--c-line); }
+.scr--stage .scr-glabel { display: flex; align-items: center; border-bottom: 3px solid var(--c-line); font-size: 56px; line-height: 1; }
+.scr--stage .scr-cell { gap: 14px; padding: 0 22px; border-bottom: 3px solid var(--c-line); }
 .scr--stage .scr-row-last { border-bottom-width: 6px; }
-.scr--stage .scr-chipslot { flex: none; width: 168px; display: flex; }
-.scr--stage .scr-metric { font-size: 32px; line-height: 34px; font-weight: 600; text-wrap: balance; }
-.scr--stage .scr-rlabel { align-self: center; font-size: 32px; line-height: 36px; }
-.scr--stage .scr-result { display: flex; flex-direction: column; justify-content: center; padding: 0 22px; margin: 6px 6px 0; }
+.scr--stage .scr-chipslot { width: 172px; }
+.scr--stage .scr-cell .verdict { --vh: 56px; }
+.scr--stage .scr-cell .verdict.is-notyet { padding: 0 10px; }
+.scr--stage .scr-metric { min-width: 0; max-height: 64px; overflow: hidden; font-size: 32px; line-height: 32px; font-weight: 600; font-stretch: 87.5%; text-wrap: balance; }
+.scr--stage .scr-rlabel { align-self: center; line-height: 36px; }
+.scr--stage .scr-result { display: flex; flex-direction: column; justify-content: center; padding: 0 16px; margin: 6px 6px 0; }
 .scr--stage .scr-result-main { display: flex; align-items: baseline; gap: 12px; white-space: nowrap; }
-.scr--stage .scr-result-main .scr-d { font-size: 64px; line-height: 0.9; font-variant-numeric: tabular-nums; }
+.scr--stage .scr-result-main .scr-d { font-size: 56px; line-height: 0.9; font-variant-numeric: tabular-nums; }
 .scr--stage .scr-result-main span { font-size: 32px; font-weight: 600; }
-.scr--stage .scr-result-sub { margin-top: 4px; font-size: 32px; line-height: 36px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scr--stage .scr-result-sub { margin-top: 2px; font-size: 32px; line-height: 34px; font-weight: 600; font-stretch: 87.5%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .scr--stage .scr-result[data-outcome="no"] .scr-result-main span { font-size: 36px; }
 
 /* the candidate being edited: two posts and a lintel that run into the editor's frame */
-.scr--stage .scr-sel { position: absolute; top: 0; width: 496px; height: 526px; border: 6px solid var(--k); border-bottom: 0; pointer-events: none; z-index: 3; }
-.scr--stage .scr-sel::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 6px; background: var(--g); }
+.scr--stage .scr-sel { position: absolute; top: 0; width: 496px; height: 508px; border: 6px solid var(--c-ink); border-bottom: 0; pointer-events: none; z-index: 3; }
+.scr--stage .scr-sel::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 6px; background: var(--c-bg); }
 
 .scr--stage .scr-editor, .scr--stage .scr-rules {
-  position: absolute; left: 0; top: 520px; width: 1736px; height: 330px; border: 6px solid var(--k); background: var(--g);
-  padding: 4px 20px 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: 104px; column-gap: 28px; align-content: start;
+  position: absolute; left: 0; top: 502px; width: 1736px; height: 356px; border: 6px solid var(--c-ink); background: var(--c-bg);
+  padding: 4px 20px 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: 112px; column-gap: 28px; align-content: start;
 }
 .scr--stage .scr-rules { z-index: 4; }
 .scr--stage .scr-ctl { justify-content: center; gap: 2px; }
-.scr--stage .scr-ctl-label, .scr--stage .scr-ctl-note { font-size: 32px; line-height: 34px; }
-.scr--stage .scr-ctl-note { font-size: 28px; }
-.scr--stage .scr-stepper, .scr--stage .scr-seg { height: 64px; }
-.scr--stage .scr-step { width: 64px; font-size: 56px; }
-.scr--stage .scr-stepper input { font-size: 40px; padding: 0 6px; }
-.scr--stage .scr-unit { font-size: 36px; padding: 0 12px 0 0; }
-.scr--stage .scr-unit.is-pre { padding: 0 0 0 12px; }
-.scr--stage .scr-cycle-value { font-size: 36px; padding: 0 8px; }
-.scr--stage .scr-seg button { font-size: 36px; }
-.scr--stage .scr-ctl-name, .scr--stage .scr-detail, .scr--stage .scr-bar { display: none; }
+.scr--stage .scr-ctl-label { font-size: 32px; line-height: 34px; }
+.scr--stage .scr-ctl-note { font-size: 28px; line-height: 34px; }
+.scr--stage .scr-mid { height: 72px; font-size: 56px; padding: 0 8px; }
+.scr--stage .scr-mid[data-long="1"] { font-size: 44px; }
+.scr--stage .scr-mid[data-long="2"] { font-size: 34px; }
+.scr--stage .scr-mid.is-word { font-size: 34px; font-stretch: 87.5%; }
+.scr--stage .scr-ctl .seg > button { font-stretch: 100%; letter-spacing: 0.06em; }
+.scr--stage .scr-unit { font-size: 44px; }
+.scr--stage .scr-ctl-name, .scr--stage .scr-detail, .scr--stage .scr-bar, .scr--stage .scr-rules-head { display: none; }
 .scr--stage .scr-rules-note { grid-column: 1 / -1; align-self: center; font-size: 36px; line-height: 42px; font-weight: 500; }
-.scr--stage .scr-rules-head { display: none; }
-.scr--stage .scr-assume { position: absolute; left: 0; top: 862px; width: 1736px; font-size: 28px; line-height: 30px; font-weight: 600; text-wrap: pretty; }
+.scr--stage .scr-assume { position: absolute; left: 0; top: 864px; width: 1736px; max-width: none; line-height: 30px; font-stretch: 90%; text-wrap: pretty; }
 
 /* =============================================================================
-   4. LIVE SCORECARD as a page: a phone first (360px), then wider.
+   4. LIVE SCORECARD as a page: a phone first (360px), then wider. The theme's
+      controls are sized for the stage, so their sizes are set again here.
    ========================================================================== */
-.scr-live.scr--page {
-  --line: 2px; --hair: 2px; --chip-h: 2rem; --chip-line: 2px; --chip-no: 1.5rem; --chip-pass: 1.05rem; --chip-ny: 0.62rem;
-  position: relative; font-size: 1rem; line-height: 1.4;
-}
+.scr-live.scr--page { --scr-line: 2px; position: relative; font-size: 1rem; line-height: 1.4; }
+.scr--page .btn { height: 2.75rem; padding: 0 0.9rem; border-width: 2px; font-size: 0.78rem; }
+.scr--page .verdict { --vh: 2rem; min-width: 0; letter-spacing: 0; }
+.scr--page .verdict.is-pass { border-width: 2px; border-top-width: 0.5rem; }
+.scr--page .verdict.is-notyet { border-width: 2px; font-size: 0.6rem; padding: 0 0.35rem; letter-spacing: 0.04em; }
+.scr--page .label { font-size: 0.66rem; line-height: 1.2; letter-spacing: 0.06em; font-stretch: 100%; }
+.scr--page .source-line { font-size: 0.85rem; line-height: 1.45; letter-spacing: 0; }
+.scr--page .stepper { height: 3rem; }
+.scr--page .stepper > button { width: 3rem; padding: 0 0 0.2rem; border-width: 2px; font-size: 2.2rem; }
+.scr--page .seg > button { height: 3rem; border-width: 2px; font-size: 0.85rem; letter-spacing: 0.06em; }
+.scr--page .seg > button + button { margin-left: -2px; }
+.scr--page .scr-mid { height: 3rem; border-top-width: 2px; border-bottom-width: 2px; font-size: 1.9rem; padding: 0 0.3rem; }
+.scr--page .scr-mid[data-long="1"] { font-size: 1.6rem; }
+.scr--page .scr-mid[data-long="2"] { font-size: 1.25rem; }
+.scr--page .scr-mid.is-text { border-width: 2px; font-size: 1.05rem; padding: 0 0.6rem; }
+.scr--page .scr-mid.is-word { font-size: 1.05rem; }
+.scr--page .scr-unit { font-size: 1.5rem; }
+
 .scr--page .scr-tools { display: flex; gap: 0.5rem; justify-content: flex-end; margin-bottom: 0.75rem; }
-.scr--page .scr-btn { min-height: 2.75rem; padding: 0 0.9rem; font-size: 0.78rem; }
 .scr--page .scr-sel { display: none; }
-.scr--page .scr-board { grid-template-columns: 4.4rem repeat(3, minmax(0, 1fr)); border-top: 4px solid var(--k); border-bottom: 4px solid var(--k); }
-.scr--page .scr-corner { font-size: 0.62rem; line-height: 1.2; align-self: end; padding: 0 0 0.4rem; }
+.scr--page .scr-board { grid-template-columns: 4.4rem repeat(3, minmax(0, 1fr)); border-top: 4px solid var(--c-ink); border-bottom: 4px solid var(--c-ink); }
+.scr--page .scr-corner { border-bottom: 2px solid var(--c-ink); }
 .scr--page .scr-head { padding: 0.5rem 0.25rem 0.25rem; display: flex; flex-direction: column; align-items: stretch; gap: 0.2rem; }
-.scr--page .scr-pick { display: flex; align-items: center; justify-content: center; width: 100%; height: 2.75rem; font-size: 1.9rem; }
+.scr--page .scr-pick { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.1rem; width: 100%; height: 3.4rem; }
+.scr--page .scr-pick b { font-family: var(--f-display); font-size: 1.9rem; font-weight: 900; font-stretch: 62%; line-height: 1; }
+.scr--page .scr-pick span.label { font-size: 0.56rem; }
 .scr--page .scr-pickname { font-size: 0.72rem; line-height: 1.15; font-weight: 600; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; min-height: 1.66rem; }
 .scr--page .scr-name { display: none; }
-.scr--page .scr-tagcell { padding: 0 0.25rem 0.35rem; font-size: 0.58rem; border-bottom: 2px solid var(--k); }
-.scr--page .scr-glabel { display: flex; align-items: center; font-size: 1.15rem; line-height: 1; border-bottom: 1px solid var(--k); overflow: hidden; }
-.scr--page .scr-cell { flex-direction: column; align-items: flex-start; gap: 0.2rem; padding: 0.4rem 0.25rem; border-bottom: 1px solid var(--k); }
+.scr--page .scr-head { border-bottom: 2px solid var(--c-ink); }
+.scr--page .scr-glabel { display: flex; align-items: center; font-size: 1.05rem; line-height: 1; border-bottom: 1px solid var(--c-ink); overflow: hidden; }
+.scr--page .scr-cell { flex-direction: column; align-items: flex-start; gap: 0.2rem; padding: 0.4rem 0.25rem; border-bottom: 1px solid var(--c-ink); }
 .scr--page .scr-row-last { border-bottom-width: 2px; }
-.scr--page .scr-chipslot { display: flex; }
-.scr--page .scr-metric { display: none; font-size: 0.8rem; line-height: 1.2; font-weight: 600; }
-.scr--page .scr-rlabel { align-self: center; font-size: 0.62rem; line-height: 1.25; padding-right: 0.25rem; }
+.scr--page .scr-metric { display: none; min-width: 0; font-size: 0.8rem; line-height: 1.2; font-weight: 600; }
+.scr--page .scr-rlabel { align-self: center; padding-right: 0.25rem; }
 .scr--page .scr-result { padding: 0.5rem 0.3rem; margin: 0.25rem 0.1rem; }
 .scr--page .scr-result-main { display: flex; flex-direction: column; }
 .scr--page .scr-result-main .scr-d { font-size: 1.45rem; line-height: 1; }
@@ -457,71 +418,65 @@
 .scr--page .scr-result-sub { display: none; font-size: 0.72rem; line-height: 1.25; font-weight: 600; margin-top: 0.2rem; }
 
 /* the verdict for the candidate in hand, kept in view while its numbers are edited */
-.scr--page .scr-bar { position: sticky; bottom: 0; z-index: 5; display: flex; gap: 0.75rem; align-items: center; margin: 0 -1rem; padding: 0.6rem 1rem; background: var(--k); color: var(--g); }
-.scr--page .scr-bar .scr-chip { color: var(--g); }
-.scr--page .scr-bar .scr-chip[data-verdict="no"] { background: var(--g); color: var(--k); }
-.scr--page .scr-bar .scr-chip[data-verdict="pass"] { border-color: var(--g); }
+.scr--page .scr-bar { position: sticky; bottom: 0; z-index: 5; display: flex; gap: 0.75rem; align-items: center; margin: 1.25rem -1rem 0; padding: 0.6rem 1rem; background: var(--c-ink); color: var(--c-bg); }
+.scr--page .scr-bar .verdict.is-no { background: var(--c-bg); color: var(--c-ink); }
+.scr--page .scr-bar .verdict.is-pass { border-color: var(--c-bg); color: var(--c-bg); }
 .scr--page .scr-bar-text { font-size: 0.85rem; line-height: 1.3; font-weight: 600; min-width: 0; }
 
 .scr--page .scr-editor, .scr--page .scr-rules { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.9rem 1rem; margin-top: 1.25rem; }
-.scr--page .scr-rules { padding: 1rem; border: 2px solid var(--k); }
+.scr--page .scr-rules { padding: 1rem; border: 2px solid var(--c-ink); }
 .scr--page .scr-rules-head { font-size: 1.6rem; line-height: 1; }
 .scr--page .scr-rules-note { font-size: 0.9rem; }
 .scr--page .scr-ctl { gap: 0.3rem; }
 .scr--page .scr-ctl-label, .scr--page .scr-ctl-note { font-size: 0.9rem; line-height: 1.25; }
 .scr--page .scr-ctl-label { white-space: normal; }
 .scr--page .scr-ctl-note { font-size: 0.8rem; }
-.scr--page .scr-stepper, .scr--page .scr-seg { height: 3rem; }
-.scr--page .scr-step { width: 3rem; font-size: 2rem; }
-.scr--page .scr-stepper input { font-size: 1.15rem; padding: 0 0.25rem; }
-.scr--page .scr-ctl-name .scr-stepper input { text-align: left; padding: 0 0.6rem; }
-.scr--page .scr-unit { font-size: 1.05rem; padding: 0 0.6rem 0 0; }
-.scr--page .scr-unit.is-pre { padding: 0 0 0 0.6rem; }
-.scr--page .scr-cycle-value { font-size: 1.05rem; padding: 0 0.3rem; }
-.scr--page .scr-seg button { font-size: 1.05rem; }
 .scr--page .scr-ctl-name { grid-column: 1 / -1; }
 
-.scr--page .scr-detail { margin-top: 1.5rem; border-top: 4px solid var(--k); padding-top: 0.75rem; }
+.scr--page .scr-detail { margin-top: 1.5rem; border-top: 4px solid var(--c-ink); padding-top: 0.75rem; }
 .scr--page .scr-detail-head { font-size: 1.6rem; line-height: 1; overflow-wrap: anywhere; }
 .scr--page .scr-detail-sum { margin-top: 0.4rem; font-size: 1rem; font-weight: 600; }
 .scr--page .scr-detail-list { list-style: none; padding: 0; margin-top: 0.75rem; }
-.scr--page .scr-detail-list li { display: grid; grid-template-columns: 5.25rem minmax(0, 1fr); gap: 0.2rem 0.75rem; padding: 0.7rem 0; border-top: 1px solid var(--k); }
+.scr--page .scr-detail-list li { display: grid; grid-template-columns: 5.25rem minmax(0, 1fr); gap: 0.2rem 0.75rem; padding: 0.7rem 0; border-top: 1px solid var(--c-ink); }
 .scr--page .scr-detail-gate { font-size: 1.3rem; line-height: 1; grid-column: 2; }
-.scr--page .scr-detail-list .scr-chip { grid-row: 1 / span 2; align-self: start; justify-self: start; }
+.scr--page .scr-detail-list .verdict { grid-row: 1 / span 2; align-self: start; justify-self: start; }
 .scr--page .scr-detail-why { grid-column: 2; font-size: 0.92rem; line-height: 1.35; }
-.scr--page .scr-detail-warn { margin-top: 0.6rem; padding: 0.6rem 0.75rem; border: 2px solid var(--k); font-size: 0.9rem; font-weight: 600; }
-.scr--page .scr-assume { margin-top: 1.25rem; font-size: 0.85rem; line-height: 1.45; font-weight: 600; }
+.scr--page .scr-detail-warn { margin-top: 0.6rem; padding: 0.6rem 0.75rem; border: 2px solid var(--c-ink); font-size: 0.9rem; font-weight: 600; }
+.scr--page .scr-assume { margin-top: 1.25rem; }
 
 @media (min-width: 560px) {
   .scr--page .scr-editor, .scr--page .scr-rules { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .scr--page .scr-rules-head, .scr--page .scr-rules-note { grid-column: 1 / -1; }
-  .scr--page .scr-board { grid-template-columns: 5.5rem repeat(3, minmax(0, 1fr)); }
-  .scr--page .scr-glabel { font-size: 1.5rem; }
+  .scr--page .scr-board { grid-template-columns: 6.4rem repeat(3, minmax(0, 1fr)); }
+  .scr--page .scr-glabel { font-size: 1.4rem; }
   .scr--page .scr-result-sub { display: block; }
 }
 @media (min-width: 760px) {
-  .scr-live.scr--page { --chip-h: 2.4rem; --chip-no: 1.85rem; --chip-pass: 1.3rem; --chip-ny: 0.72rem; }
-  .scr--page .scr-head { flex-direction: row; align-items: center; gap: 0.5rem; padding: 0.6rem 0.6rem 0.3rem; }
-  .scr--page .scr-pick { width: 2.75rem; flex: none; }
+  .scr--page .verdict { --vh: 2.4rem; }
+  .scr--page .verdict.is-notyet { font-size: 0.7rem; }
+  .scr--page .scr-head { gap: 0.4rem; padding: 0.6rem 0.6rem 0.45rem; }
+  .scr--page .scr-pick { flex: none; flex-direction: row; align-self: flex-start; gap: 0.45rem; width: auto; height: 2.75rem; padding: 0 0.6rem; }
+  .scr--page .scr-pick span.label { font-size: 0.64rem; }
   .scr--page .scr-pickname { display: none; }
-  .scr--page .scr-name { display: block; flex: 1 1 0; height: 2.75rem; font-size: 1.05rem; padding: 0 0.2rem; }
+  .scr--page .scr-name { display: block; width: 100%; height: 2.5rem; font-size: 1.05rem; padding: 0 0.2rem; }
   .scr--page .scr-ctl-name { display: none; }
-  .scr--page .scr-tagcell { padding: 0 0.6rem 0.4rem; font-size: 0.66rem; }
   .scr--page .scr-cell { flex-direction: row; align-items: center; gap: 0.6rem; padding: 0.5rem 0.6rem; }
-  .scr--page .scr-chipslot { flex: none; width: 5.6rem; }
+  .scr--page .scr-chipslot { width: 5.6rem; }
   .scr--page .scr-metric { display: block; }
   .scr--page .scr-result { padding: 0.6rem; margin: 0.3rem; }
   .scr--page .scr-result-main { flex-direction: row; align-items: baseline; gap: 0.4rem; flex-wrap: wrap; }
   .scr--page .scr-result-main .scr-d { font-size: 2rem; }
   .scr--page .scr-result-main span { font-size: 0.85rem; }
-  .scr--page .scr-rlabel, .scr--page .scr-corner { font-size: 0.72rem; }
   .scr--page .scr-editor, .scr--page .scr-rules { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .scr--page .scr-bar { margin: 0; }
+  .scr--page .scr-bar { display: none; }
 }
 @media (min-width: 1100px) {
   .scr--page .scr-editor, .scr--page .scr-rules { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .scr--page .scr-board { grid-template-columns: 8rem repeat(3, minmax(0, 1fr)); }
   .scr--page .scr-glabel { font-size: 2rem; }
+  .scr--page .scr-head { flex-direction: row; align-items: center; gap: 0.5rem; }
+  .scr--page .scr-pick { align-self: center; }
+  .scr--page .scr-name { flex: 1 1 0; width: auto; height: 2.75rem; }
   .scr--page .scr-metric { font-size: 0.95rem; }
   .scr--page .scr-name { font-size: 1.2rem; }
 }
@@ -613,66 +568,58 @@
     var inputs = results.map(inputLines);
     var slideEl = host.closest ? host.closest('.slide') : null;
 
-    /* geometry of a bay, in stage pixels (see the CSS above) */
-    var FULL = 488;          // a shutter that just reaches the floor
-    var RAISED = 104;        // a raised shutter: the top fifth of the bay
-    var THROUGH = 544;       // a NO: through the floor line and 48px beyond
-    /* the timing, in seconds (note values at 120 BPM, docs/DIRECTION.md) */
-    var T = { shutHold: 0.25, lift: 0.5, holdBefore: 0.8, drop: 0.375, jolt: 0.375, hold: 1.0, wipe: 0.25, swing: 1 / 3 };
+    /* the timing, in seconds: the theme's note values (120 BPM), with the same fallbacks */
+    var D = (theme() && theme().motion && theme().motion.dur) || {};
+    var T = {
+      shut: D.drop || 0.375,            // the gate being examined comes down to the floor
+      shutHold: 0.25,                   // ...stays shut for an eighth
+      lift: D.lift || 0.5,              // ...and lifts over one beat
+      holdBefore: D.holdBefore || 0.8,  // before a NO the bay is held vacant
+      drop: D.drop || 0.375,            // a NO falls for three sixteenths
+      hold: D.hold || 1,                // stop-time in negative: two beats
+      wipe: 0.25, swing: 1 / 3
+    };
 
-    /* the last beat of each candidate's judging: from there on its tab shows the result */
-    var firstBeat = [], lastGateBeat = [];
-    beats.forEach(function (b, k) {
-      if (b.type === 'intro') { firstBeat[b.c] = k; }
-      if (b.type === 'gate') { lastGateBeat[b.c] = k; }
-    });
+    /* the last gate beat of each candidate: from there on its tab shows the result */
+    var lastGateBeat = [];
+    beats.forEach(function (b, k) { if (b.type === 'gate') { lastGateBeat[b.c] = k; } });
 
-    /* ---- DOM ---- */
+    /* ---- DOM: the theme's dock, three tabs above it, the reason below ---- */
     var root = doc.createElement('div');
     root.className = 'scr scr-walk';
 
     var tabsHtml = results.map(function (r, c) {
       return '<div class="scr-tab" data-cand="' + c + '" data-status="waiting">' +
-        '<div class="scr-tab-pitch scr-l">' + LETTERS[c] + (r.candidate.pitch ? DOT + esc(r.candidate.pitch) : '') + '</div>' +
+        '<div class="scr-tab-pitch label is-tight">' + LETTERS[c] + (r.candidate.pitch ? DOT + esc(r.candidate.pitch) : '') + '</div>' +
         '<div class="scr-tab-name">' + esc(r.name || 'Candidate ' + LETTERS[c]) + '</div>' +
-        '<div class="scr-tab-foot"><span class="scr-track">' + G.ORDER.map(function () { return '<i></i>'; }).join('') + '</span>' +
-        '<span class="scr-tab-result scr-l"></span></div></div>';
+        '<div class="scr-tab-foot"><span class="scr-track">' + G.ORDER.map(function () { return '<i class="gate-glyph"></i>'; }).join('') + '</span>' +
+        '<span class="scr-tab-result label is-tight"></span></div></div>';
     }).join('');
 
-    var arrow = '<svg class="scr-thru scr-when scr-when-pass" viewBox="0 0 392 56" aria-hidden="true"><path d="M0 24H352V32H0Z"/><path d="M344 2L392 28L344 54Z"/></svg>';
-    var baysHtml = G.GATES.map(function (gate, g) {
-      return '<div class="scr-bay" data-gate="' + gate.id + '" data-state="vacant" style="left:' + (g * 456) + 'px">' +
-        '<div class="scr-open">' +
-          '<span class="scr-n scr-l">Gate ' + (g + 1) + '</span>' +
-          '<h3 class="scr-name scr-d">' + esc(gate.label) + '</h3>' +
-          '<div class="scr-body scr-when scr-when-vacant"></div>' +
-          '<div class="scr-body scr-when scr-when-pass"><p class="scr-metric scr-d"></p><p class="scr-sub"></p></div>' +
-          '<div class="scr-body scr-when scr-when-notyet">' + chipHtml('notyet') + '</div>' +
-          arrow +
-        '</div>' +
+    var gatesHtml = G.GATES.map(function (gate, g) {
+      return '<article class="gate is-still" data-gate="' + gate.id + '" data-state="vacant">' +
+        '<i class="gate-shutter"></i>' +
+        '<p class="gate-n">Gate ' + (g + 1) + '</p>' +
+        '<h3 class="gate-name">' + esc(gate.label) + '</h3>' +
+        '<div class="gate-q"></div>' +
+        '<p class="gate-why"></p>' +
         '<i class="scr-scar"></i>' +
-        '<i class="scr-pull"></i>' +
-        '<div class="scr-shutter">' +
-          '<span class="scr-word-pass scr-d">Pass</span>' +
-          '<div class="scr-no"><span class="scr-n scr-l">Gate ' + (g + 1) + '</span><h3 class="scr-name scr-d">' + esc(gate.label) + '</h3>' +
-          '<p class="scr-metric scr-d"></p><span class="scr-word-no scr-d">No</span></div>' +
-        '</div>' +
-      '</div>';
+      '</article>';
     }).join('');
-    var posts = [0, 1, 2, 3, 4].map(function (i) { return '<i class="scr-post" style="left:' + (i * 456) + 'px"></i>'; }).join('');
 
     root.innerHTML =
       '<div class="scr-tabs">' + tabsHtml + '</div>' +
-      '<div class="scr-dock"><i class="scr-lintel"></i><i class="scr-floor"></i>' + posts + baysHtml + '</div>' +
+      '<div class="dock scr-dock">' + gatesHtml + '</div>' +
       '<p class="scr-cap" aria-live="polite"></p>' +
       '<div class="scr-band">' + [0, 1, 2].map(function (i) {
-        return '<div class="scr-fig" data-shown="1" style="left:' + (40 + i * 590) + 'px"><span class="scr-fig-label scr-l"></span><span class="scr-fig-value"></span></div>';
+        return '<div class="scr-fig" data-shown="1" style="left:' + (40 + i * 590) + 'px"><span class="scr-fig-label label is-tight"></span><span class="scr-fig-value"></span></div>';
       }).join('') + '</div>' +
       '<p class="scr-src source-line"></p>';
     host.appendChild(root);
 
     var tabs = Array.prototype.slice.call(root.querySelectorAll('.scr-tab'));
-    var bays = Array.prototype.slice.call(root.querySelectorAll('.scr-bay'));
+    var gateEls = Array.prototype.slice.call(root.querySelectorAll('.gate'));
+    var tabsEl = root.querySelector('.scr-tabs');
     var cap = root.querySelector('.scr-cap');
     var src = root.querySelector('.scr-src');
     var band = root.querySelector('.scr-band');
@@ -718,30 +665,47 @@
       return list;
     }
 
-    /* ---- drawing one moment: everything on screen is a function of the beat number ---- */
-    function setBay(g, state) {
-      var bay = bays[g];
-      bay.setAttribute('data-state', state);
-      bay.removeAttribute('data-word');
-      bay.removeAttribute('data-dropping');
-      bay.querySelector('.scr-shutter').style.height = '';
+    /* ---- one gate ---- */
+
+    /* state: 'vacant' | 'shut' | 'pass' | 'no' | 'notyet'. `moving` lets the theme play its move. */
+    function setGate(g, state, moving) {
+      var gate = gateEls[g];
+      gate.classList.toggle('is-still', !moving);
+      gate.classList.toggle('is-shut', state === 'shut');
+      gate.classList.toggle('is-pass', state === 'pass');
+      gate.classList.toggle('is-no', state === 'no');
+      gate.setAttribute('data-state', state);
     }
 
-    function fillBay(g, c) {
-      var bay = bays[g];
-      var id = G.ORDER[g];
-      var vacant = bay.querySelector('.scr-when-vacant');
+    /* what is printed in the bay. c is the candidate at the gates (null: nobody yet). */
+    function fillGate(g, c, state) {
+      var gate = gateEls[g];
+      var q = gate.querySelector('.gate-q');
+      var why = gate.querySelector('.gate-why');
+      var html = '';
+      var fine = '';
       if (c == null) {
-        vacant.innerHTML = '<p class="scr-q">' + esc(G.GATES[g].question) + '</p>';
-        return;
+        html = '<span class="scr-q">' + esc(G.GATES[g].question) + '</span>';
+      } else if (state === 'pass') {
+        var m = splitMetric(states[c][g].gate.metricText);
+        html = '<span class="scr-metric scr-d">' + esc(m.main) + '</span>' + (m.sub ? '<span class="scr-sub">' + esc(upperFirst(m.sub)) + '</span>' : '');
+        fine = 'carried forward';
+      } else if (state === 'no') {
+        fine = states[c][g].gate.metricText;          // the figure that stopped it, printed on the shutter
+      } else if (state === 'notyet') {
+        html = '<span>' + verdictHtml('notyet') + '</span>';
+      } else {
+        html = inputs[c][G.ORDER[g]].map(function (line) { return '<span class="scr-in">' + esc(line) + '</span>'; }).join('');
       }
-      vacant.innerHTML = inputs[c][id].map(function (line) { return '<p class="scr-in">' + esc(line) + '</p>'; }).join('');
-      var m = splitMetric(states[c][g].gate.metricText);
-      bay.querySelector('.scr-when-pass .scr-metric').textContent = m.main;
-      bay.querySelector('.scr-when-pass .scr-sub').textContent = upperFirst(m.sub);
-      bay.querySelector('.scr-no .scr-metric').textContent = m.main;
+      q.innerHTML = html;
+      why.textContent = fine;
     }
 
+    function landed(k, c, g) {
+      return beats.some(function (b, kk) { return kk <= k && b.type === 'gate' && b.c === c && b.g === g; });
+    }
+
+    /* ---- one moment: everything on screen is a function of the beat number ---- */
     function renderStatic(k) {
       var b = beats[k];
       var cur = b.type === 'overview' ? null : b.c;
@@ -750,55 +714,55 @@
       tabs.forEach(function (tab, c) {
         var judged = lastGateBeat[c] != null && k >= lastGateBeat[c];
         tab.setAttribute('data-status', c === cur ? 'current' : (judged ? 'done' : 'waiting'));
-        var marks = tab.querySelectorAll('.scr-track i');
+        tab.classList.toggle('on-ink', c === cur);
+        var marks = tab.querySelectorAll('.gate-glyph');
         var noAt = null;
         states[c].forEach(function (s, g) {
-          var landed = beats.some(function (bb, kk) { return kk <= k && bb.type === 'gate' && bb.c === c && bb.g === g; });
-          marks[g].setAttribute('data-s', landed ? s.state : 'notyet');
-          if (landed && s.state === 'no') { noAt = s.gate.label; }
+          var here = landed(k, c, g);
+          marks[g].className = 'gate-glyph' + (here && s.state !== 'notyet' ? ' is-' + s.state : '');
+          if (here && s.state === 'no') { noAt = s.gate.label; }
         });
         tab.querySelector('.scr-tab-result').textContent = !judged ? '' : (noAt ? 'No at ' + noAt : 'Passes all four');
       });
 
       // the dock: this candidate's four gates
       var stopped = false;
-      bays.forEach(function (bay, g) {
-        fillBay(g, cur);
+      gateEls.forEach(function (gate, g) {
         var state = 'vacant';
         if (cur != null) {
-          var landed = beats.some(function (bb, kk) { return kk <= k && bb.type === 'gate' && bb.c === cur && bb.g === g; });
-          if (landed) { state = states[cur][g].state; if (state === 'no') { stopped = true; } }
+          if (landed(k, cur, g)) { state = states[cur][g].state; if (state === 'no') { stopped = true; } }
           else if (stopped) { state = 'notyet'; }
         }
-        setBay(g, state);
-        // the tell-tale of a NO that hit this bay earlier, for a candidate already gone
+        setGate(g, state, false);
+        fillGate(g, cur, state);
+        // the tell-tale of a NO that hit this bay, left by a candidate already gone
         var scar = beats.some(function (bb, kk) {
           return bb.type === 'gate' && bb.verdict === 'no' && bb.g === g && kk <= k && (cur == null || bb.c !== cur);
         });
-        bay.setAttribute('data-scar', scar ? '1' : '0');
+        gate.setAttribute('data-scar', scar ? '1' : '0');
       });
 
       // the reason, in the gate's own words
+      cap.style.fontSize = '';
       if (b.type === 'gate') {
         var gate = states[b.c][b.g].gate;
         cap.innerHTML = '<b>' + esc(gate.label) + '.</b> ' + esc(gate.reason);
+        if (cap.scrollHeight > 100) { cap.style.fontSize = '36px'; }
       } else {
         cap.textContent = '';
       }
-      cap.style.fontSize = '';
-      if (cap.scrollHeight > 100) { cap.style.fontSize = '36px'; }
 
       // the survivor's figures
       var paying = b.type === 'payoff';
       root.setAttribute('data-band', paying ? '1' : '0');
+      root.setAttribute('data-plain', paying && !results[b.c].winner ? '1' : '0');
       if (paying) {
         var r = results[b.c];
-        band.classList.toggle('is-plain', !r.winner);
         payoffFigures(r).forEach(function (f, i) {
           figs[i].setAttribute('data-shown', '1');
           figs[i].querySelector('.scr-fig-label').textContent = f.label;
           figs[i].querySelector('.scr-fig-value').innerHTML =
-            (f.about ? '<span class="scr-v">about</span>' : '') + '<span class="scr-d">' + esc(f.text) + '</span>';
+            (f.about ? '<span class="voice">about</span>' : '') + '<span class="num">' + esc(f.text) + '</span>';
         });
         src.textContent = assumptionsLine(r.cashFreed > 0 ? b.c : null);
       } else {
@@ -806,50 +770,54 @@
       }
       fitOneLine([src], 75);
 
-      root.style.transform = '';
       band.style.clipPath = '';
-      if (slideEl) { slideEl.classList.remove('scr-negative'); }
       root.setAttribute('data-beat', k);
       root.setAttribute('data-beat-type', b.type);
     }
 
     /* ---- motion: only when stepping forward by one, and never in print ---- */
     var playing = null;      // the timeline in flight
+    var landing = null;      // THEME.landNo in flight
     var current = 0;
 
     function stopPlaying() {
       if (playing) { playing.pause(); playing = null; }
+      if (landing) { landing.cancel(); landing = null; }
+      if (slideEl) { slideEl.classList.remove('is-negative'); }
+    }
+
+    /* How a NO lands: the rest of the slide recoils and the slide prints in negative. The NO itself stays put. */
+    function land(noGate) {
+      if (!slideEl) { return; }
+      var t = theme();
+      if (t && typeof t.landNo === 'function') {
+        var others = Array.prototype.slice.call(slideEl.querySelectorAll('.headline, .tag'));
+        others = others.concat([tabsEl, cap, src], gateEls.filter(function (g) { return g !== noGate; }));
+        landing = t.landNo(slideEl, { hold: T.hold, recoil: others });
+      } else {
+        slideEl.classList.add('is-negative');
+      }
     }
 
     function playGate(k) {
       var b = beats[k];
-      var bay = bays[b.g];
-      var shutter = bay.querySelector('.scr-shutter');
       var tl = M.timeline();
+      // The last gate's reason leaves as this gate is called; the new one cuts in when the verdict has landed.
+      tl.at(0, function () { cap.textContent = ''; });
       if (b.verdict === 'pass') {
-        // The gate shuts for an eighth, then lifts over one beat. PASS cuts in a sixteenth before it stops.
-        tl.at(0, function () { bay.setAttribute('data-state', 'shut'); });
-        tl.add({
-          from: FULL, to: RAISED, duration: T.lift, ease: EASE_LIFT,
-          onUpdate: function (h) { shutter.style.height = h.toFixed(1) + 'px'; }
-        }, T.shutHold);
-        tl.at(T.shutHold + T.lift * 0.75, function () { bay.setAttribute('data-word', '1'); });
-        tl.at(T.shutHold + T.lift, function () { renderStatic(k); });
+        // The gate comes down, holds for an eighth, and lifts over one beat. The theme plays each move.
+        var up = T.shut + T.shutHold;
+        tl.at(0, function () { setGate(b.g, 'shut', true); });
+        tl.at(up, function () { setGate(b.g, 'pass', true); fillGate(b.g, b.c, 'pass'); });
+        tl.at(up + T.lift, function () { renderStatic(k); });
       } else {
-        // The bay is held vacant. Then the shutter falls through the floor, the slide
-        // recoils and prints in negative for two beats. Only then does the reason cut in.
+        // The bay is held vacant. Then the shutter falls through the floor, the slide recoils and
+        // prints in negative for two beats. Only then does the reason cut in.
         var hit = T.holdBefore + T.drop;
-        tl.at(T.holdBefore, function () { bay.setAttribute('data-dropping', '1'); });
-        tl.add({
-          from: 0, to: THROUGH, duration: T.drop, ease: EASE_DROP,
-          onUpdate: function (h) { shutter.style.height = h.toFixed(1) + 'px'; }
-        }, T.holdBefore);
-        tl.at(hit, function () { if (slideEl) { slideEl.classList.add('scr-negative'); } });
-        tl.add({
-          from: 14, to: 0, duration: T.jolt, ease: EASE_ARRIVE,
-          onUpdate: function (y, p) { root.style.transform = p > 0 && p < 1 ? 'translateY(' + y.toFixed(1) + 'px)' : ''; }
-        }, hit);
-        tl.at(hit + T.hold, function () { renderStatic(k); });
+        tl.at(0, function () { setGate(b.g, 'no', true); gateEls[b.g].querySelector('.gate-why').textContent = states[b.c][b.g].gate.metricText; });
+        tl.at(T.holdBefore, function () { gateEls[b.g].querySelector('.gate-q').innerHTML = ''; });
+        tl.at(hit, function () { land(gateEls[b.g]); });
+        tl.at(hit + T.hold, function () { if (slideEl) { slideEl.classList.remove('is-negative'); } renderStatic(k); });
       }
       return tl;
     }
@@ -892,7 +860,6 @@
       resize: function () { fitText(); },
       destroy: function () {
         stopPlaying();
-        if (slideEl) { slideEl.classList.remove('scr-negative'); }
         if (root.parentNode) { root.parentNode.removeChild(root); }
       },
       // for tests
@@ -953,7 +920,7 @@
     if (raw == null) { return ''; }
     if (typeof raw === 'number') {
       if (!isFinite(raw)) { return ''; }
-      return String(cm().tidy(spec.share ? raw * 100 : raw));
+      return cm().number(cm().tidy(spec.share ? raw * 100 : raw));      // 20000000 reads as 20,000,000
     }
     var s = String(raw);
     return spec.share ? s.replace(/\s*%\s*$/, '') : s;
@@ -1037,32 +1004,37 @@
     var root = doc.createElement('div');
     root.className = 'scr scr-live scr--' + layout;
 
-    function stepperHtml(attrs, spec, isText) {
-      return '<span class="stepper scr-stepper">' +
-        (isText ? '' : '<button type="button" class="scr-step" data-dir="-1" aria-label="Less">' + MINUS + '</button>') +
-        (spec.pre ? '<span class="scr-unit is-pre">' + spec.pre + '</span>' : '') +
-        '<input class="field" type="text" ' + (isText ? '' : 'inputmode="decimal" ') + 'autocomplete="off" autocapitalize="off" spellcheck="false" data-keys="own" ' + attrs + '>' +
-        (spec.post ? '<span class="scr-unit">' + spec.post + '</span>' : '') +
-        (isText ? '' : '<button type="button" class="scr-step" data-dir="1" aria-label="More">+</button>') +
-        '</span>';
+    /* The middle of a stepper: the number as a real text box (so it can be typed), with its unit beside it. */
+    function midHtml(attrs, spec, isText) {
+      return '<span class="scr-mid' + (isText ? ' is-text' : '') + '">' +
+        (spec.pre ? '<span class="scr-unit">' + spec.pre + '</span>' : '') +
+        '<input type="text" ' + (isText ? '' : 'inputmode="decimal" size="3" autocapitalize="off" ') + 'autocomplete="off" spellcheck="false" data-keys="own" ' + attrs + '>' +
+        (spec.post ? '<span class="scr-unit">' + spec.post + '</span>' : '') + '</span>';
+    }
+
+    function stepperHtml(attrs, spec) {
+      return '<span class="stepper">' +
+        '<button type="button" data-dir="-1" aria-label="Less">' + MINUS + '</button>' +
+        midHtml(attrs, spec, false) +
+        '<button type="button" data-dir="1" aria-label="More">+</button></span>';
     }
 
     function controlHtml(spec) {
       var id = uid + '-' + spec.key;
       var body;
       if (spec.type === 'cycle') {
-        body = '<span class="stepper scr-stepper" role="group" aria-labelledby="' + id + '-l">' +
-          '<button type="button" class="scr-step" data-dir="-1" aria-label="Cheaper tool">‹</button>' +
-          '<span class="scr-cycle-value" aria-live="polite"></span>' +
-          '<button type="button" class="scr-step" data-dir="1" aria-label="Dearer tool">›</button></span>';
+        body = '<span class="stepper" role="group" aria-labelledby="' + id + '-l">' +
+          '<button type="button" data-dir="-1" aria-label="Cheaper tool">\u2039</button>' +
+          '<span class="scr-mid is-word scr-cycle-value" aria-live="polite"></span>' +
+          '<button type="button" data-dir="1" aria-label="Dearer tool">\u203a</button></span>';
       } else if (spec.type === 'yesno') {
-        body = '<span class="seg scr-seg" role="group" aria-labelledby="' + id + '-l">' +
+        body = '<span class="seg" role="group" aria-labelledby="' + id + '-l">' +
           '<button type="button" data-value="true">Yes</button><button type="button" data-value="false">No</button></span>';
       } else if (spec.type === 'lens') {
-        body = '<span class="seg scr-seg" role="group" aria-labelledby="' + id + '-l">' +
+        body = '<span class="seg" role="group" aria-labelledby="' + id + '-l">' +
           '<button type="button" data-value="product">Product</button><button type="button" data-value="service">Service</button></span>';
       } else {
-        body = stepperHtml('id="' + id + '" data-field="' + spec.key + '"', spec, false);
+        body = stepperHtml('id="' + id + '" data-field="' + spec.key + '"', spec);
       }
       return '<div class="scr-ctl" data-ctl="' + spec.key + '"' + (spec.lens ? ' data-lens="' + spec.lens + '"' : '') + '>' +
         '<div class="scr-ctl-top"><label class="scr-ctl-label" id="' + id + '-l"' + (spec.type ? '' : ' for="' + id + '"') + '>' + esc(spec.label) + '</label>' +
@@ -1073,19 +1045,18 @@
       var id = uid + '-' + spec.path.replace('.', '-');
       return '<div class="scr-ctl" data-ctl="' + spec.path + '">' +
         '<div class="scr-ctl-top"><label class="scr-ctl-label" for="' + id + '">' + esc(spec.label) + '</label></div>' +
-        stepperHtml('id="' + id + '" data-rule="' + spec.path + '"', spec, false) + '</div>';
+        stepperHtml('id="' + id + '" data-rule="' + spec.path + '"', spec) + '</div>';
     }
 
-    var boardHtml = '<div class="scr-corner scr-l">Three candidates</div>' +
+    var boardHtml = '<div class="scr-corner" aria-hidden="true"></div>' +
       [0, 1, 2].map(function (c) {
         return '<div class="scr-head" data-cand="' + c + '">' +
-          '<button type="button" class="scr-pick" data-pick="' + c + '" aria-label="Edit candidate ' + LETTERS[c] + '">' + LETTERS[c] + '</button>' +
+          '<button type="button" class="scr-pick" data-pick="' + c + '" aria-label="Edit candidate ' + LETTERS[c] + '">' +
+            '<b>' + LETTERS[c] + '</b><span class="label is-tight" data-tag="' + c + '"></span></button>' +
           '<span class="scr-pickname" aria-hidden="true"></span>' +
-          '<input class="field scr-name" type="text" autocomplete="off" spellcheck="false" data-keys="own" data-cand="' + c + '" data-field="name" aria-label="Name of candidate ' + LETTERS[c] + '" placeholder="Candidate ' + LETTERS[c] + '">' +
+          '<input class="scr-name" type="text" autocomplete="off" spellcheck="false" data-keys="own" data-cand="' + c + '" data-field="name" aria-label="Name of candidate ' + LETTERS[c] + '" placeholder="Name it">' +
           '</div>';
       }).join('') +
-      '<div class="scr-tagcell"></div>' +
-      [0, 1, 2].map(function (c) { return '<div class="scr-tagcell scr-l" data-tag="' + c + '"></div>'; }).join('') +
       G.GATES.map(function (gate, g) {
         var last = g === G.GATES.length - 1 ? ' scr-row-last' : '';
         return '<div class="scr-glabel scr-d' + last + '">' + esc(gate.label) + '</div>' +
@@ -1094,21 +1065,21 @@
               '<span class="scr-chipslot"></span><span class="scr-metric"></span></div>';
           }).join('');
       }).join('') +
-      '<div class="scr-rlabel scr-l"></div>' +
+      '<div class="scr-rlabel label is-tight"></div>' +
       [0, 1, 2].map(function (c) {
         return '<div class="scr-result" data-cand="' + c + '" data-outcome="no"><div class="scr-result-main"></div><div class="scr-result-sub"></div></div>';
       }).join('');
 
     root.innerHTML =
       '<div class="scr-tools">' +
-        '<button type="button" class="btn scr-btn" data-act="rules" aria-expanded="false">House rules</button>' +
-        '<button type="button" class="btn scr-btn" data-act="reset" title="Put the three examples and the default rules back">Reset</button>' +
+        '<button type="button" class="btn is-ghost" data-act="rules" aria-expanded="false">House rules</button>' +
+        '<button type="button" class="btn is-ghost" data-act="reset" title="Put the three examples and the default rules back">Reset</button>' +
       '</div>' +
       '<div class="scr-board">' + boardHtml + '</div>' +
       '<i class="scr-sel" aria-hidden="true"></i>' +
       '<div class="scr-editor">' +
         '<div class="scr-ctl scr-ctl-name" data-ctl="name"><div class="scr-ctl-top"><label class="scr-ctl-label" for="' + uid + '-name">What is it called?</label></div>' +
-          stepperHtml('id="' + uid + '-name" data-field="name" placeholder="Name this candidate"', {}, true) + '</div>' +
+          midHtml('id="' + uid + '-name" data-field="name" placeholder="Name this candidate"', {}, true) + '</div>' +
         FIELDS.map(controlHtml).join('') +
       '</div>' +
       '<div class="scr-rules" hidden>' +
@@ -1118,7 +1089,8 @@
       '</div>' +
       '<div class="scr-detail"></div>' +
       '<p class="scr-assume source-line" role="status"></p>' +
-      '<div class="scr-bar" role="status"><span class="scr-bar-chip"></span><span class="scr-bar-text"></span></div>';
+      '<div class="scr-bar" role="status"><span class="scr-bar-chip"></span><span class="scr-bar-text"></span></div>' +
+      '<span class="scr-measure" aria-hidden="true"></span>';
     host.appendChild(root);
 
     var q = function (sel) { return root.querySelector(sel); };
@@ -1137,7 +1109,7 @@
     function shownField(cand, spec) {
       if (spec.key === 'buildHours') {
         var b = cand.buildHours, r = cand.rolloutHours;
-        if (typeof b === 'number' && typeof r === 'number' && isFinite(b) && isFinite(r)) { return String(CM.tidy(b + r)); }
+        if (typeof b === 'number' && typeof r === 'number' && isFinite(b) && isFinite(r)) { return CM.number(CM.tidy(b + r)); }
         return shownValue(b, spec);
       }
       return shownValue(cand[spec.key], spec);
@@ -1166,6 +1138,40 @@
     }
 
     /* ---- drawing ---- */
+
+    /* A number box is as wide as its number, so the unit sits right beside it. */
+    function sizeInput(input) {
+      if (!input.hasAttribute('inputmode')) { return; }
+      var length = Math.max(1, String(input.value).length);
+      input.style.width = (length + 0.6) + 'ch';
+      input.parentNode.setAttribute('data-long', length > 12 ? '2' : (length > 7 ? '1' : '0'));   // a long figure is set a size down
+    }
+
+    /*
+     * Long names are set narrower (Archivo's width axis), never smaller, until
+     * they fit their boxes. The three share one width, because they are equals.
+     */
+    var measure = null;
+    function fitNames() {
+      var inputs = qa('.scr-name');
+      var first = inputs[0];
+      if (!first || !first.clientWidth) { return; }            // not on screen in this layout
+      var cs = window.getComputedStyle(first);
+      var room = first.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 2;
+      measure = measure || q('.scr-measure');
+      measure.style.fontFamily = cs.fontFamily;
+      measure.style.fontSize = cs.fontSize;
+      measure.style.fontWeight = cs.fontWeight;
+      var fits = function (stretch) {
+        measure.style.fontStretch = stretch + '%';
+        return inputs.every(function (input) { measure.textContent = input.value || ''; return measure.offsetWidth <= room; });
+      };
+      var lo = 62, hi = 100;
+      if (fits(100)) { lo = 100; }
+      else { for (var i = 0; i < 7; i++) { var mid = (lo + hi) / 2; if (fits(mid)) { lo = mid; } else { hi = mid; } } }
+      inputs.forEach(function (input) { input.style.fontStretch = lo >= 100 ? '' : Math.floor(lo) + '%'; });
+    }
+
     function renderEditor() {
       var cand = state.candidates[state.selected];
       var lens = cand.lens === 'service' ? 'service' : 'product';
@@ -1173,9 +1179,10 @@
         var key = input.getAttribute('data-field');
         if (doc.activeElement === input) { return; }          // never rewrite the box being typed in
         input.value = key === 'name' ? (cand.name || '') : shownField(cand, fieldSpec(key));
+        sizeInput(input);
       });
       qa('.scr-editor .scr-ctl[data-lens]').forEach(function (ctl) { ctl.hidden = ctl.getAttribute('data-lens') !== lens; });
-      qa('.scr-editor .scr-seg').forEach(function (seg) {
+      qa('.scr-editor .seg').forEach(function (seg) {
         var key = seg.parentNode.getAttribute('data-ctl');
         var value = key === 'lens' ? lens : String(cand[key] === true || cand[key] === 'true');
         Array.prototype.forEach.call(seg.querySelectorAll('button'), function (b) {
@@ -1192,6 +1199,7 @@
         if (doc.activeElement === input) { return; }
         var path = input.getAttribute('data-rule');
         input.value = shownValue(readRule(path), ruleSpec(path));
+        sizeInput(input);
       });
       rulesBox.hidden = !state.rulesOpen;
       if (layout === 'stage') { editor.hidden = state.rulesOpen; }
@@ -1208,16 +1216,23 @@
     function assumptionsLine(r) {
       var a = r.assumptions;
       var h = a.houseRules;
-      var rates = 'Time at ' + CM.money(a.rates.loadedHourly) + ' an hour, building at ' + CM.money(a.rates.builderHourly) +
-        ', ' + CM.number(a.rates.workWeeks) + ' working weeks a year. A run is ' + CM.number(a.tokens.in) + ' tokens in, ' +
-        CM.number(a.tokens.out) + ' out.';
+      var meta = (window.BENCHLM && window.BENCHLM.meta) || {};
+      var prices = (meta.source || 'the benchmark file') + (meta.retrieved ? ', ' + meta.retrieved : '');
       if (layout === 'page') {
-        return 'House rules, yours to change. ' + G.ORDER.map(function (id) { return r.gates[id].rule; }).join(' ') + ' ' + rates;
+        return 'House rules, yours to change. ' + G.ORDER.map(function (id) { return r.gates[id].rule; }).join(' ') +
+          ' Time is valued at ' + CM.money(a.rates.loadedHourly) + ' an hour and building at ' + CM.money(a.rates.builderHourly) +
+          ' an hour, over ' + CM.number(a.rates.workWeeks) + ' working weeks a year. A run is priced at ' + CM.number(a.tokens.in) +
+          ' tokens in and ' + CM.number(a.tokens.out) + ' out, from the ' + prices + '.';
       }
-      return 'House rules, yours to change: cost up to ' + CM.number(CM.tidy(h.costMaxShareOfReturn * 100)) + '% of return' + DOT +
-        'return from ' + CM.money(h.minReturnPerYear) + ' a year, or on the cash path' + DOT +
-        'payback within ' + CM.number(h.maxPaybackWeeks) + ' ' + plural(h.maxPaybackWeeks, 'week') + DOT +
-        'growth from ' + CM.number(h.minGrowth) + TIMES + ', with an owner. ' + rates;
+      return ['House rules, yours to change: cost up to ' + CM.number(CM.tidy(h.costMaxShareOfReturn * 100)) + '% of return',
+        'return from ' + CM.money(h.minReturnPerYear) + ' a year or on the cash path',
+        'payback within ' + CM.number(h.maxPaybackWeeks) + ' ' + plural(h.maxPaybackWeeks, 'week'),
+        'growth from ' + CM.number(h.minGrowth) + TIMES + ' with an owner',
+        'time at ' + CM.money(a.rates.loadedHourly) + ' an hour',
+        'building at ' + CM.money(a.rates.builderHourly),
+        CM.number(a.rates.workWeeks) + ' weeks a year',
+        'a run is ' + CM.number(a.tokens.in) + ' tokens in, ' + CM.number(a.tokens.out) + ' out, at ' + (meta.source ? String(meta.source).split(' ')[0] : 'benchmark') + ' prices'
+      ].join(DOT);
     }
 
     var lastResults = [];
@@ -1240,8 +1255,11 @@
         states.forEach(function (s) {
           var cell = q('.scr-cell[data-cand="' + c + '"][data-gate="' + s.id + '"]');
           cell.setAttribute('data-state', s.state);
-          cell.querySelector('.scr-chipslot').innerHTML = chipHtml(s.state);
-          cell.querySelector('.scr-metric').textContent = s.state === 'notyet' ? '' : s.gate.metricText;
+          cell.querySelector('.scr-chipslot').innerHTML = verdictHtml(s.state);
+          var shown = s.state === 'notyet' ? '' : s.gate.metricText;
+          var parts = splitMetric(shown);
+          cell.setAttribute('data-metric', shown);
+          cell.querySelector('.scr-metric').innerHTML = esc(parts.main) + (parts.sub ? '<br>' + esc(parts.sub) : '');
           cell.title = s.state === 'notyet' ? 'Not yet: an earlier gate said no.' : s.gate.reason;
         });
 
@@ -1254,7 +1272,7 @@
           main.innerHTML = '<b class="scr-d">' + esc(CM.money(r.twoYearValue)) + '</b><span>over two years</span>';
           if (r.cashFreed > 0) {
             var cash = aboutFigure(r.cashFreed);
-            sub.textContent = 'Frees ' + (cash.about ? 'about ' : '') + cash.text + ' in cash, once';
+            sub.textContent = 'Frees ' + (cash.about ? 'about ' : '') + cash.text + ', one time';
           } else {
             sub.textContent = 'Pays back in ' + G.formatWeeks(r.paybackWeeks);
           }
@@ -1267,6 +1285,7 @@
         box.title = r.summary;
       });
 
+      fitNames();
       q('.scr-rlabel').textContent = anyWinner ? 'The math picks' : 'Nothing passes';
       if (layout === 'stage') { selBox.style.left = (248 + state.selected * 496) + 'px'; }
 
@@ -1291,10 +1310,10 @@
         '<p class="scr-detail-sum">' + esc(r.summary) + '</p>' +
         r.warnings.map(function (w) { return '<p class="scr-detail-warn">' + esc(w) + '</p>'; }).join('') +
         '<ul class="scr-detail-list">' + states.map(function (s) {
-          return '<li>' + chipHtml(s.state) + '<span class="scr-detail-gate scr-d">' + esc(s.gate.label) + '</span>' +
+          return '<li>' + verdictHtml(s.state) + '<span class="scr-detail-gate scr-d">' + esc(s.gate.label) + '</span>' +
             '<span class="scr-detail-why">' + esc(s.state === 'notyet' ? 'Not yet. A candidate stops at its first NO.' : s.gate.reason) + '</span></li>';
         }).join('') + '</ul>';
-      q('.scr-bar-chip').innerHTML = chipHtml(r.verdict === 'YES' ? 'pass' : 'no');
+      q('.scr-bar-chip').innerHTML = verdictHtml(r.verdict === 'YES' ? 'pass' : 'no');
       q('.scr-bar-text').textContent = LETTERS[state.selected] + ': ' + r.summary;
 
       if (onChange) { try { onChange(results, r.assumptions); } catch (e) { /* the host page's problem, not ours */ } }
@@ -1309,6 +1328,7 @@
     function onInput(e) {
       var t = e.target;
       if (!t || t.tagName !== 'INPUT') { return; }
+      sizeInput(t);
       if (t.hasAttribute('data-rule')) { writeRule(t.getAttribute('data-rule'), t.value); changed(); return; }
       var key = t.getAttribute('data-field');
       if (!key) { return; }
@@ -1339,7 +1359,8 @@
       var spec = input.hasAttribute('data-rule') ? ruleSpec(key) : fieldSpec(key);
       var next = Math.max(0, CM.tidy(looseNumber(input.value) + dir * (spec.step || 1)));
       if (spec.share) { next = Math.min(100, next); }
-      input.value = String(next);
+      input.value = CM.number(next);
+      sizeInput(input);
       if (input.hasAttribute('data-rule')) { writeRule(key, input.value); } else { writeField(state.selected, key, input.value); }
       changed();
     }
@@ -1347,12 +1368,14 @@
     function onClick(e) {
       var t = e.target && e.target.closest ? e.target.closest('button') : null;
       if (!t || !root.contains(t)) {
+        var mid = e.target && e.target.closest ? e.target.closest('.scr-mid') : null;
+        if (mid && mid.querySelector('input') && e.target.tagName !== 'INPUT') { mid.querySelector('input').focus(); return; }
         var headCell = e.target && e.target.closest ? e.target.closest('.scr-head') : null;
         if (headCell && root.contains(headCell)) { select(Number(headCell.getAttribute('data-cand'))); }
         return;
       }
       if (t.hasAttribute('data-pick')) { select(Number(t.getAttribute('data-pick'))); return; }
-      if (t.classList.contains('scr-step')) { nudge(t); return; }
+      if (t.hasAttribute('data-dir')) { nudge(t); return; }
       if (t.hasAttribute('data-value')) {
         writeField(state.selected, t.closest('.scr-ctl').getAttribute('data-ctl'), t.getAttribute('data-value'));
         renderEditor(); changed(); return;
@@ -1360,6 +1383,10 @@
       var act = t.getAttribute('data-act');
       if (act === 'reset') { reset(); }
       if (act === 'rules') { state.rulesOpen = !state.rulesOpen; renderRules(); }
+    }
+
+    function onKeyDown(e) {
+      if (e.key === 'Enter' && e.target && e.target.tagName === 'INPUT' && e.target.blur) { e.target.blur(); }
     }
 
     function onFocusIn(e) {
@@ -1388,15 +1415,21 @@
     root.addEventListener('input', onInput);
     root.addEventListener('click', onClick);
     root.addEventListener('focusin', onFocusIn);
+    root.addEventListener('keydown', onKeyDown);
     renderAll();
+    whenFontsReady(function () { if (root.parentNode) { fitNames(); } });
+    var onResize = function () { fitNames(); };
+    if (layout === 'page') { window.addEventListener('resize', onResize); }
 
     return {
-      step: function () {},
-      resize: function () {},
+      step: function () { fitNames(); },
+      resize: onResize,
       destroy: function () {
+        window.removeEventListener('resize', onResize);
         root.removeEventListener('input', onInput);
         root.removeEventListener('click', onClick);
         root.removeEventListener('focusin', onFocusIn);
+        root.removeEventListener('keydown', onKeyDown);
         if (root.parentNode) { root.parentNode.removeChild(root); }
       },
       // for tests and for the page around it
@@ -1426,7 +1459,6 @@
       return { step: function () {}, destroy: function () { host.textContent = ''; }, resize: function () {} };
     }
     if (opts.mode === 'walkthrough') { return Walkthrough(host, opts, api); }
-    if (opts.persist === undefined && opts.layout !== 'page') { opts.persist = 'session'; }
     return Live(host, opts, api);
   }
 

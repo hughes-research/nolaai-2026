@@ -6,7 +6,7 @@
  * the command-line demo (demo/slotting/run.js) and, in a real browser, that
  * the deck computes exactly the same numbers as the command line.
  *
- *     node tools/test-slotting.js               everything (about 30 seconds)
+ *     node tools/test-slotting.js               everything (about 40 seconds)
  *     node tools/test-slotting.js --no-browser  skip the browser part (no Playwright needed)
  *
  * No test framework: every check prints one PASS or FAIL line, and the script
@@ -25,6 +25,10 @@
  *   8. Speed: a full default run in under 5 seconds.
  *   9. The command-line demo.
  *  10. Node against a browser page: identical, digit for digit.
+ *  11. The slide itself (deck/index.html, "slotting-live"): it shows the
+ *      library's numbers and nothing else, carries its synthetic-data label on
+ *      every step, steps back to exactly what it showed before, replays the
+ *      same frame for the same moment, and stops when you leave.
  */
 'use strict';
 
@@ -613,6 +617,156 @@ async function testBrowser(S, r) {
   }
 }
 
+/* What the slide should print for a run, written out independently of the scene. */
+function commas(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+function pctText(share) {
+  var v = share * 100;
+  if (v > 0 && v < 9.95 && Math.abs(v - Math.round(v)) > 0.05) { return (Math.round(v * 10) / 10).toFixed(1) + '%'; }
+  return Math.round(v) + '%';
+}
+
+async function testSlide(S, r) {
+  section('11. The slide in the deck');
+  if (SKIP_BROWSER) { console.log('SKIP  --no-browser was given'); return; }
+  var pw = requirePlaywright();
+  if (!pw) { ok(false, 'Playwright is installed', 'install it once, globally: npm install -g playwright'); return; }
+  var deckUrl = require('url').pathToFileURL(path.join(ROOT, 'deck', 'index.html')).href;
+
+  var browser = await pw.chromium.launch();
+  try {
+    var page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+    var errors = [];
+    page.on('pageerror', function (e) { errors.push(e.message); });
+    page.on('console', function (m) { if (m.type() === 'error') { errors.push(m.text()); } });
+    await page.goto(deckUrl + '?fast#/slotting-live/0');
+    await page.waitForFunction(function () { return window.__deck && window.__deck.current().id === 'slotting-live' && window.__deck.scene('warehouse'); }, null, { timeout: 20000 });
+
+    var info = await page.evaluate(function () {
+      var i = window.__deck.info('slotting-live');
+      return { steps: i.steps, minutes: i.minutes, act: i.act, notes: i.notes, debug: window.__deck.scene('warehouse').debug() };
+    });
+    is(info.steps, 6, 'the slide has 6 builds: seven steps, the first on entry');
+    is(info.act, 4, 'it is in Act 4');
+    is(info.minutes, 6, 'it is planned for 6 minutes');
+    ok(/SAY:/.test(info.notes) && /NEXT:/.test(info.notes) && (info.notes.match(/DO, step \d/g) || []).length === 7,
+      'the speaker notes have SAY, NEXT and a DO line for each of the seven steps');
+    is(info.debug.fingerprint, S.digest(r).hash, 'the run the slide made has the same fingerprint as the command line');
+
+    // every step, forward: what is on screen
+    function snapshot() {
+      return page.evaluate(function () {
+        var el = document.querySelector('[data-slide-id="slotting-live"]');
+        var tag = el.querySelector('.tag');
+        var box = tag ? tag.getBoundingClientRect() : null;
+        return {
+          text: el.innerText.replace(/\s+/g, ' ').trim(),
+          tag: tag ? tag.textContent.trim() : '',
+          tagVisible: !!(box && box.width > 100 && box.height > 20 && window.getComputedStyle(tag).visibility !== 'hidden' &&
+            document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2) === tag)
+        };
+      });
+    }
+    async function go(step) {
+      await page.evaluate(function (s) { return window.__deck.goto('slotting-live', s); }, step);
+      await page.evaluate(function () { return new Promise(function (res) { requestAnimationFrame(function () { requestAnimationFrame(res); }); }); });
+    }
+    var forward = [];
+    for (var step = 0; step <= 6; step++) { await go(step); forward.push(await snapshot()); }
+
+    ok(forward.every(function (f) { return /animated re-creation/i.test(f.tag) && /synthetic data/i.test(f.tag) && f.tagVisible; }),
+      'the label "Animated re-creation \u00b7 synthetic data" is on screen, uncovered, at every step');
+    ok(forward.every(function (f, i) { return forward.findIndex(function (g) { return g.text === f.text; }) === i; }),
+      'every step shows something the others do not');
+
+    var b = r.before, a = r.after;
+    var table = forward[5].text;
+    var want = [commas(b.ftPerRun), commas(a.ftPerRun), b.pickHoursPerYear.toFixed(1), a.pickHoursPerYear.toFixed(1),
+      pctText(b.ladderPickShare), pctText(a.ladderPickShare), pctText(b.aGoldenShare), pctText(a.aGoldenShare)];
+    ok(want.every(function (v) { return table.indexOf(v) !== -1; }), 'step 6 shows the library\'s before and after figures: ' + want.join(', '),
+      'on screen: ' + table);
+    var last = forward[6].text.toUpperCase();
+    var msMatch = /([\d,]+) SWAPS TRIED IN ([\d,]+) MS\./.exec(last);
+    ok(msMatch && msMatch[1] === commas(r.anneal.tried) && Number(msMatch[2].replace(/,/g, '')) === Math.round(info.debug.anneal.ms),
+      'step 7 reads "' + commas(r.anneal.tried) + ' swaps tried in N ms." with the time the slide measured', last.slice(0, 120));
+    ok(/NO AI MODEL\s+IN THE LOOP\./.test(last), 'step 7 says "No AI model in the loop."');
+    ok(info.debug.anneal.ms > 50 && info.debug.anneal.ms < 60000, 'the measured time is a real measurement', info.debug.anneal.ms + ' ms');
+
+    // nothing from the real project may appear in the re-creation (brief, rule 8)
+    var real = ['133.6', '91.1', '32.8', '17.4', '6,493', '7,110', '239,711', '1,983', '31.8%', '47.0%', 'Laborde'];
+    var everything = forward.map(function (f) { return f.text; }).join(' | ');
+    var leaked = real.filter(function (v) { return everything.indexOf(v) !== -1; });
+    is(leaked.length, 0, 'none of the real project\'s figures or names appear on the slide' + (leaked.length ? ' (found ' + leaked.join(', ') + ')' : ''));
+
+    // back through every step: exactly what it showed going forward
+    var same = true, firstDiff = '';
+    for (step = 5; step >= 0; step--) {
+      await go(step);
+      var back = await snapshot();
+      if (back.text !== forward[step].text) { same = false; firstDiff = firstDiff || ('step ' + step + ': ' + back.text.slice(0, 80)); }
+    }
+    ok(same, 'stepping backwards restores each step exactly', firstDiff);
+
+    // the same moment draws the same frame, whatever was drawn before it
+    var frames = await page.evaluate(function () {
+      var sc = window.__deck.scene('warehouse');
+      function hash() {
+        var out = '';
+        var list = document.querySelectorAll('[data-slide-id="slotting-live"] canvas');
+        for (var i = 0; i < list.length; i++) {
+          var data = list[i].toDataURL(), h = 2166136261;
+          for (var k = 0; k < data.length; k += 7) { h ^= data.charCodeAt(k); h = Math.imul(h, 16777619); }
+          out += (h >>> 0).toString(16) + '.';
+        }
+        return out;
+      }
+      var result = {};
+      sc.seek(3, 4.0); result.a = hash();
+      sc.seek(4, 2.0); result.other = hash();
+      sc.seek(2, 7.5); result.walk = hash();
+      sc.seek(3, 6.5); sc.seek(3, 4.0); result.b = hash();
+      sc.seek(2, 12); sc.seek(2, 7.5); result.walk2 = hash();
+      return result;
+    });
+    ok(frames.a === frames.b && frames.walk === frames.walk2 && frames.a !== frames.other,
+      'the animation is a function of time: the same moment draws the same pixels, forwards or backwards');
+
+    // real clock, real key presses: it animates, it can be interrupted, and it stops when you leave
+    var live = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+    live.on('pageerror', function (e) { errors.push(e.message); });
+    await live.goto(deckUrl + '#/slotting-live/0');
+    await live.waitForFunction(function () { return window.__deck && window.__deck.scene('warehouse'); }, null, { timeout: 20000 });
+    await live.waitForTimeout(400);
+    var playing = await live.evaluate(function () { var d = window.__deck.scene('warehouse').debug(); return d.playing && d.t > 0 && d.t < d.durations[0]; });
+    ok(playing, 'on entry (real clock) the building draws itself');
+    for (var press = 0; press < 6; press++) { await live.keyboard.press('ArrowRight'); await live.waitForTimeout(60); }   // a speaker in a hurry
+    await live.waitForTimeout(1200);
+    var hurried = await live.evaluate(function () {
+      var d = window.__deck.scene('warehouse').debug();
+      return { step: d.step, done: !d.playing, ready: d.ready, text: document.querySelector('[data-slide-id="slotting-live"]').innerText.replace(/\s+/g, ' ').trim() };
+    });
+    ok(hurried.step === 6 && hurried.done && hurried.ready && hurried.text === forward[6].text.replace(/[\d,]+ ms\./i, function () { return (/[\d,]+ ms\./i.exec(hurried.text) || [''])[0]; }),
+      'six quick presses land on the last step, complete, with the same figures', hurried.text.slice(0, 100));
+    await live.keyboard.press('ArrowLeft');
+    await live.waitForTimeout(100);
+    var steppedBack = await live.evaluate(function () { var d = window.__deck.scene('warehouse').debug(); return d.step === 5 && !d.playing && Math.abs(d.t - d.durations[5]) < 1e-6; });
+    ok(steppedBack, 'stepping back shows the previous step complete, at once');
+    await live.evaluate(function () { var ids = window.__deck.ids(); var i = ids.indexOf('slotting-live'); return window.__deck.goto(i > 0 ? i - 1 : i + 1, 0); });
+    await live.waitForTimeout(800);
+    var after = await live.evaluate(function () { return { loops: window.Motion.stats().loops, scene: !!window.__deck.scene('warehouse'), errors: window.__deck.errors().filter(function (e) { return e.slide === 'slotting-live'; }).length }; });
+    ok(!after.scene && after.errors === 0, 'leaving the slide destroys the scene without an error');
+    await live.evaluate(function () { window.__deck.goto('slotting-live', 0); });   // not awaited: goto() resolves when motion has settled
+    await live.waitForTimeout(300);
+    var again = await live.evaluate(function () { var d = window.__deck.scene('warehouse').debug(); return d.step === 0 && d.playing; });
+    ok(again, 'coming back starts again from the first step');
+
+    var engineErrors = await page.evaluate(function () { return window.__deck.errors().filter(function (e) { return e.slide === 'slotting-live' || /warehouse/.test(e.where); }).map(function (e) { return e.where + ': ' + e.message; }); });
+    is(engineErrors.length, 0, 'the engine caught no errors from the slide or the scene' + (engineErrors.length ? ': ' + engineErrors.join('; ') : ''));
+    is(errors.length, 0, 'no errors on the page' + (errors.length ? ': ' + errors.join('; ') : ''));
+  } finally {
+    await browser.close();
+  }
+}
+
 async function main() {
   var S = require(CORE);
   var Motion = require(MOTION);
@@ -628,6 +782,7 @@ async function main() {
   testSpeed(S);
   testCli(S, r);
   await testBrowser(S, r);
+  await testSlide(S, r);
 
   console.log('\n' + (failed === 0 ? 'ALL PASS' : 'FAILED') + ': ' + passed + ' passed, ' + failed + ' failed');
   process.exit(failed === 0 ? 0 : 1);

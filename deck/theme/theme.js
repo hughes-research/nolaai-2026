@@ -26,6 +26,7 @@
  *
  *   THEME.fitStack(el, options)      justify a stack of display lines on the width axis
  *   THEME.fitAll(root)               fit every [data-fit] under root (done for you, see below)
+ *   THEME.fillRange(input)           redraw the "on" part of a .slider track (done for you on input)
  *
  *   THEME.draw.*                     the canvas drawing kit: gate, verdict, axis, gridlines,
  *                                    bar, dot, label, callout, tag (+ hatch, arrow, rule,
@@ -475,17 +476,19 @@
     }
 
     // Measuring means changing a style and reading the box in the same task.
-    // A CSS transition on the element (the deck's ?fast mode gives EVERY
-    // element a 1ms one) would make the box lag one change behind, so
-    // transitions are switched off while the stack is fitted.
-    var held = [el].concat(lines).map(function (node) {
+    // A CSS transition on the stack, on a line, or on a wrapper between them
+    // (the deck's ?fast mode gives EVERY element a 1ms one) would make the
+    // box lag one change behind, so transitions are switched off on the whole
+    // stack while it is fitted.
+    var frozen = [el].concat(Array.prototype.slice.call(el.querySelectorAll('*')));
+    var held = frozen.map(function (node) {
       var was = [node.style.getPropertyValue('transition'), node.style.getPropertyPriority('transition')];
       node.style.setProperty('transition', 'none', 'important');
       return was;
     });
     function release() {
       void el.offsetWidth;                       // commit the fitted styles before transitions come back
-      [el].concat(lines).forEach(function (node, j) {
+      frozen.forEach(function (node, j) {
         if (held[j][0]) { node.style.setProperty('transition', held[j][0], held[j][1]); }
         else { node.style.removeProperty('transition'); }
       });

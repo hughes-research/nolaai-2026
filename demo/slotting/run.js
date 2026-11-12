@@ -157,7 +157,10 @@ function main() {
   out.push('               on golden shelves), then simulated annealing: swap two parts,');
   out.push('               replay the orders, keep the swap if pick time drops.');
   out.push('               The rule of thumb alone: ' + fixed(s.ftPerRun, 1) + ' ft per run, ' + fixed(s.pickHoursPerYear, 1) + ' h a year.');
-  if (!r.anneal.keepZones) {
+  if (r.anneal.keepZones) {
+    out.push('               Shelf rules kept while it searches: fast movers stay in the golden');
+    out.push('               zone, medium movers stay off the ladder (--free-zones lifts them).');
+  } else {
     out.push('               Shelf rules OFF: fast movers may leave the golden zone for a shorter walk.');
   }
   out.push('');

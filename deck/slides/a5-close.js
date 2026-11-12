@@ -38,7 +38,7 @@
   var YOUR = window.YOUR || {};
   var speaker = YOUR.speaker || {};
   var links = YOUR.links || {};
-  var event = YOUR.event || {};
+  var session = YOUR.event || {};
 
   function esc(text) {
     return String(text == null ? '' : text).replace(/[&<>"]/g, function (c) {
@@ -55,22 +55,56 @@
   var STRUCK = 'research papers';        // his words, struck through at step 1
   var WRITTEN_IN = 'AI projects';        // ours, written in, flagged "our edit"
 
-  /* The sentence is cut at the struck words and at two line breaks chosen so
-   * the struck words open a line of their own: the correction then has a
-   * clear line to sit on and nothing reflows when it is made. The pieces are
-   * sliced from SHANNON_5, so the text on screen is that string and nothing else. */
+  /* The sentence is set in five lines, broken by sense. The struck words open
+   * a line of their own, so the correction has a clear line to sit on and
+   * nothing reflows when it is made. Every piece is sliced out of SHANNON_5:
+   * the words on screen are that string and nothing else. */
   function shannonMarkup() {
     var at = SHANNON_5.indexOf(STRUCK);
-    var before = SHANNON_5.slice(0, at).trim();                       // "A few first rate"
-    var after = SHANNON_5.slice(at + STRUCK.length).trim();           // "are preferable ... half-finished."
-    var cut = after.indexOf(' that are ') + ' that'.length;           // break after "... a large number that"
-    var line3 = after.slice(0, cut);
-    var line4 = after.slice(cut).trim();
+    var rest = at < 0 ? '' : SHANNON_5.slice(at + STRUCK.length).trim();   // "are preferable ... half-finished."
+    var a = rest.indexOf(' that are ');                                  // break before "that are poorly conceived"
+    var b = rest.indexOf(' or half-finished');                            // break before "or half-finished."
+    if (at < 0 || a < 0 || b < a) { return '“' + esc(SHANNON_5) + '”'; }   // never guess: show it whole
     var flag = (window.THEME && window.THEME.tags && window.THEME.tags.edit) || 'our edit';
-    return '“' + esc(before) + '<br>' +
-      '<span class="edit-mark"><s>' + esc(STRUCK) + '</s><ins data-step="1">' + esc(WRITTEN_IN) + '</ins><small>' + esc(flag) + '</small></span><br>' +
-      esc(line3) + '<br>' + esc(line4) + '”';
+    return '“' + esc(SHANNON_5.slice(0, at).trim()) + '<br>' +
+      '<span class="edit-mark"><s>' + esc(STRUCK) + '</s><ins data-step="1" data-anim="stamp">' + esc(WRITTEN_IN) + '<small>' + esc(flag) + '</small></ins></span><br>' +
+      esc(rest.slice(0, a)) + '<br>' + esc(rest.slice(a + 1, b)) + '<br>' + esc(rest.slice(b + 1)) + '”';
   }
+
+  /* ---------------------------------------------------------------------
+   * The wall: the last sentence of the talk as one fitted stack that fills
+   * the stage. Its geometry is worked out here, once, and handed to both the
+   * markup (data-fit-size, data-fit-h) and the stylesheet (the Flare band),
+   * so the band always sits where the last line is.
+   * ------------------------------------------------------------------- */
+  var CAP = (window.THEME && window.THEME.metrics && window.THEME.metrics.cap) || 0.688;   // Archivo's cap height, in em
+  var WALL = {
+    size: 316,        // px. The longest line ("the exciting.") is then the tightest: width 65 of 62 to 125
+    top: 56,          // cap-top of the first line
+    baseline: 1030,   // baseline of the last line: 50px of Flare under it, then the edge of the stage
+    before: 44,       // extra room above the last line, so the band has an edge to itself
+    lines: 4
+  };
+  WALL.fitH = WALL.baseline - WALL.top - WALL.before;                       // first cap-top to last baseline, as fitStack counts it
+  WALL.pitch = (WALL.fitH - CAP * WALL.size) / (WALL.lines - 1);
+  WALL.bandTop = Math.round(WALL.top + (WALL.lines - 2) * WALL.pitch + CAP * WALL.size + 22);   // 22px under the baseline of line 3
+
+  /* The wall's clock, in milliseconds after the click, at 120 BPM (a beat is
+   * 500, the swung off-beat 333, a block reveal 125 in and 250 out). The
+   * markup, the keyframes, the cue and the speaker notes all read these. */
+  var BEAT = 500, SWING = 333, BLOCK_IN = 125, BLOCK_OUT = 250;
+  var CLOCK = {
+    line1: BEAT / 2,                  // an eighth of empty stage, then SAY NO TO
+    line2: BEAT / 2 + SWING,          // THE EXCITING. on the swung off-beat
+    holdFrom: 2 * BEAT,               // stop-time: the field prints in negative...
+    holdTo: 4 * BEAT,                 // ...for two beats, then cuts back
+    line3: 4 * BEAT + BEAT / 2,       // SAY YES TO
+    line4: 6 * BEAT + BEAT / 2,       // one full beat of nothing after line 3 has landed, then THE MATH.
+    length: 8 * BEAT                  // the bar the stop-time keyframes are written against
+  };
+  CLOCK.end = CLOCK.line4 + BLOCK_IN + BLOCK_OUT;                 // the last bar has gone
+  CLOCK.cue = (CLOCK.end + 2 * BEAT) / 1000;                      // seconds the "is-playing" cue stays up
+  function pct(ms) { return (ms / CLOCK.length * 100).toFixed(3) + '%'; }
 
   /* The sentence as it reads after our edit: for the speaker notes only. */
   var SHANNON_5_EDITED = SHANNON_5.replace(STRUCK, WRITTEN_IN);
@@ -83,7 +117,7 @@
   var repoUrl = String(links.repoUrl || '').trim();
   var repoShown = repoUrl.replace(/^https?:\/\//i, '').replace(/\/$/, '');    // what is printed: the address without the scheme
   // the end of the session, for the notes: the part of "2:30–4:00 PM" after the dash
-  var endsAt = String(event.time || '').split(/[–—-]/).pop().replace(/\s*[AP]M\s*$/i, '').trim();
+  var endsAt = String(session.time || '').split(/[–—-]/).pop().replace(/\s*[AP]M\s*$/i, '').trim();
 
   /* A QR code only when lib/qr.js is on the page AND says it has been
    * verified against a decoder. Otherwise the link is shown as text alone. */
@@ -91,9 +125,10 @@
     var QR = window.QR;
     if (!repoUrl || !QR || QR.verified !== true || typeof QR.toSVG !== 'function') { return ''; }
     try {
-      var dark = (window.THEME && window.THEME.color('--lampblack')) || '#050505';
-      var light = (window.THEME && window.THEME.color('--card')) || '#F4EDDE';
-      return QR.toSVG(repoUrl, { dark: dark, light: light, title: repoShown });
+      var opts = { title: repoShown };
+      // the code is always Lampblack on Card (the two printing inks), whatever the slide's ground
+      if (window.THEME) { opts.dark = window.THEME.color('--lampblack'); opts.light = window.THEME.color('--card'); }
+      return QR.toSVG(repoUrl, opts);
     } catch (err) {
       return '';                          // an address too long for a code: text only
     }
@@ -123,19 +158,24 @@
   white-space: nowrap;
 }
 .slide .a5-ask {
+  align-self: flex-start;                /* as wide as its words, so the voice wipe runs across the words */
   margin-top: 64px;
   margin-bottom: auto;
-  font-size: 216px;
-  font-variation-settings: "opsz" 144, "SOFT" 0, "WONK" 0;
+  margin-left: -0.1em;                   /* the italic W leans away from the margin: pull it back onto the grid line */
+  font-size: 216px;                      /* the theme's sturdy cut (opsz 72): its thin strokes survive a lit room */
   line-height: 1;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.012em;
   white-space: nowrap;
 }
 
 /* ---- the-objection: the objection in the human voice; the answer is a block
         with weight that lands on the slide and stops dead ---- */
+/* At this size the opening mark cannot hang in the 40px gutter without
+   touching the spine, so the mark sits on the grid line and both lines of
+   words align to the right of it. */
 .slide .a5-objection {
   margin-top: 40px;
+  margin-left: -0.1em;
   max-width: none;
   font-size: 140px;
   line-height: 1.06;
@@ -152,7 +192,7 @@
 .slide .a5-answer > .stack {
   position: absolute;
   left: calc(var(--m-x) - var(--spine-w));
-  top: 112px;
+  top: 120px;
   width: var(--content-w);
 }
 /* played (not merely shown): everything above the block recoils as it stops */
@@ -164,42 +204,52 @@
   animation: a5-recoil var(--d-jolt) var(--e-arrive) var(--d-drop) 1 normal none;
 }
 
-/* ---- share-the-gain: three beats on a path, bigger than the kit's default
-        because there are only three ---- */
+/* ---- share-the-gain: the kit's .beats (a path of numbered steps), set
+        larger than its default because there are only three ---- */
 .slide .a5-beats { margin-top: var(--s-2); column-gap: var(--s-5); }
 .slide .a5-beats > li {
-  min-height: 356px;
-  padding: 176px var(--s-3) var(--s-4);
+  min-height: 388px;
+  padding: 216px var(--s-3) var(--s-5);
   margin: 0 calc(var(--s-3) * -1);
-  font-size: 56px;
+  font-size: 60px;
   font-weight: 700;
   line-height: 1.08;
 }
-.slide .a5-beats > li::before { left: var(--s-3); font-size: 150px; }
+.slide .a5-beats > li::before { left: var(--s-3); top: var(--s-5); font-size: 180px; }
 .slide .a5-beats > li:not(:last-child)::after { right: calc(var(--s-5) * -0.5 + var(--s-3) - 14px); }
 .slide .a5-beats > li > span { position: relative; display: block; }
 /* the third beat is the point: a Flare block drops in behind it */
 .slide .a5-beats .a5-flare {
   position: absolute;
-  inset: 0;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  right: calc((var(--m-right) - var(--s-3)) * -1);      /* the one field that breaks the frame: off the right edge */
   background: var(--c-accent);
 }
 .slide .a5-beats > li.a5-point::before { z-index: 1; }
 .slide .a5-hide {
-  margin-top: var(--s-6);
+  align-self: flex-start;
+  margin-top: 64px;
   max-width: none;
-  font-size: var(--t-voice-l);
-  line-height: 1.16;
+  font-size: 76px;
+  line-height: 1.14;
 }
 
-/* ---- waypoint-standard: four equal boxes in one row. They are equals, so
-        they share one width and one size and are never fitted. ---- */
+/* ---- waypoint-standard: THE WAYPOINT FOUR return. The same pattern as on
+        whos-talking in Act 1 (slides/a1-bandwagon.js, ".four-boxes"), restated
+        here so this file stands on its own, and set larger because here the
+        boxes are the slide: an <ol> of four equal framed boxes in one row,
+        each numbered by a CSS counter, the words in display caps on two lines.
+        Same frame (--w-bold), same padding, same numeral, same type size as
+        in Act 1; only the height differs. They are equals, so they share one
+        width and one size and are never fitted. ---- */
 .slide .a5-four {
   counter-reset: four;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   column-gap: var(--gutter);
-  margin-top: var(--s-2);
+  margin-top: var(--s-1);
 }
 .slide .a5-four > li {
   counter-increment: four;
@@ -208,10 +258,10 @@
   flex-direction: column;
   justify-content: flex-end;
   height: 400px;
-  padding: 0 28px 34px;
+  padding: 0 24px 26px;
   border: var(--w-bold) solid var(--c-line);
   font-family: var(--f-display);
-  font-size: 112px;
+  font-size: 98px;
   font-weight: var(--wght-display);
   font-stretch: var(--wdth-display);
   line-height: 0.8;
@@ -221,16 +271,18 @@
 .slide .a5-four > li::before {
   content: counter(four);
   position: absolute;
-  left: 28px;
-  top: 30px;
+  left: 24px;
+  top: 24px;
   font-size: 64px;
   line-height: var(--lh-cap);
   font-variant-numeric: tabular-nums;
 }
 .slide .a5-proof {
-  margin-top: var(--s-6);
+  align-self: flex-start;
+  margin-top: auto;
+  margin-bottom: auto;
   max-width: none;
-  font-size: 96px;
+  font-size: 120px;
   line-height: 1.08;
 }
 .slide .a5-proof .punch { padding: 0 0.12em; }
@@ -241,7 +293,7 @@
   margin-top: var(--s-3);
 }
 .slide .a5-monday > li {
-  min-height: 216px;
+  min-height: 228px;
   gap: 60px;
   font-size: 88px;
   font-weight: 700;
@@ -266,6 +318,9 @@
   white-space: nowrap;
 }
 .slide .a5-shannon + .attribution { margin-top: var(--s-6); margin-bottom: auto; }
+/* The struck words have a line to themselves, so the room for the correction
+   is kept from the start (nothing reflows) and the block can drop into it. */
+.slide .a5-shannon .edit-mark > ins[data-step]:not(.is-visible) { display: inline-flex; }
 .slide .a5-wall {
   position: absolute;
   left: var(--spine-w);
@@ -279,19 +334,75 @@
 .slide .a5-wall > .stack {
   position: absolute;
   left: calc(var(--m-x) - var(--spine-w));
-  top: var(--m-y);
+  top: ${WALL.top}px;
   width: var(--content-w);
 }
-/* played: after "Say no to the exciting." has landed the field prints in
-   negative for two beats (Card and Lampblack swap), then cuts back. The spine
-   stays Lampblack, so for those two beats the whole stage is one black field. */
+/* the last line is the point of the slide: Lampblack on the Flare band */
+.slide .a5-wall .ln.a5-math {
+  margin-top: ${WALL.before}px;
+  color: var(--c-accent-ink);
+}
+/* the band: the one field that bleeds, off the right edge and off the foot */
+.slide .a5-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: ${WALL.bandTop}px;
+  bottom: 0;
+  background: var(--c-accent);
+}
+
+/* PLAYED (the speaker pressed next; scenes/close.js puts "is-playing" on the
+   slide). Shown any other way, the wall is simply there, complete.
+
+   Each line arrives by the deck's block reveal: a bar of ink runs across the
+   measure in a sixteenth, then its left edge retreats in an eighth and leaves
+   the line behind. --a5-at on a line is when it starts. Between the two
+   sentences the field prints in negative for two beats (Card and Lampblack
+   swap; the spine stays Lampblack, so the whole stage is one black field),
+   then cuts back, and the last line arrives with its Flare band after a full
+   beat of nothing.
+
+       ${(CLOCK.line1 / 1000).toFixed(2)}  SAY NO TO          ${(CLOCK.line3 / 1000).toFixed(2)}  SAY YES TO
+       ${(CLOCK.line2 / 1000).toFixed(2)}  THE EXCITING.      ${(CLOCK.line4 / 1000).toFixed(2)}  THE MATH. (and the band)
+       ${(CLOCK.holdFrom / 1000).toFixed(2)} to ${(CLOCK.holdTo / 1000).toFixed(2)}  stop-time, in negative
+
+   These are keyframe animations, not the theme's data-anim="pop" transitions,
+   for two reasons found by looking at frames: the theme refits every [data-fit]
+   stack on each step change with transitions switched off, which cancels a
+   transition on a stack line that is revealed by that same step; and --delay
+   does not reach the ::after bar of a pop. Same note values, same curves. */
+.slide .a5-wall .ln { position: relative; }
+.slide .a5-wall .ln::after {
+  content: "";
+  position: absolute;
+  inset: -8px -0.08em;                     /* less than half the gap between lines: a bar never touches its neighbour */
+  background: currentColor;
+  clip-path: inset(0 0 0 100%);            /* at rest the bar has gone */
+  pointer-events: none;
+}
+@keyframes a5-line-in {
+  from { clip-path: inset(-0.12em 100% -0.12em 0); }       /* nothing shows: not even the bar's overhang */
+  to { clip-path: inset(-0.12em -0.12em -0.12em -0.12em); }
+}
+@keyframes a5-bar-out {
+  from { clip-path: inset(0 0 0 0); }
+  to { clip-path: inset(0 0 0 100%); }
+}
+@keyframes a5-band-in {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
 @keyframes a5-stop-time {
   0% { background-color: var(--card); color: var(--lampblack); }
-  25% { background-color: var(--lampblack); color: var(--card); }
-  50% { background-color: var(--card); color: var(--lampblack); }
+  ${pct(CLOCK.holdFrom)} { background-color: var(--lampblack); color: var(--card); }
+  ${pct(CLOCK.holdTo)} { background-color: var(--card); color: var(--lampblack); }
   100% { background-color: var(--card); color: var(--lampblack); }
 }
-.slide.is-playing[data-playing="2"] .a5-wall { animation: a5-stop-time 4000ms step-end 0s 1 normal none; }
+.slide.is-playing[data-playing="2"] .a5-wall { animation: a5-stop-time ${CLOCK.length}ms step-end 0s 1 normal none; }
+.slide.is-playing[data-playing="2"] .a5-wall .ln { animation: a5-line-in var(--d-block-in) linear var(--a5-at, 0s) 1 normal backwards; }
+.slide.is-playing[data-playing="2"] .a5-wall .ln::after { animation: a5-bar-out var(--d-block-out) var(--e-arrive) calc(var(--a5-at, 0s) + var(--d-block-in)) 1 normal backwards; }
+.slide.is-playing[data-playing="2"] .a5-band { animation: a5-band-in var(--d-block-in) linear var(--a5-at, 0s) 1 normal backwards; }
 
 /* ---- thanks: quiet above, one Flare band below, the italic gone huge ---- */
 .slide .a5-ty {
@@ -311,6 +422,7 @@
   overflow-wrap: anywhere;
   max-width: 1160px;
 }
+.slide .a5-link > span { display: inline-block; max-width: 100%; }
 .slide .a5-qr { position: absolute; right: var(--m-right); top: var(--m-y); width: 400px; }
 .slide .a5-questions {
   position: absolute;
@@ -353,12 +465,12 @@
     `,
     notes: `
       SAY: That was the build. The minutes came back.
-      Now the question that is never in the business case.
+      Now the part a business case usually skips.
       Who owns them?
 
       DO: Click once for the question. Then stop. Count to three before you say anything.
 
-      NEXT: Somebody in this room is already thinking the objection. So I'll say it for them.
+      NEXT: If you're already thinking the objection, I'll say it for you.
     `
   });
 
@@ -375,7 +487,7 @@
       <p class="kicker a5-recoil">The objection</p>
       <blockquote class="quote a5-objection a5-recoil">“My people will just<br>waste the time.”</blockquote>
       <div class="a5-answer" data-step="1" data-anim="stamp">
-        <p class="stack" data-fit>
+        <p class="stack" data-fit data-fit-gap="30">
           <span class="ln">That’s a management answer.</span>
           <span class="ln">It isn’t an AI problem.</span>
         </p>
@@ -410,7 +522,7 @@
       <ol class="beats a5-beats">
         <li><span data-step="1">Name the goal for the freed time</span></li>
         <li><span data-step="2">Measure it</span></li>
-        <li class="a5-point"><i class="a5-flare" data-step="3" data-anim="stamp"></i><span data-step="3" style="--delay: 250ms">Share the upside</span></li>
+        <li class="a5-point"><i class="a5-flare" data-step="3" data-anim="stamp"></i><span data-step="3" style="--delay: 375ms">Share the upside</span></li>
       </ol>
       <p class="sub a5-hide" data-step="4" data-anim="wipe">People hide time savings that threaten them.<br>They report the ones they share in.</p>
     `,
@@ -433,6 +545,9 @@
   /* =====================================================================
    * waypoint-standard   (rhymes with whos-talking in Act 1: the same four boxes)
    * =================================================================== */
+  // the four things a Waypoint win has to show (brief, section 2), each on two lines
+  var FOUR = [['The', 'task'], ['The', 'prompt'], ['The', 'output'], ['The time', 'saved']];
+
   Deck.slide({
     id: 'waypoint-standard',
     act: 5,
@@ -442,10 +557,7 @@
     html: `
       <p class="kicker">The Waypoint standard</p>
       <ol class="a5-four">
-        <li>The<br>task</li>
-        <li>The<br>prompt</li>
-        <li>The<br>output</li>
-        <li>The time<br>saved</li>
+        ${FOUR.map(function (w) { return '<li>' + esc(w[0]) + '<br>' + esc(w[1]) + '</li>'; }).join('')}
       </ol>
       <p class="say a5-proof" data-step="1" data-anim="pop">If you can’t show <span class="punch">all four</span>,<br>it didn’t happen.</p>
     `,
@@ -480,7 +592,7 @@
       </ol>
     `,
     notes: `
-      SAY: Three things. They fit on the worksheet in your hand.
+      SAY: Three things. You already hold the worksheet for the first two.
       One. Inventory two weeks of real work. You started today. Finish it.
       Two. Run three candidates through the four gates.
       Three. Say no twice. Out loud, to the two that lose.
@@ -497,13 +609,13 @@
    *   step 0   Shannon's sentence as written, attributed
    *   step 1   "research papers" struck through, "AI projects" written in: our edit
    *   step 2   the wall: "Say no to the exciting. Say yes to the math."
-   *            Played, it takes about four seconds: two lines, a stop-time
-   *            hold in negative, then the last two lines.
+   *            Played, it takes under four seconds (CLOCK, above): two lines,
+   *            a stop-time hold in negative, then the last two lines.
    * =================================================================== */
   Deck.slide({
     id: 'close',
     act: 5,
-    title: 'Say no to the exciting. Say yes to the math.',
+    title: 'Close: say yes to the math',
     minutes: 1,
     layout: 'quote',
     steps: 2,
@@ -511,14 +623,15 @@
       <blockquote class="quote a5-shannon" data-step-out="2">${shannonMarkup()}</blockquote>
       <p class="attribution" data-step-out="2">${esc(SHANNON_CREDIT)}</p>
       <div class="a5-wall" data-step="2">
-        <p class="stack" data-fit data-fit-max="300">
-          <span class="ln" data-step="2" data-anim="pop" style="--delay: 250ms">Say no to</span>
-          <span class="ln" data-step="2" data-anim="pop" style="--delay: 583ms">the exciting.</span>
-          <span class="ln" data-step="2" data-anim="pop" style="--delay: 2250ms">Say yes to</span>
-          <span class="ln is-punch" data-step="2" data-anim="pop" style="--delay: 3250ms">the math.</span>
+        <i class="a5-band" style="--a5-at: ${CLOCK.line4}ms"></i>
+        <p class="stack" data-fit data-fit-size="${WALL.size}" data-fit-h="${WALL.fitH}">
+          <span class="ln" style="--a5-at: ${CLOCK.line1}ms">Say no to</span>
+          <span class="ln" style="--a5-at: ${CLOCK.line2}ms">the exciting.</span>
+          <span class="ln" style="--a5-at: ${CLOCK.line3}ms">Say yes to</span>
+          <span class="ln a5-math" style="--a5-at: ${CLOCK.line4}ms">the math.</span>
         </p>
       </div>
-      <i hidden data-scene="a5-cue" data-opts='{"at": 2, "for": 4.5}'></i>
+      <i hidden data-scene="a5-cue" data-opts='{"at": 2, "for": ${CLOCK.cue}}'></i>
     `,
     notes: `
       SAY: Shannon again. Same page, 1956. This is his sentence, as he wrote it.
@@ -526,7 +639,7 @@
       “${SHANNON_5_EDITED}”
       (click) Say no to the exciting. Say yes to the math.
 
-      DO: Read his sentence first. Click for the edit. Click for the last line, then say it with the screen: it takes about four seconds to land. Do not talk over the black hold in the middle.
+      DO: Read his sentence first. Click for the edit. Click once more and say the last line with the screen. “Say no to the exciting.” The screen goes black for ${(CLOCK.holdTo - CLOCK.holdFrom) / 1000 === 1 ? 'one second' : (CLOCK.holdTo - CLOCK.holdFrom) / 1000 + ' seconds'}: say nothing. Then “Say yes to the math.” The whole build takes about ${Math.round(CLOCK.end / 1000)} seconds. Do not click again until it has landed.
 
       NEXT: Thank you.
     `
@@ -535,12 +648,17 @@
   /* =====================================================================
    * thanks   (stays up through Q&A)
    * =================================================================== */
+  // A short address is set large; a long one steps down, never under 36px, and
+  // breaks after a slash before it breaks inside a name.
   var linkSize = repoShown.length <= 30 ? 48 : (repoShown.length <= 44 ? 40 : 36);
+  var linkParts = repoShown.split('/').map(function (part, i, all) {
+    return '<span>' + esc(part) + (i < all.length - 1 ? '/' : '') + '</span>';
+  }).join('');
   var linkHtml = repoUrl
-    ? '<p class="a5-link" data-select="text" style="font-size: ' + linkSize + 'px">' + esc(repoShown) + '</p>'
+    ? '<p class="a5-link" data-select="text" style="font-size: ' + linkSize + 'px">' + linkParts + '</p>'
     : '';
   var qrHtml = qrSvg
-    ? '<figure class="qr a5-qr"><div class="qr-code">' + qrSvg + '</div><figcaption>The deck and the code</figcaption></figure>'
+    ? '<figure class="qr a5-qr"><div class="qr-code">' + qrSvg + '</div><figcaption>Deck and code</figcaption></figure>'
     : '';
 
   Deck.slide({
@@ -559,8 +677,7 @@
     notes: `
       SAY: Thank you.
       I'm ${name}, ${roleLine}.
-      ${repoUrl ? 'The deck and the code are at the address on the screen.' : 'Find me afterwards if you want the worksheet or the screener.'}
-      Questions.
+      ${repoUrl ? 'The deck and the code are at the address on the screen.\n      ' : ''}Questions.
 
       DO: Leave this slide up for all of Q&A. If the room is quiet, ask who killed their favorite today.
 

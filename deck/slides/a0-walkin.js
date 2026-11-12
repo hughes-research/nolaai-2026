@@ -42,7 +42,7 @@
     html: TS && TS.markup ? TS.markup('walkin') : plainCard(),
     notes: [
       'SAY: Nothing. This loops while the room fills.',
-      'DO: Leave it up until you are ready to start. Check there is a worksheet and a pen on every seat. The line bottom right counts down to ' + (ev.startsAt || '2:30') + ' on this laptop’s clock.',
+      'DO: Leave it up until you are ready to start. Put the worksheets and pens where people walk in. The line bottom right counts down to ' + (ev.startsAt || '2:30') + ' on this laptop’s clock, so check the laptop’s clock is right.',
       'NEXT: One click, then say nothing. Let the first line land.'
     ].join('\n\n')
   });

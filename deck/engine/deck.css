@@ -911,17 +911,51 @@ html.mode-presenter body {
   max-width: 44em;
 }
 
+/* The side column, top to bottom, in order of importance:
+     elapsed timer, pacing, the next slide, the slide on screen.
+   The timer and the pacing lines never shrink and never scroll away. The two
+   thumbnail cards share the height that is left over: each thumbnail sits in
+   a "slot" that takes the free space, deck.js fits the picture into the slot
+   (fitPresenterThumbs) and leaves it out when the slot is too small. So
+   "Ahead / Behind by m:ss" is on screen at every window size. The column
+   itself only scrolls as a last resort, on a window too short for the text. */
 .deck-pv-side {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 12px;
   min-height: 0;
-  overflow: auto;
-  padding: 18px;
+  overflow: hidden auto;
+  padding: 14px 18px;
   border-left: 1px solid var(--pv-line);
 }
 
+.deck-pv-card {
+  min-width: 0;
+}
+
+.deck-pv-timer,
+.deck-pv-pace {
+  flex: none;
+}
+
+/* the next slide's title always shows; its picture gets what is left */
+.deck-pv-next {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+/* the slide on screen is what the speaker can see anyway: first to give way */
+.deck-pv-now {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .deck-pv-label {
+  flex: none;
   margin-bottom: 6px;
   font-size: 13px;
   letter-spacing: 0.1em;
@@ -929,35 +963,41 @@ html.mode-presenter body {
   color: var(--pv-muted);
 }
 
-.deck-pv-thumb {
+.deck-pv-slot {
   position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 9;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* width and height are set by deck.js: the largest 16:9 box the slot holds */
+.deck-pv-thumb {
+  position: absolute;
+  left: 0;
+  top: 0;
   overflow: hidden;
   border: 1px solid var(--pv-line);
   border-radius: 6px;
   background: #000;
 }
 
-.deck-pv-thumb:empty {
-  display: none;
-}
-
-.deck-pv-next .deck-pv-thumb {
-  width: 62%;
-}
-
 .deck-pv-next-title {
+  display: -webkit-box;
+  flex: none;
   margin-bottom: 8px;
+  overflow: hidden;
   font-size: 22px;
   font-weight: 600;
   line-height: 1.25;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;        /* a long title must not push the pacing lines around */
+  line-clamp: 2;
 }
 
-/* elapsed timer: a big button */
+/* elapsed timer: the time is a big button; Set and Reset beside it */
 .deck-pv-timer {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   column-gap: 12px;
   align-items: center;
 }
@@ -972,14 +1012,25 @@ html.mode-presenter body {
   border: 0;
   background: none;
   color: var(--pv-fg);
-  font: 700 58px/1.05 system-ui, sans-serif;
+  font: 700 clamp(40px, 4.2vw, 58px)/1.05 system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
   text-align: left;
+  white-space: nowrap;
   cursor: pointer;
 }
 
 .deck-pv-elapsed[data-state="paused"] { color: var(--pv-accent); }
 .deck-pv-elapsed[data-state="idle"] { color: var(--pv-muted); }
+
+.deck-pv-timer-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.deck-pv-timer-buttons .deck-pv-btn {
+  padding: 6px 12px;
+  font-size: 15px;
+}
 
 .deck-pv-hint {
   font-size: 14px;
@@ -1000,10 +1051,13 @@ html.mode-presenter body {
 
 .deck-pv-status {
   margin-top: 8px;
-  font-size: 26px;
+  overflow: hidden;
+  font-size: clamp(20px, 2vw, 26px);
   font-weight: 700;
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .deck-pv-status[data-status="waiting"] { color: var(--pv-muted); font-weight: 400; font-size: 18px; }
@@ -1053,21 +1107,54 @@ html.mode-presenter body {
 
 .deck-pv-link[data-linked="yes"]::before { background: var(--pv-good); }
 
-.deck-pv-blackout {
+/* chips that say the audience is not looking at the slide:
+   .deck-pv-blackout (B) and .deck-pv-overview (O) */
+.deck-pv-flag {
   padding: 4px 10px;
-  border-radius: 6px;
+  border-radius: 0;             /* a label, not a button */
   background: var(--pv-accent);
   color: #15171b;
   font-size: 14px;
   font-weight: 700;
 }
 
+/* a short window (a small laptop, half a screen): tighten the bars and drop
+   the hint line, so the timer and pacing still fit */
+@media (max-height: 640px) {
+  .deck-pv-top { padding: 6px 24px; }
+  .deck-pv-num { font-size: 36px; }
+  .deck-pv-clock { font-size: 28px; }
+  .deck-pv-title { font-size: 24px; }
+  .deck-pv-bar { padding: 6px 24px; }
+  .deck-pv-side { gap: 8px; padding: 10px 18px; }
+  .deck-pv-hint { display: none; }
+}
+
+/* a narrow window: timer and pacing become a strip above the notes, the
+   next slide is its title only, and the thumbnails are left out */
 @media (max-width: 860px) {
-  html.mode-presenter,
-  html.mode-presenter body { height: auto; }
-  .deck-presenter { display: block; height: auto; }
-  .deck-pv-main { display: block; }
-  .deck-pv-side { border-left: 0; border-top: 1px solid var(--pv-line); }
+  .deck-pv-main {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .deck-pv-side {
+    order: -1;
+    flex-flow: row wrap;
+    align-items: flex-start;
+    gap: 8px 28px;
+    overflow: visible;
+    border-left: 0;
+    border-bottom: 1px solid var(--pv-line);
+  }
+
+  .deck-pv-timer,
+  .deck-pv-pace { flex: 1 1 250px; }
+  .deck-pv-next { flex: 1 1 100%; }
+  .deck-pv-next-title { margin-bottom: 0; -webkit-line-clamp: 1; line-clamp: 1; }
+  .deck-pv-now,
+  .deck-pv-slot,
+  .deck-pv-hint { display: none; }
 }
 
 /* ==========================================================================

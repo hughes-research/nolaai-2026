@@ -51,6 +51,9 @@
  *   The engine mounts scenes when the slide enters, calls step(currentStep, 0)
  *   once, then step(n, dir) on every change, and destroy() when the slide has
  *   left. destroy() MUST stop every Motion.raf loop and timer the scene started.
+ *   A scene is built afresh on every visit. One that has to remember something
+ *   between visits (the exercise countdown does: a stray clicker press must not
+ *   lose the time) keeps that state outside the instance; scenes/timer.js shows how.
  *
  * THEMING
  *
@@ -64,6 +67,8 @@
  *   ?print      every slide at its final step, one per page (PDF export)
  *   ?presenter  the presenter view (normally opened with the S key)
  *   ?debug      show an on-screen badge when a slide or scene hook throws
+ *   Any other flag (?demo, ?kit, one a slide file reads) is passed on to the
+ *   presenter window, so both windows build the same running order.
  *
  * KEYS: see handleKey() below, or tools/README.md.
  * ---------------------------------------------------------------------------
@@ -350,9 +355,18 @@
     return function (p) { return base(stair(p)); };
   }
 
+  /* No data-count-format: thousands separators, and as many decimals as the
+   * TARGET was written with. Worked out here, from the target, so the number
+   * reads the same way while it waits hidden ("0.0") as when it counts ("15.4"). */
+  function counterFormat(c) {
+    if (c.format) { return c.format; }
+    var decimals = Math.min(6, (String(c.to).split('.')[1] || '').length);
+    return ',' + (decimals ? '.' + decimals + 'f' : 'd');
+  }
+
   function setCounter(node, c, value, seconds) {
     if (!M) { node.textContent = c.prefix + value + c.suffix; return null; }
-    var opts = { duration: seconds, format: c.format, prefix: c.prefix, suffix: c.suffix, ease: counterEase(c) };
+    var opts = { duration: seconds, format: counterFormat(c), prefix: c.prefix, suffix: c.suffix, ease: counterEase(c) };
     return M.count(node, seconds > 0 ? c.from : value, value, opts);
   }
 
@@ -680,8 +694,9 @@
       if (e.source !== peer) { return; }
       lastHeard = Date.now();
     } else if (e.source !== peer) {
-      // A presenter we do not know yet (for instance after this window was reloaded).
-      if (m.type !== 'hello') { return; }
+      // A presenter window we do not know yet: this window was reloaded and has
+      // forgotten it. Whatever it says first (hello, a key press, its timer),
+      // it is our presenter from now on, and the message counts.
       peer = e.source;
     }
 
@@ -891,12 +906,34 @@
     }
     // Space or Enter on a focused button or link activates it, as usual. It does not also advance.
     if ((e.key === ' ' || e.key === 'Enter') && target && target.closest && target.closest('button, a[href], summary, [role="button"]')) { return; }
-    if (handleKey(e.key, e.shiftKey)) { e.preventDefault(); }
+    if (handleKey(e.key, e.shiftKey, e.repeat)) { e.preventDefault(); }
   }
 
-  /** Returns true when the key was used. */
-  function handleKey(key, shift) {
-    // --- slide number entry: digits, then Enter ---
+  var ARROW_KEYS = { ArrowRight: 1, ArrowLeft: 1, ArrowUp: 1, ArrowDown: 1 };
+  var MODIFIER_KEYS = { Shift: 1, Control: 1, Alt: 1, AltGraph: 1, Meta: 1, CapsLock: 1, NumLock: 1, ScrollLock: 1, Fn: 1, Dead: 1 };
+  // Every key the deck acts on, apart from the arrows (see "held keys" in handleKey).
+  var DECK_KEY_RE = /^([0-9bftrosnp.+=_ -]|Enter|Escape|Backspace|Spacebar|PageDown|PageUp|Home|End)$/i;
+
+  /**
+   * Returns true when the key was used.
+   *
+   * The order of the checks is the order of what the audience sees:
+   *   1. a number being typed       (digits, then Enter)
+   *   2. the black screen           (it covers everything, the overview too)
+   *   3. the overview grid
+   *   4. the slides
+   */
+  function handleKey(key, shift, repeat) {
+    if (MODIFIER_KEYS[key]) { return false; }       // Shift going down is not a key press
+
+    // --- held keys. A key held a moment too long is repeated by the system, and
+    // a repeated T, B or O would toggle back and forth and stop in a random
+    // state. One press, one action. Only the arrow keys repeat, so holding one
+    // still runs through builds. (A repeat of one of our keys is still "used",
+    // so a held Space does not start scrolling the page.)
+    if (repeat && !ARROW_KEYS[key]) { return DECK_KEY_RE.test(key); }
+
+    // --- 1. slide number entry: digits, then Enter ---
     if (/^[0-9]$/.test(key)) { jumpBuffer = (jumpBuffer + key).slice(0, 4); showJump(); return true; }
     if (jumpBuffer) {
       if (key === 'Enter') {
@@ -909,18 +946,28 @@
       }
       if (key === 'Escape') { jumpBuffer = ''; showJump(); return true; }
       if (key === 'Backspace') { jumpBuffer = jumpBuffer.slice(0, -1); showJump(); return true; }
+      // Any other key: the number was a slip. Drop it, so that it cannot turn a
+      // later Enter (a "next" key) into a jump, and let the key do its normal job.
+      jumpBuffer = ''; showJump();
     }
-
-    if (state.overview) { return overviewKey(key); }
 
     var k = key.length === 1 ? key.toLowerCase() : key;
     var isNext = k === 'ArrowRight' || k === 'ArrowDown' || k === 'PageDown' || k === 'Enter' || ((k === ' ' || k === 'Spacebar') && !shift);
     var isPrev = k === 'ArrowLeft' || k === 'ArrowUp' || k === 'PageUp' || k === 'Backspace' || ((k === ' ' || k === 'Spacebar') && shift);
 
-    // --- blackout: B or "." toggles; while black, a next/back key only brings the picture back ---
+    // --- 2. blackout: B or "." toggles it, whatever else is open. While the
+    // screen is black, every key that would move or change the picture does one
+    // thing only: it brings the picture back. Nothing happens unseen.
     if (k === 'b' || k === '.') { setBlackout(!state.blackout); return true; }
-    if (state.blackout && (isNext || isPrev)) { setBlackout(false); return true; }
+    if (state.blackout && (isNext || isPrev || k === 'Home' || k === 'End' || k === 'o' || k === 'Escape')) {
+      setBlackout(false);
+      return true;
+    }
 
+    // --- 3. the overview has its own keys ---
+    if (state.overview) { return overviewKey(k); }
+
+    // --- 4. the slides ---
     if (isNext) { next(); return true; }
     if (isPrev) { prev(); return true; }
 
@@ -935,6 +982,9 @@
     if (mode.presenter) {
       if (k === '+' || k === '=') { presenterNotesSize(+4); return true; }
       if (k === '-' || k === '_') { presenterNotesSize(-4); return true; }
+      // The overview lives in the deck window. O here opens or closes it there;
+      // Escape only ever closes it (a reflex Escape must not put a grid on the projector).
+      if (k === 'o' || (k === 'Escape' && peerOverview)) { post({ type: 'cmd', cmd: 'overview-toggle' }); return true; }
       return false;
     }
 
@@ -1091,6 +1141,7 @@
     }
 
     layoutStage();
+    recallKeptPace();             // the presenter view's elapsed timer, if this window was reloaded
     window.addEventListener('resize', onResize);
     doc.addEventListener('keydown', onKeyDown);
     window.addEventListener('hashchange', onHashChange);
@@ -1275,6 +1326,7 @@
       var item = ui.overviewItems[overviewSel];
       if (item && item.scrollIntoView) { item.scrollIntoView({ block: 'center' }); }
     }
+    sendState(true);          // the presenter view says when the audience is looking at the grid
   }
 
   function markOverview() {
@@ -1308,10 +1360,12 @@
     if (best !== -1) { overviewSelect(best); }
   }
 
-  function overviewKey(key) {
-    var k = key.length === 1 ? key.toLowerCase() : key;
+  /** Keys while the overview is open. k is already lower-cased by handleKey. */
+  function overviewKey(k) {
     switch (k) {
       case 'o': case 'Escape': setOverview(false); return true;
+      // A clicker has no O and no Enter. Its two buttons close the grid and stay put.
+      case 'PageDown': case 'PageUp': setOverview(false); return true;
       case 'ArrowRight': overviewSelect(overviewSel + 1); return true;
       case 'ArrowLeft': overviewSelect(overviewSel - 1); return true;
       case 'ArrowDown': overviewRow(1); return true;
@@ -1412,39 +1466,94 @@
    * deck window through the link above.
    * ==================================================================== */
 
-  // The elapsed timer. Reads Motion.now() so tests can drive it with the manual clock.
-  var pace = { started: false, running: false, banked: 0, since: 0, arrivedIndex: -1, arrivedAt: 0 };
+  /*
+   * The elapsed timer. Reads Motion.now() so tests can drive it with the manual clock.
+   *   started / running   has it ever started; is it counting now
+   *   banked              seconds counted before the latest start
+   *   since               Motion.now() of the latest start
+   *   arrivedId, arrivedAt   the slide the speaker last ARRIVED on by navigating,
+   *                          and the elapsed time at that moment. Finding our place
+   *                          after a reload is not an arrival and never sets these.
+   */
+  var pace = { started: false, running: false, banked: 0, since: 0, arrivedId: null, arrivedAt: 0 };
+
+  var paceOwned = false;     // this window has set, started, stopped or restored the timer itself
 
   function paceNow() { return M ? M.now() : Date.now() / 1000; }
   function paceElapsed() { return pace.banked + (pace.running ? paceNow() - pace.since : 0); }
-  function paceStart() { if (!pace.running) { pace.started = true; pace.running = true; pace.since = paceNow(); paceSave(); } }
-  function pacePause() { if (pace.running) { pace.banked = paceElapsed(); pace.running = false; paceSave(); } }
-  function paceReset() { pace.started = false; pace.running = false; pace.banked = 0; pace.arrivedIndex = -1; pace.arrivedAt = 0; paceSave(); }
+  function paceStart() { if (!pace.running) { paceOwned = true; pace.started = true; pace.running = true; pace.since = paceNow(); paceSave(); } }
+  function pacePause() { if (pace.running) { paceOwned = true; pace.banked = paceElapsed(); pace.running = false; paceSave(); } }
+  function paceReset() { paceOwned = true; pace.started = false; pace.running = false; pace.banked = 0; pace.arrivedId = null; pace.arrivedAt = 0; paceSave(); }
 
-  /* The elapsed time survives a reload of the presenter window (sessionStorage:
-   * this window only, gone when it closes, so yesterday's rehearsal never comes back). */
+  /** Put the elapsed time at `seconds` (the "Set" button). A timer that never started starts running. */
+  function paceSet(seconds) {
+    var wasIdle = !pace.started;
+    paceOwned = true;
+    pace.started = true;
+    pace.banked = Math.max(0, Number(seconds) || 0);
+    pace.since = paceNow();
+    if (wasIdle) { pace.running = true; }
+    pace.arrivedId = null;                  // an arrival measured on the old clock means nothing now
+    paceSave();
+  }
+
+  // If the Motion clock is re-based while the timer runs, its start time moves with it.
+  if (M && M.onRebase) { M.onRebase(function (delta) { if (pace.running) { pace.since += delta; } }); }
+
+  /*
+   * The timer has to outlive two accidents:
+   *   a reload of the presenter window  -> sessionStorage of that window
+   *   closing the presenter window      -> a copy kept by the deck window
+   *                                        (see "pace" in the link section)
+   * A snapshot says what the timer read at one wall-clock moment, so whoever
+   * picks it up later can add the time that has gone by since.
+   */
   var PACE_KEY = 'deck.presenter.pace';
 
+  function paceSnapshot() {
+    return {
+      started: pace.started, running: pace.running, elapsed: paceElapsed(), wall: Date.now(),
+      arrivedId: pace.arrivedId, arrivedAt: pace.arrivedAt
+    };
+  }
+
   function paceSave() {
-    try {
-      window.sessionStorage.setItem(PACE_KEY, JSON.stringify({
-        started: pace.started, running: pace.running, banked: paceElapsed(), wall: Date.now()
-      }));
-    } catch (e) { /* storage not available: the timer just will not survive a reload */ }
+    var snapshot = paceSnapshot();
+    try { window.sessionStorage.setItem(PACE_KEY, JSON.stringify(snapshot)); }
+    catch (e) { /* storage not available: the deck window's copy still covers us */ }
+    if (mode.presenter) { post({ type: 'pace', pace: snapshot }); }
+  }
+
+  /** Carry on from a snapshot. Returns false when there is nothing in it. */
+  function paceAdopt(saved) {
+    if (!saved || !saved.started) { return false; }
+    var elapsed = Number(saved.elapsed != null ? saved.elapsed : saved.banked) || 0;
+    pace.started = true;
+    pace.running = !!saved.running;
+    pace.banked = Math.max(0, elapsed);
+    if (pace.running) {
+      pace.banked += Math.max(0, (Date.now() - Number(saved.wall)) / 1000) || 0;   // the time that went by meanwhile
+      pace.since = paceNow();
+    }
+    pace.arrivedId = saved.arrivedId || null;
+    pace.arrivedAt = Number(saved.arrivedAt) || 0;
+    return true;
   }
 
   function paceRestore() {
-    try {
-      var saved = JSON.parse(window.sessionStorage.getItem(PACE_KEY) || 'null');
-      if (!saved || !saved.started) { return; }
-      pace.started = true;
-      pace.banked = Number(saved.banked) || 0;
-      if (saved.running) {
-        pace.banked += Math.max(0, (Date.now() - Number(saved.wall)) / 1000);   // the time the reload took
-        pace.running = true;
-        pace.since = paceNow();
-      }
-    } catch (e) { /* start from zero */ }
+    try { if (paceAdopt(JSON.parse(window.sessionStorage.getItem(PACE_KEY) || 'null'))) { paceOwned = true; } }
+    catch (e) { /* start from zero */ }
+  }
+
+  /**
+   * The deck window hands over the copy it kept. It is only taken by a
+   * presenter window that has no timer history of its own: one that was just
+   * opened (the earlier one was closed). A window that has touched its timer,
+   * Reset included, is the truth, and the deck's copy came from it anyway.
+   */
+  function paceAdoptFromDeck(snapshot) {
+    if (paceOwned || pace.started) { return; }
+    if (paceAdopt(snapshot)) { paceOwned = true; paceSave(); renderPresenterClock(); }
   }
 
   /** Planned start of slide i, in seconds: the minutes of every slide before it. */
@@ -1470,7 +1579,8 @@
     return {
       started: pace.started, running: pace.running, elapsed: elapsed,
       plannedStart: start, plannedEnd: end, status: status, delta: delta,
-      arrived: pace.arrivedIndex === state.index ? pace.arrivedAt - start : null
+      // seconds late (+) or early (-) on arriving here; null when we do not know
+      arrived: s && pace.arrivedId === s.id ? pace.arrivedAt - start : null
     };
   }
 
@@ -1502,10 +1612,17 @@
   };
 
   function presenterMoved(dir, opts, slideChanged) {
+    // Finding our place (page load, a reload, a re-sync with the deck) is not
+    // the speaker moving: it must not start the timer, and it is not an arrival.
+    // An arrival remembered from before a reload stays valid for its own slide.
+    if (opts && opts.catchUp) { return; }
     // The elapsed timer starts on the first advance, whichever window made it.
-    // (Finding our place on load, or after a re-sync, is not an advance.)
-    if (dir > 0 && !pace.started && !(opts && opts.catchUp)) { paceStart(); }
-    if (slideChanged) { pace.arrivedIndex = state.index; pace.arrivedAt = paceElapsed(); }
+    if (dir > 0 && !pace.started) { paceStart(); }
+    if (slideChanged) {
+      pace.arrivedId = slides[state.index].id;
+      pace.arrivedAt = paceElapsed();
+      paceSave();
+    }
   }
 
   function buildPresenter() {
@@ -1539,21 +1656,19 @@
     ui.pvNotes.style.fontSize = notesSize + 'px';
     ui.pvNotes.setAttribute('aria-label', 'Speaker notes');
 
-    // --- right: this slide, next slide, timer, pacing
+    // --- right: timer, pacing, the next slide, this slide.
+    // The order is the order of importance. The timer and the pacing lines keep
+    // their full size at any window size; the two thumbnails share whatever
+    // height is left and are dropped when there is none (see fitPresenterThumbs).
     var side = h('aside', 'deck-pv-side');
 
-    var nowCard = h('div', 'deck-pv-card deck-pv-now');
-    ui.pvNowLabel = h('div', 'deck-pv-label');
-    ui.pvNowThumb = h('div', 'deck-pv-thumb');
-    nowCard.appendChild(ui.pvNowLabel);
-    nowCard.appendChild(ui.pvNowThumb);
-
-    var nextCard = h('div', 'deck-pv-card deck-pv-next');
-    nextCard.appendChild(h('div', 'deck-pv-label', 'Next'));
-    ui.pvNextTitle = h('div', 'deck-pv-next-title');
-    ui.pvNextThumb = h('div', 'deck-pv-thumb');
-    nextCard.appendChild(ui.pvNextTitle);
-    nextCard.appendChild(ui.pvNextThumb);
+    /** A thumbnail lives in a "slot": the slot takes the free space, the thumbnail is fitted into it. */
+    function thumbSlot() {
+      var slot = h('div', 'deck-pv-slot');
+      var thumb = h('div', 'deck-pv-thumb');
+      slot.appendChild(thumb);
+      return { slot: slot, thumb: thumb };
+    }
 
     var timerCard = h('div', 'deck-pv-card deck-pv-timer');
     timerCard.appendChild(h('div', 'deck-pv-label', 'Elapsed'));
@@ -1566,26 +1681,48 @@
       renderPresenterClock();
     });
     ui.pvElapsedHint = h('div', 'deck-pv-hint');
+    var timerButtons = h('div', 'deck-pv-timer-buttons');
+    var set = h('button', 'deck-pv-btn deck-pv-set', 'Set');
+    set.type = 'button';
+    set.title = 'Type the elapsed time, for example 43 or 43:30';
+    set.addEventListener('click', function () { askElapsed(); set.blur(); renderPresenterClock(); });
     var reset = h('button', 'deck-pv-btn deck-pv-reset', 'Reset');
     reset.type = 'button';
     reset.addEventListener('click', function () { paceReset(); reset.blur(); renderPresenterClock(); });
+    timerButtons.appendChild(set);
+    timerButtons.appendChild(reset);
     timerCard.appendChild(ui.pvElapsed);
-    timerCard.appendChild(reset);
+    timerCard.appendChild(timerButtons);
     timerCard.appendChild(ui.pvElapsedHint);
 
     var paceCard = h('div', 'deck-pv-card deck-pv-pace');
     paceCard.appendChild(h('div', 'deck-pv-label', 'Pacing'));
-    ui.pvPlanned = h('div', 'deck-pv-row');
-    ui.pvActual = h('div', 'deck-pv-row');
+    ui.pvPlanned = h('div', 'deck-pv-row deck-pv-planned');
+    ui.pvActual = h('div', 'deck-pv-row deck-pv-actual');
     ui.pvStatus = h('div', 'deck-pv-status');
     paceCard.appendChild(ui.pvPlanned);
     paceCard.appendChild(ui.pvActual);
     paceCard.appendChild(ui.pvStatus);
 
-    side.appendChild(nowCard);
-    side.appendChild(nextCard);
+    var nextCard = h('div', 'deck-pv-card deck-pv-next');
+    nextCard.appendChild(h('div', 'deck-pv-label', 'Next'));
+    ui.pvNextTitle = h('div', 'deck-pv-next-title');
+    var nextSlot = thumbSlot();
+    ui.pvNextThumb = nextSlot.thumb;
+    nextCard.appendChild(ui.pvNextTitle);
+    nextCard.appendChild(nextSlot.slot);
+
+    var nowCard = h('div', 'deck-pv-card deck-pv-now');
+    ui.pvNowLabel = h('div', 'deck-pv-label');
+    var nowSlot = thumbSlot();
+    ui.pvNowThumb = nowSlot.thumb;
+    nowCard.appendChild(ui.pvNowLabel);
+    nowCard.appendChild(nowSlot.slot);
+
     side.appendChild(timerCard);
     side.appendChild(paceCard);
+    side.appendChild(nextCard);
+    side.appendChild(nowCard);
 
     var main = h('main', 'deck-pv-main');
     main.appendChild(ui.pvNotes);
@@ -1604,9 +1741,13 @@
     barButton('deck-pv-go', 'Next \u203a', next);
     ui.pvLink = h('span', 'deck-pv-link');
     bar.appendChild(ui.pvLink);
-    ui.pvBlack = h('span', 'deck-pv-blackout', 'Screen is black (B)');
+    // what the audience sees when it is not the slide
+    ui.pvBlack = h('span', 'deck-pv-flag deck-pv-blackout', 'Screen is black (B)');
     ui.pvBlack.hidden = true;
     bar.appendChild(ui.pvBlack);
+    ui.pvOverview = h('span', 'deck-pv-flag deck-pv-overview', 'Overview is on the screen (O)');
+    ui.pvOverview.hidden = true;
+    bar.appendChild(ui.pvOverview);
     bar.appendChild(h('span', 'deck-pv-spacer'));
     bar.appendChild(h('span', 'deck-pv-keys', 'Notes size'));
     barButton('deck-pv-smaller', 'A\u2212', function () { presenterNotesSize(-4); }).setAttribute('aria-label', 'Smaller notes');
@@ -1628,6 +1769,13 @@
     window.addEventListener('hashchange', onHashChange);
     window.addEventListener('message', onMessage);
     window.addEventListener('resize', fitPresenterThumbs);
+    // The free height changes when a title wraps or the pacing line changes size.
+    if (window.ResizeObserver) {
+      var watcher = new window.ResizeObserver(fitPresenterThumbs);
+      watcher.observe(nextSlot.slot);
+      watcher.observe(nowSlot.slot);
+    }
+    if (doc.fonts && doc.fonts.ready) { doc.fonts.ready.then(fitPresenterThumbs, function () {}); }
     post({ type: 'hello' });
     setInterval(function () { post({ type: 'hello' }); }, 2000);
     setInterval(renderPresenterClock, 250);
@@ -1636,13 +1784,53 @@
     installKeepAwake();
   }
 
-  /** Thumbnails are 1920x1080 slides scaled by CSS; tell the CSS how wide the box is. */
+  /**
+   * Fit each thumbnail into its slot: as large as the slot allows at 16:9.
+   * A thumbnail is a 1920x1080 slide scaled by CSS, which needs to be told the
+   * width (--deck-thumb-w). A slot too small for a useful picture shows none:
+   * on a short window the timer and the pacing lines get the room instead.
+   */
+  var THUMB_MIN_WIDTH = 112;
+
   function fitPresenterThumbs() {
-    [ui.pvNowThumb, ui.pvNextThumb].forEach(function (box) {
-      if (!box) { return; }
-      var w = box.clientWidth;
-      if (w) { box.style.setProperty('--deck-thumb-w', w); }
+    [ui.pvNextThumb, ui.pvNowThumb].forEach(function (box) {
+      var slot = box && box.parentNode;
+      if (!slot) { return; }
+      box.hidden = false;                                     // (a hidden box cannot be measured)
+      var border = box.offsetWidth - box.clientWidth;         // the theme may give the box a border
+      var width = Math.floor(Math.min(slot.clientWidth - border, (slot.clientHeight - border) * 16 / 9));
+      var show = width >= THUMB_MIN_WIDTH && box.childNodes.length > 0;
+      box.hidden = !show;
+      if (!show) { return; }
+      // `width` is the picture; the box is the picture plus its border
+      box.style.width = (width + border) + 'px';
+      box.style.height = (Math.round(width * 9 / 16) + border) + 'px';
+      box.style.setProperty('--deck-thumb-w', width);
     });
+  }
+
+  /** The "Set" button: type the elapsed time. For when the timer was lost or started late. */
+  function askElapsed() {
+    var answer = null;
+    try { answer = window.prompt('Elapsed time so far (minutes, or minutes:seconds)', mmss(paceElapsed())); }
+    catch (e) { /* prompts are blocked here */ }
+    var seconds = parseElapsed(answer);
+    if (seconds != null) { paceSet(seconds); }
+  }
+
+  /** '43' -> 2580, '43:30' -> 2610, '1:02:00' -> 3720; null when it is not a time. */
+  function parseElapsed(text) {
+    var m = /^\s*(?:(\d+):)?(\d+)(?::(\d{1,2}))?\s*$/.exec(text == null ? '' : String(text));
+    if (!m) { return null; }
+    if (m[1] != null && m[3] != null) { return Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]); }
+    if (m[1] != null) { return Number(m[1]) * 60 + Number(m[2]); }       // m:ss
+    return Number(m[2]) * 60 + (m[3] != null ? Number(m[3]) : 0);          // minutes, or m:ss
+  }
+
+  /** The chips in the bottom bar that say what the audience is looking at. */
+  function renderPresenterFlags() {
+    if (ui.pvBlack) { ui.pvBlack.hidden = !state.blackout; }
+    if (ui.pvOverview) { ui.pvOverview.hidden = !peerOverview; }
   }
 
   function renderPresenter() {
@@ -1675,7 +1863,7 @@
     } else {
       ui.pvNextTitle.textContent = 'End of deck';
     }
-    ui.pvBlack.hidden = !state.blackout;
+    renderPresenterFlags();
     fitPresenterThumbs();
     renderPresenterClock();
   }
@@ -1703,7 +1891,7 @@
     var text = 'Timer has not started';
     if (p.status === 'ahead') { text = 'Ahead by ' + mmss(p.delta); }
     if (p.status === 'behind') { text = 'Behind by ' + mmss(p.delta); }
-    if (p.status === 'on-pace') { text = 'On pace \u00b7 ' + mmss(p.delta) + ' left on this slide'; }
+    if (p.status === 'on-pace') { text = 'On pace \u00b7 ' + mmss(p.delta) + ' left'; }
     ui.pvStatus.textContent = text;
     ui.pvStatus.setAttribute('data-status', p.status);
 
@@ -1830,6 +2018,10 @@
       return null;
     },
     pacing: pacing,
+    keptPace: function () { return keptPace; },      // deck window: the copy of the presenter's elapsed timer
+    linked: function () {                            // is the other window (deck <-> presenter) there?
+      try { return !!peer && !peer.closed; } catch (e) { return false; }
+    },
     blackout: function () { return state.blackout; },
     overview: function () { return state.overview; }
   };

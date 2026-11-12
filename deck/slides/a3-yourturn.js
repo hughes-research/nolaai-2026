@@ -4,7 +4,7 @@
  *   ex-inventory     Exercise 1, 10 minutes: inventory two weeks of real work
  *   ex-pick-three    Exercise 2, 5 minutes: pick three
  *   worked-example   three example candidates through the four gates (scene "screener", walkthrough)
- *   ex-screen        Exercise 3, 10 minutes: the prompts, then the live screener (scene "screener", live)
+ *   ex-screen        Exercise 3, 10 minutes: the four prompts, then the live screener (scene "screener", live)
  *   share-out        two questions for the room, 5 minutes
  *
  * On-screen copy is from docs/BRIEF.md, section 8. Nothing here types a number
@@ -13,92 +13,72 @@
  * notes quote Gates' own sentences, so they stay true if the examples in
  * content/your-numbers.js are changed.
  *
- * The three exercise slides share one layout on purpose: a kicker, a
- * headline, a ruled list on the left and the clock on the right. They sit on
- * screen for many minutes while people write.
+ * The three exercise slides are the kit's exercise layout (kicker, headline,
+ * a ruled list, the clock in its panel). They sit on screen for many minutes
+ * while people write, so nothing on them moves except the clock.
  *
- * Styles are scoped under .yt and use tokens only.
+ * The few styles below are scoped under .yt-* and use tokens only.
  */
 (function () {
   'use strict';
   if (!window.Deck) { return; }
 
-  var Y = window.YOUR || {};
   var G = window.Gates || null;
   var CM = window.CostMath || null;
   var S = window.Screener || null;
 
   var css = `
-.slide .yt { position: absolute; inset: 0; color: var(--c-ink, #050505); font-family: var(--f-body, "Archivo", Helvetica, Arial, sans-serif); font-weight: 500; font-synthesis: none; text-align: left; }
-.slide .yt, .slide .yt *, .slide .yt *::before, .slide .yt *::after { box-sizing: border-box; }
-.slide .yt :is(h1, p, ol, li) { margin: 0; padding: 0; }
+/* ---- the exercise slides: the list fills its column, down to the foot ---- */
+.slide .yt-list { align-self: start; width: 100%; }
+.slide .yt-list > li { min-height: 164px; text-wrap: balance; }
+.slide .yt-list > li:last-child { border-bottom: var(--w-rule, 6px) solid var(--c-line); }
 
-.slide .yt .yt-kicker { position: absolute; left: 128px; top: 64px; font-size: 32px; line-height: 32px; font-weight: 700; font-stretch: 125%; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; }
-.slide .yt .yt-h1 { position: absolute; left: 128px; top: 122px; font-family: var(--f-display, "Archivo", sans-serif); font-weight: 900; font-stretch: 62%; font-size: 108px; line-height: 0.708; letter-spacing: 0; text-transform: uppercase; white-space: nowrap; }
+/* ex-pick-three: the third one is the one nobody brings up. It is printed in negative. */
+.slide .yt-list > li.yt-quiet { margin-left: -40px; padding-left: 40px; width: calc(100% + 40px); border-top-color: var(--c-bg); border-bottom-color: var(--c-bg); background: var(--c-bg); color: var(--c-ink); }
+.slide .yt-pick .yt-list > li { min-height: 190px; }
 
-/* ---- the exercise layout: a ruled list, and the clock ---- */
-.slide .yt .yt-list { position: absolute; left: 128px; top: 262px; width: 1100px; list-style: none; border-bottom: 6px solid var(--c-ink, #050505); }
-.slide .yt .yt-list li { position: relative; display: grid; grid-template-columns: 112px minmax(0, 1fr); align-items: center; height: 176px; border-top: 6px solid var(--c-ink, #050505); }
-.slide .yt .yt-num { font-family: var(--f-display, "Archivo", sans-serif); font-weight: 900; font-stretch: 62%; font-size: 112px; line-height: 0.708; font-variant-numeric: tabular-nums; }
-.slide .yt .yt-item { font-size: 56px; line-height: 64px; font-weight: 600; text-wrap: balance; }
+/* ex-screen, step 0: one prompt per gate. The gate's name, and under it the gate's question. */
+.slide .yt-gates > li { min-height: 150px; }
+.slide .yt-gates .yt-pair { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.slide .yt-gates .yt-gate { font-family: var(--f-display); font-size: 76px; font-weight: 900; font-stretch: 62%; line-height: 0.708; text-transform: uppercase; white-space: nowrap; }
+.slide .yt-gates .yt-ask { font-size: 40px; font-weight: 500; line-height: 46px; text-wrap: balance; }
 
-.slide .yt .yt-clock { position: absolute; left: 1300px; top: 262px; width: 564px; height: 710px; border-top: 6px solid var(--c-ink, #050505); border-bottom: 6px solid var(--c-ink, #050505); }
-.slide .yt .yt-clock .timer { font-stretch: 62%; --timer-weight: 900; --timer-size: 264px; }
-.slide .yt .yt-clock .timer-digits { letter-spacing: 0; line-height: 0.82; }
-.slide .yt .yt-clock .timer-bar { width: calc(100% - 48px); height: 28px; margin-top: 40px; border-width: 6px; }
-.slide .yt .yt-clock .timer-hint { margin-top: 24px; font-stretch: 100%; letter-spacing: 0; }
-.slide .yt .yt-clock .timer[data-state="idle"] .timer-bar-fill { transform: scaleX(1); }
+/* the clock's panel can also hold the QR code to the screener */
+.slide .yt-side { display: flex; flex-direction: column; min-height: 0; border-left: var(--w-rule, 6px) solid var(--c-line); border-top: var(--w-rule, 6px) solid var(--c-line); }
+.slide .yt-side > .timer-host { flex: 1 1 0; border: 0; }
+.slide .yt-qr { display: flex; align-items: flex-end; gap: 28px; padding: 24px 56px 40px 28px; border-top: var(--w-rule, 6px) solid var(--c-line); }
+.slide .yt-qr[hidden] { display: none; }
+.slide .yt-qr .qr { width: 340px; }
+.slide .yt-qr-words { min-width: 0; padding-bottom: 6px; }
+.slide .yt-qr-title { font-size: 40px; line-height: 44px; font-weight: 700; }
+.slide .yt-qr-url { margin-top: 12px; font-size: 32px; line-height: 36px; font-weight: 600; font-stretch: 87.5%; overflow-wrap: anywhere; }
+.slide .yt-side.has-qr > .timer-host { --timer-size: 230px; }
+.slide .yt-side.has-qr .timer-hint { display: none; }
+.slide .yt-side.has-qr .timer-bar { margin-top: 24px; }
 
-/* ---- ex-pick-three: the loud one ---- */
-.slide .yt-pick .yt-h1 { font-size: 216px; }
-.slide .yt-pick .yt-list { top: 330px; }
-.slide .yt-pick .yt-list li { height: 200px; }
-.slide .yt-pick .yt-item { font-size: 64px; line-height: 72px; }
-.slide .yt-pick .yt-clock { top: 330px; height: 606px; }
-/* the third one is the one nobody brings up: it is printed in negative */
-.slide .yt-pick .yt-list li.yt-quiet { background: var(--c-ink, #050505); color: var(--c-bg, #F4EDDE); }
-.slide .yt-pick .yt-list li.yt-quiet .yt-num { padding-left: 24px; }
+/* ex-screen, step 1: the screener takes the stage; the headline and the clock move to the top bar */
+.slide.yt-step :is([data-step], [data-step-out]) { transition: none; }
+.slide > .yt-live { position: absolute; left: 128px; top: 120px; width: 1736px; height: 920px; flex: none; }
+.slide[data-current-step="1"] > .yt-kicker { visibility: hidden; }
+.slide[data-current-step="1"] > .yt-head { position: absolute; left: 128px; top: 52px; margin: 0; font-size: 60px; line-height: 0.708; white-space: nowrap; }
+.slide[data-current-step="1"] .yt-side { position: absolute; left: 1060px; top: 36px; width: 180px; height: 72px; border: 0; }
+/* in the top bar the last minute is an ink block, so the winner below keeps the slide's one Flare */
+.slide[data-current-step="1"] .yt-side > .timer-host { --timer-size: 76px; --timer-warn-bg: var(--c-ink); --timer-warn-color: var(--c-bg); }
+.slide[data-current-step="1"] .yt-side .timer-bar,
+.slide[data-current-step="1"] .yt-side .timer-hint,
+.slide[data-current-step="1"] .yt-side .timer-label { display: none; }
+.slide[data-current-step="1"] .yt-side .timer-digits { margin: 0; }
 
-/* ---- worked-example: the scene owns the slide below the headline ---- */
-.slide .yt-worked .yt-h1 { top: 60px; z-index: 2; }
-.slide .yt-worked .yt-tag { position: absolute; right: 56px; top: 58px; z-index: 2; height: 56px; padding: 0 22px; background: var(--c-ink, #050505); color: var(--c-bg, #F4EDDE); font-size: 32px; line-height: 56px; font-weight: 700; font-stretch: 112%; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; }
-.slide .yt-worked .yt-stage { position: absolute; inset: 0; }
+/* worked-example: the scene owns the slide; the headline and the tag sit over it */
+.slide > .yt-stage { position: absolute; inset: 0; flex: none; }
+.slide > .yt-over { position: relative; z-index: 2; }
+.slide > .yt-tag { position: absolute; right: var(--m-right, 56px); top: 52px; z-index: 2; }
 
-/* ---- ex-screen, step 0: the four prompts ---- */
-.slide .yt-screen :is([data-step], [data-step-out]) { transition: none; translate: none; }
-.slide .yt-screen .yt-list { width: 1100px; }
-.slide .yt-screen .yt-list li { grid-template-columns: 96px 330px minmax(0, 1fr); height: 170px; }
-.slide .yt-screen .yt-num { font-size: 96px; }
-.slide .yt-screen .yt-gate { font-family: var(--f-display, "Archivo", sans-serif); font-weight: 900; font-stretch: 62%; font-size: 84px; line-height: 0.708; text-transform: uppercase; white-space: nowrap; }
-.slide .yt-screen .yt-item { font-size: 44px; line-height: 52px; font-weight: 500; }
-.slide .yt-screen .yt-clock { height: 686px; }
-.slide .yt-screen .yt-qr { position: absolute; left: 1300px; top: 262px; width: 564px; }
-.slide .yt-screen .yt-qr[hidden] { display: none; }
-.slide .yt-screen .yt-qr-code { width: 360px; height: 360px; margin-left: 204px; color: var(--c-ink, #050505); background: var(--c-bg, #F4EDDE); }
-.slide .yt-screen .yt-qr-code svg { display: block; width: 100%; height: 100%; }
-.slide .yt-screen .yt-qr-title { margin-top: 10px; font-size: 36px; line-height: 42px; font-weight: 700; text-align: right; }
-.slide .yt-screen .yt-qr-url { font-size: 32px; line-height: 38px; font-weight: 600; font-stretch: 87.5%; text-align: right; overflow-wrap: anywhere; }
-.slide .yt-screen.has-qr .yt-clock { top: 760px; height: 188px; border-top: 0; }
-.slide .yt-screen.has-qr .yt-clock .timer { --timer-size: 150px; }
-.slide .yt-screen.has-qr .yt-clock .timer-bar { height: 20px; margin-top: 16px; width: 100%; }
-.slide .yt-screen.has-qr .yt-clock .timer-hint { display: none; }
-
-/* ---- ex-screen, step 1: the screener takes the stage, the clock moves to the corner ---- */
-.slide .yt-screen .yt-live { position: absolute; left: 128px; top: 120px; width: 1736px; height: 920px; }
-.slide[data-current-step="1"] .yt-screen .yt-kicker { display: none; }
-.slide[data-current-step="1"] .yt-screen .yt-h1 { top: 50px; font-size: 64px; }
-.slide[data-current-step="1"] .yt-screen .yt-clock { left: 1066px; top: 40px; width: 168px; height: 64px; border: 0; }
-.slide[data-current-step="1"] .yt-screen .yt-clock .timer { --timer-size: 72px; }
-.slide[data-current-step="1"] .yt-screen .yt-clock .timer-bar,
-.slide[data-current-step="1"] .yt-screen .yt-clock .timer-hint { display: none; }
-
-/* ---- share-out: two lines and a lot of empty stock ---- */
-.slide .yt-share .yt-ask { position: absolute; left: 128px; top: 262px; font-size: 116px; line-height: 1; font-weight: 800; white-space: nowrap; letter-spacing: -0.01em; }
-.slide .yt-share .yt-ask2 { position: absolute; left: 128px; top: 470px; font-family: var(--f-voice, "Fraunces", Georgia, serif); font-style: italic; font-weight: 600; font-variation-settings: var(--voice-settings, "opsz" 72, "SOFT" 0, "WONK" 0); font-size: 116px; line-height: 1.1; white-space: nowrap; --deck-wipe-duration: var(--d-voice, 333ms); }
-.slide .yt-share .yt-clock { left: 1484px; top: 800px; width: 380px; height: 218px; border-bottom: 0; }
-.slide .yt-share .yt-clock .timer { --timer-size: 132px; }
-.slide .yt-share .yt-clock .timer-bar { height: 16px; margin-top: 14px; width: 100%; border-width: 4px; }
-.slide .yt-share .yt-clock .timer-hint { margin-top: 10px; }
+/* share-out: two lines, a lot of empty stock, a small clock in the corner */
+.slide > .yt-ask2 { font-size: 104px; line-height: 1.1; max-width: none; white-space: nowrap; }
+.slide > .yt-corner-clock { position: absolute; right: 0; bottom: 0; width: 440px; height: 252px; flex: none; --timer-size: 132px; }
+.slide > .yt-corner-clock .timer-bar { width: 70%; height: 16px; margin-top: 18px; --timer-bar-height: 16px; }
+.slide > .yt-corner-clock .timer-hint { margin-top: 12px; }
 `;
   var style = document.createElement('style');
   style.setAttribute('data-from', 'slides/a3-yourturn.js');
@@ -111,16 +91,16 @@
     });
   }
 
-  function listHtml(items) {
-    return '<ol class="yt-list">' + items.map(function (item, i) {
-      return '<li' + (item.cls ? ' class="' + item.cls + '"' : '') + '><span class="yt-num">' + (i + 1) + '</span>' +
-        (item.gate ? '<span class="yt-gate">' + esc(item.gate) + '</span>' : '') +
-        '<span class="yt-item">' + esc(item.text) + '</span></li>';
+  /* a ruled, numbered list at the kit's large size */
+  function listHtml(items, extra) {
+    return '<ol class="list is-l yt-list' + (extra ? ' ' + extra : '') + '">' + items.map(function (item) {
+      if (typeof item === 'string') { return '<li>' + esc(item) + '</li>'; }
+      return '<li' + (item.cls ? ' class="' + item.cls + '"' : '') + '>' + (item.html || esc(item.text)) + '</li>';
     }).join('') + '</ol>';
   }
 
-  function clockHtml(minutes) {
-    return '<div class="yt-clock scene" data-scene="timer" data-opts=\'{"minutes": ' + minutes + '}\'></div>';
+  function clockHtml(minutes, cls) {
+    return '<div class="scene timer-host' + (cls ? ' ' + cls : '') + '" data-scene="timer" data-opts=\'{"minutes": ' + minutes + '}\'></div>';
   }
 
   /* ---- facts the notes quote, worked out once from the libraries ---- */
@@ -129,16 +109,35 @@
   var hourly = (G && CM) ? CM.money(G.defaultAssumptions().rates.loadedHourly) : '';
   var walkSteps = S ? S.walkthroughSteps() : 0;
   var exampleLines = '';
+  var exampleOutcome = '';
   if (G && S) {
     try {
-      exampleLines = S.exampleCandidates().map(function (c, i) {
+      var names = [];      // "the exciting one", or "A" when a candidate has no pitch
+      var verdicts = S.exampleCandidates().map(function (c, i) {
         var r = G.evaluate(c);
         var letter = ['A', 'B', 'C'][i];
-        return letter + ', ' + String(c.pitch || 'candidate ' + letter).toLowerCase() + ': ' + r.name + '. ' + r.summary;
-      }).join('\n');
-    } catch (e) { exampleLines = ''; }
+        names.push(c.pitch ? String(c.pitch).charAt(0).toLowerCase() + String(c.pitch).slice(1) : letter);
+        exampleLines += (i ? '\n' : '') + letter + ', ' + names[i] + ': ' + r.name + '. ' + r.summary;
+        return r.verdict;
+      });
+      var say = function (list) {
+        var text = list.length > 1 ? list.slice(0, -1).join(', ') + ' and ' + list[list.length - 1] : list[0];
+        return text.charAt(0).toUpperCase() + text.slice(1);
+      };
+      var out = names.filter(function (n, i) { return verdicts[i] !== 'YES'; });
+      var left = names.filter(function (n, i) { return verdicts[i] === 'YES'; });
+      exampleOutcome = !left.length ? 'All three are out.'
+        : !out.length ? 'All three pass. Then the math picks the one worth most over two years.'
+        : say(out) + (out.length === 1 ? ' is' : ' are') + ' out. ' + say(left) + (left.length === 1 ? ' is' : ' are') + ' what is left.';
+    } catch (e) { exampleLines = ''; exampleOutcome = ''; }
   }
-  var screenerUrl = (Y.links && typeof Y.links.screenerUrl === 'string') ? Y.links.screenerUrl.trim() : '';
+  /* Where the screener lives, if the speaker has filled the link in. Read when asked, so a late edit counts. */
+  function screenerLink() {
+    var y = window.YOUR || {};
+    return (y.links && typeof y.links.screenerUrl === 'string') ? y.links.screenerUrl.trim() : '';
+  }
+  var screenerUrl = screenerLink();
+  var exampleTag = 'Example candidates';
 
 
   /* =========================================================================
@@ -149,28 +148,29 @@
     act: 3,
     title: 'Exercise 1: Inventory two weeks',
     minutes: 10,
+    layout: 'exercise',
     html:
-      '<div class="yt yt-ex yt-inventory">' +
-        '<p class="yt-kicker">Exercise 1 · 10 minutes</p>' +
-        '<h1 class="yt-h1">Inventory two weeks of real work.</h1>' +
+      '<p class="kicker">Exercise 1 · 10 minutes</p>' +
+      '<h2 class="headline">Inventory two weeks of real work.</h2>' +
+      '<div class="exercise">' +
         listHtml([
-          { text: 'What did you do more than twice?' },
-          { text: 'What did you copy from one place to another?' },
-          { text: 'What did you wait on?' },
-          { text: 'What did you dread?' }
+          'What did you do more than twice?',
+          'What did you copy from one place to another?',
+          'What did you wait on?',
+          'What did you dread?'
         ]) +
         clockHtml(10) +
       '</div>',
     notes: `
 SAY: Exercise one. Worksheet and pen.
 Write down what you actually did in the last two weeks. Not your job description. What you did.
-Four questions to jog it. They are on the screen the whole time.
-Boring is good. Boring is where the minutes are.
+Four questions to jog it. They stay on the screen the whole time.
+Boring is good.
 
 DO: Press T to start the ten minutes. R resets it.
 Then leave the laptop and walk the room. Read over shoulders.
 If a list is all strategy and no chores, point at question two: what did you copy from one place to another?
-Call "two minutes" when the clock turns. If the room is done early, move on.
+Call "one minute" when the clock turns orange. If the room is done early, move on.
 
 NEXT: Pens down. You have a list. Now cut it to three.
 `
@@ -185,14 +185,15 @@ NEXT: Pens down. You have a list. Now cut it to three.
     act: 3,
     title: 'Exercise 2: Pick three',
     minutes: 5,
+    layout: 'exercise',
     html:
-      '<div class="yt yt-ex yt-pick">' +
-        '<p class="yt-kicker">Exercise 2 · 5 minutes</p>' +
-        '<h1 class="yt-h1">Pick three.</h1>' +
+      '<p class="kicker">Exercise 2 · 5 minutes</p>' +
+      '<h2 class="headline is-hero">Pick three.</h2>' +
+      '<div class="exercise yt-pick">' +
         listHtml([
-          { text: 'One you’d love to pitch' },
-          { text: 'One that’s boring' },
-          { text: 'One you’d be embarrassed to bring up', cls: 'yt-quiet' }
+          'One you’d love to pitch',
+          'One that’s boring',
+          { text: 'One you’d be embarrassed to bring up', cls: 'yt-quiet on-ink' }
         ]) +
         clockHtml(5) +
       '</div>',
@@ -221,23 +222,21 @@ NEXT: Before you screen yours, watch three made-up ones go through.
     minutes: 5,
     steps: walkSteps,
     html:
-      '<div class="yt yt-worked">' +
-        '<h1 class="yt-h1">Three candidates, four gates.</h1>' +
-        '<p class="yt-tag">Example candidates</p>' +
-        '<div class="yt-stage scene" data-scene="screener" data-opts=\'{"mode": "walkthrough"}\'></div>' +
-      '</div>',
+      '<h2 class="headline is-s yt-over">Three candidates, four gates.</h2>' +
+      '<span class="tag is-example yt-tag">' + exampleTag + '</span>' +
+      '<div class="yt-stage scene" data-scene="screener" data-opts=\'{"mode": "walkthrough"}\'></div>',
     notes: `
 SAY: Three candidates. They are made up. None of them is a Laborde project.
 Each one goes through the gates in order and stops at its first no.
 ${exampleLines}
-The exciting one and the easy one are out. The boring one is what is left.
+${exampleOutcome}
 
 DO: ${walkSteps} clicks. The first click on each candidate puts its numbers in the gates. Each click after that is one gate.
 Read the sentence under the gates out loud: that is the gate's reason.
 When a NO lands the screen goes black for a second. Let it. Do not talk over it.
 The last click shows what the survivor is worth.
 
-YOUR STORY: swap in your real three if you have them. Change the three candidates in content/your-numbers.js and this slide follows.
+YOUR STORY: swap in your real three if you have them. Change the three candidates in content/your-numbers.js and this slide follows. It will still say "Example candidates", so say out loud that yours are real.
 
 NEXT: Your turn. Same four gates, your three.
 `
@@ -252,29 +251,41 @@ NEXT: Your turn. Same four gates, your three.
     act: 3,
     title: 'Exercise 3: Run your three through the gates',
     minutes: 10,
+    layout: 'exercise yt-step',
     steps: 1,
     html:
-      '<div class="yt yt-ex yt-screen">' +
-        '<p class="yt-kicker">Exercise 3 · 10 minutes</p>' +
-        '<h1 class="yt-h1">Run your three through the gates.</h1>' +
+      '<p class="kicker yt-kicker">Exercise 3 · 10 minutes</p>' +
+      '<h2 class="headline yt-head">Run your three through the gates.</h2>' +
+      '<div class="exercise">' +
         '<div data-step-out="1">' +
-          listHtml(gateList.map(function (g) { return { gate: g.label, text: g.question }; })) +
+          listHtml(gateList.map(function (g) {
+            return { html: '<span class="yt-pair"><b class="yt-gate">' + esc(g.label) + '</b><span class="yt-ask">' + esc(g.question) + '</span></span>' };
+          }), 'yt-gates') +
         '</div>' +
-        '<div class="yt-qr" data-step-out="1" hidden><div class="yt-qr-code"></div>' +
-          '<p class="yt-qr-title">The screener, on your phone</p><p class="yt-qr-url"></p></div>' +
-        clockHtml(10) +
-        '<div class="yt-live scene" data-step="1" data-scene="screener" data-opts=\'{"mode": "live"}\'></div>' +
-      '</div>',
+        '<div class="yt-side">' +
+          clockHtml(10) +
+          '<div class="yt-qr" data-step-out="1" hidden>' +
+            '<figure class="qr"><div class="qr-code"></div></figure>' +
+            '<div class="yt-qr-words"><p class="yt-qr-title">The screener, on your phone</p><p class="yt-qr-url"></p></div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="yt-live scene" data-step="1" data-scene="screener" data-opts=\'{"mode": "live"}\'></div>',
     enter: function (ctx) {
       // The QR code only exists when the speaker has filled in the link.
-      if (!screenerUrl || !window.QR) { return; }
+      var link = screenerLink();
+      if (!link || !window.QR) { return; }
       var box = ctx.el.querySelector('.yt-qr');
-      box.querySelector('.yt-qr-code').innerHTML = window.QR.toSVG(screenerUrl, {
-        dark: 'currentColor', light: null, title: 'QR code for the four-gate screener'
+      // Lampblack on Card, with the quiet zone, whatever the slide's inks are doing.
+      var T = window.THEME;
+      box.querySelector('.qr-code').innerHTML = window.QR.toSVG(link, {
+        dark: T ? T.color('--lampblack') || '#050505' : '#050505',
+        light: T ? T.color('--card') || '#F4EDDE' : '#F4EDDE',
+        title: 'QR code for the four-gate screener'
       });
-      box.querySelector('.yt-qr-url').textContent = screenerUrl.replace(/^https?:\/\//i, '');
+      box.querySelector('.yt-qr-url').textContent = link.replace(/^https?:\/\//i, '');
       box.hidden = false;
-      ctx.el.querySelector('.yt-screen').classList.add('has-qr');
+      ctx.el.querySelector('.yt-side').classList.add('has-qr');
     },
     notes: `
 SAY: Exercise three. Run your three through the gates, in order. Stop at the first no.
@@ -285,7 +296,7 @@ Most of you will kill two of your three. That is the exercise working.
 DO: Press T for the ten minutes. Give the room three or four minutes alone.${screenerUrl ? '\nThe QR code opens the same screener on a phone.' : ''}
 Then ask for a volunteer with three candidates and press the right arrow once. The screener comes up. The clock keeps running at the top.
 Click A, B or C to choose a column. Type its name in the box at the top of the column.
-Set the numbers with the minus and plus buttons, or click a number and type. Escape leaves a box, and the arrow keys drive the deck again.
+Set the numbers with the minus and plus buttons, or click a number and type. While the cursor is in a box the keys type. Enter leaves the box, and the arrow keys drive the deck again.
 Ask the volunteer for each number out loud. HOUSE RULES opens the thresholds if the room argues with one. RESET puts the examples back.
 Read the bottom row out loud: "the math picks".
 
@@ -302,14 +313,13 @@ NEXT: Time. Hands up.
     act: 3,
     title: 'Share-out',
     minutes: 5,
+    layout: 'statement',
     steps: 1,
     html:
-      '<div class="yt yt-share">' +
-        '<p class="yt-kicker">Share-out · 5 minutes</p>' +
-        '<p class="yt-ask">Who killed their favorite?</p>' +
-        '<p class="yt-ask2" data-step="1" data-anim="wipe">Who’s keeping the boring one?</p>' +
-        clockHtml(5) +
-      '</div>',
+      '<p class="kicker">Share-out · 5 minutes</p>' +
+      '<p class="say">Who killed their favorite?</p>' +
+      '<p class="sub yt-ask2" data-step="1" data-anim="wipe">Who’s keeping the boring one?</p>' +
+      clockHtml(5, 'yt-corner-clock'),
     notes: `
 SAY: Who killed their favorite? Hands up. Keep them up.
 Pick one hand. Which gate killed it? Repeat the answer so the room hears it.

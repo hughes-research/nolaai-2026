@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>The four-gate screener</title>
+<!--
+  THE FOUR-GATE SCREENER, on its own page. Made for a phone; fine on a laptop.
+
+  It is the same component the deck uses on the "ex-screen" slide
+  (deck/scenes/screener.js), with the same math (deck/lib/gates-core.js) and
+  the same example candidates (deck/content/your-numbers.js).
+
+  Rules for this file (docs/BRIEF.md, section 9):
+    - classic <script src> tags and relative CSS only
+    - no ES modules, no fetch, no external URLs: this page makes no network
+      request of any kind, and nothing typed here leaves the device
+    - what you type is kept in this browser's local storage when the browser
+      allows it. When it does not, the page works the same and forgets on reload.
+
+  One file to send around:  node tools/bundle.js screener/index.html  ->  dist/screener.html
+-->
+<link rel="stylesheet" href="../deck/theme/fonts.css">
+<link rel="stylesheet" href="../deck/theme/tokens.css">
+<link rel="stylesheet" href="../deck/theme/components.css">
+<style>
+  /* The page around the screener. Tokens only; sizes are for a phone first. */
+  *, *::before, *::after { box-sizing: border-box; }
+  html { font-size: 100%; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--c-bg, #F4EDDE);
+    color: var(--c-ink, #050505);
+    font-family: var(--f-body, "Archivo", "Helvetica Neue", Helvetica, Arial, sans-serif);
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.45;
+    font-synthesis: none;
+    -webkit-font-smoothing: antialiased;
+    overflow-wrap: break-word;
+  }
+  h1, h2, h3, p, ol, li { margin: 0; padding: 0; }
+  .pg { max-width: 76rem; margin: 0 auto; padding: 0 1rem 2.5rem; }
+  .pg-display { font-family: var(--f-display, "Archivo", sans-serif); font-weight: 900; font-stretch: 62%; text-transform: uppercase; letter-spacing: 0; }
+  .pg-label { font-weight: 700; font-stretch: 112%; font-size: 0.7rem; line-height: 1.2; letter-spacing: 0.1em; text-transform: uppercase; }
+
+  /* the spine of the sleeve becomes the top edge of the page */
+  .pg-spine { background: var(--c-ink, #050505); color: var(--c-bg, #F4EDDE); padding: 0.7rem 1rem; }
+  .pg-spine p { max-width: 76rem; margin: 0 auto; padding: 0 0; }
+
+  .pg-head { padding: 1.5rem 0 1.25rem; border-bottom: 6px solid var(--c-ink, #050505); }
+  .pg-head h1 { font-size: clamp(2.9rem, 13.5vw, 6.75rem); line-height: 0.86; }
+  .pg-lede { margin-top: 1rem; max-width: 40rem; font-size: 1.15rem; line-height: 1.35; font-weight: 600; }
+
+  .pg-section { padding-top: 1.75rem; }
+  .pg-section > h2 { font-size: 2rem; line-height: 0.9; margin-bottom: 0.75rem; }
+
+  /* the four gates: name, question, and the house rule as it stands now */
+  .pg-gates { list-style: none; display: grid; grid-template-columns: minmax(0, 1fr); border-top: 4px solid var(--c-ink, #050505); }
+  .pg-gates li { display: grid; grid-template-columns: 2.4rem minmax(0, 1fr); column-gap: 0.5rem; padding: 0.8rem 0; border-bottom: 1px solid var(--c-ink, #050505); }
+  .pg-gates .pg-n { grid-row: 1 / span 3; font-size: 2.6rem; line-height: 0.85; }
+  .pg-gates h3 { font-size: 1.7rem; line-height: 0.9; }
+  .pg-gates .pg-q { margin-top: 0.3rem; font-size: 1rem; font-weight: 600; }
+  .pg-gates .pg-rule { margin-top: 0.2rem; font-size: 0.92rem; }
+
+  /* the rules of thumb: the one Flare block on the page */
+  .pg-thumb { margin-top: 1.75rem; padding: 1.1rem 1rem 1.2rem; background: var(--c-accent, #FF6842); color: var(--c-accent-ink, #050505); }
+  .pg-thumb h2 { font-size: clamp(2.2rem, 10vw, 4rem); line-height: 0.88; }
+  .pg-thumb p { margin-top: 0.6rem; max-width: 44rem; font-size: 1rem; font-weight: 600; }
+
+  .pg-how { margin-bottom: 1rem; max-width: 44rem; }
+  .pg-foot { margin-top: 2rem; padding-top: 1rem; border-top: 6px solid var(--c-ink, #050505); font-size: 0.9rem; }
+  .pg-foot p { max-width: 46rem; }
+  .pg-foot p + p { margin-top: 0.5rem; }
+  .pg-noscript { margin: 1rem 0; padding: 1rem; border: 4px solid var(--c-ink, #050505); font-weight: 700; }
+
+  @media (min-width: 760px) {
+    .pg { padding: 0 2rem 3rem; }
+    .pg-spine { padding: 0.8rem 2rem; }
+    .pg-gates { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 2rem; }
+    .pg-thumb { padding: 1.5rem 1.5rem 1.6rem; }
+    .pg-section > h2 { font-size: 2.6rem; }
+  }
+  @media (min-width: 1100px) {
+    .pg-gates { grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 1.5rem; }
+    .pg-gates li { border-bottom: 0; }
+  }
+  @media print {
+    .scr-bar, .scr-tools { display: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="pg-spine"><p class="pg-label" id="pg-talk">The Most Valuable AI Skill Is Saying No</p></div>
+
+<div class="pg">
+  <header class="pg-head">
+    <h1 class="pg-display">The four-gate screener</h1>
+    <p class="pg-lede">Three ideas go in. Each one meets four gates, in order, and stops at its first NO. Among the ones still standing, the math picks.</p>
+  </header>
+
+  <noscript><p class="pg-noscript">This page needs JavaScript to do the arithmetic.</p></noscript>
+
+  <section class="pg-section" aria-labelledby="pg-gates-h">
+    <h2 class="pg-display" id="pg-gates-h">The four gates</h2>
+    <ol class="pg-gates" id="pg-gates"></ol>
+  </section>
+
+  <section class="pg-thumb" aria-labelledby="pg-thumb-h">
+    <h2 class="pg-display" id="pg-thumb-h">A minute a week</h2>
+    <p id="pg-minute"></p>
+    <p id="pg-cash"></p>
+  </section>
+
+  <section class="pg-section" aria-labelledby="pg-yours-h">
+    <h2 class="pg-display" id="pg-yours-h">Your three</h2>
+    <p class="pg-how">It opens with three made-up examples. Pick A, B or C, then change the name and the numbers to yours. A column says Example until you change it.</p>
+    <div id="screener"></div>
+  </section>
+
+  <footer class="pg-foot">
+    <p id="pg-saved"></p>
+    <p>The three examples are made up for illustration. They are nobody's real numbers.</p>
+  </footer>
+</div>
+
+<!-- the libraries, the speaker's numbers, the component: the deck's own files -->
+<script src="../deck/lib/benchlm-data.js"></script>
+<script src="../deck/lib/cost-math.js"></script>
+<script src="../deck/lib/gates-core.js"></script>
+<script src="../deck/content/your-numbers.js"></script>
+<script src="../deck/scenes/screener.js"></script>
+<script>
+(function () {
+  'use strict';
+  var G = window.Gates;
+  var CM = window.CostMath;
+  var Y = window.YOUR || {};
+  var host = document.getElementById('screener');
+  if (!G || !CM || !window.Screener) {
+    host.textContent = 'The screener could not load its math. Keep this page next to the deck folder it came with.';
+    return;
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  if (Y.event && Y.event.title) { document.getElementById('pg-talk').textContent = Y.event.title; }
+
+  /* Can this browser keep what is typed? Say which, plainly. */
+  var canSave = false;
+  try {
+    window.localStorage.setItem('four-gate-screener:probe', '1');
+    window.localStorage.removeItem('four-gate-screener:probe');
+    canSave = true;
+  } catch (e) { canSave = false; }
+  document.getElementById('pg-saved').textContent = canSave
+    ? 'What you type is saved in this browser, on this device, and nowhere else. This page sends nothing and asks the network for nothing. Reset puts the examples back and forgets the rest.'
+    : 'This browser is not letting the page save, so what you type lasts until you close or reload it. This page sends nothing and asks the network for nothing.';
+
+  /* The words around the screener follow the rules and rates in force, so they never disagree with it. */
+  function explain(results, a) {
+    var first = results[0];
+    document.getElementById('pg-gates').innerHTML = G.GATES.map(function (gate, i) {
+      return '<li><span class="pg-n pg-display">' + (i + 1) + '</span><h3 class="pg-display">' + esc(gate.label) + '</h3>' +
+        '<p class="pg-q">' + esc(gate.question) + '</p><p class="pg-rule">' + esc(first.gates[gate.id].rule) + '</p></li>';
+    }).join('');
+
+    var perMinute = G.minuteRule(a.rates.loadedHourly, a.rates.workWeeks);
+    document.getElementById('pg-thumb-h').textContent = 'A minute a week is ' + CM.money(perMinute) + ' a year';
+    document.getElementById('pg-minute').textContent = 'One minute saved every week, over ' + CM.number(a.rates.workWeeks) +
+      ' working weeks, at ' + CM.money(a.rates.loadedHourly) + ' an hour, is ' + CM.money(perMinute) +
+      ' a year. Count the minutes, multiply, and you have the return gate. Change the hourly rate under House rules and this line changes with it.';
+    document.getElementById('pg-cash').textContent = 'One day off the cash cycle frees about one day of sales, one time. At ' +
+      CM.shortMoney(a.company.annualRevenue) + ' of sales a year that is about ' + CM.aboutMoney(G.cashPerDay(a.company.annualRevenue)) + '.';
+  }
+
+  window.screenerApp = window.Screener.mount(host, { mode: 'live', layout: 'page', persist: 'local', onChange: explain });
+}());
+</script>
+</body>
+</html>

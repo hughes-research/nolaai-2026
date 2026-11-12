@@ -21,9 +21,16 @@
  *
  * TitleScene.markup(mode) writes the card from window.YOUR (speaker, event).
  *
- * Video capture: Motion.useManualClock(0), go to the slide, then
- * Motion.setTime(t) renders frame t exactly (the film is a finite tween that
- * starts when the slide enters; the loop reads Motion.now()).
+ * Video capture, frame-exact (the film is a finite tween that starts when the
+ * slide enters; the loop reads Motion.now()):
+ *
+ *     open  index.html#/cold-open/1
+ *     Motion.useManualClock(0);
+ *     window.__deck.goto('title', 0);     // do not wait on its promise: time is frozen
+ *     Motion.setTime(t);                  // t = 0 .. TitleScene.film.duration (8 s)
+ *
+ * The walk-in loop the same way with 'walk-in' (from any other slide); one
+ * turn of it is TitleScene.loop.period seconds (32) and frame 0 = frame 32.
  *
  * Also here, because the Act 1 slides share it: window.SleeveFX, the few
  * kinetic moves of the direction as functions of progress (block reveal,
@@ -186,6 +193,8 @@
     '.tc-dock .gate-name { left: 0; right: auto; top: 0; width: max-content; font-size: 104px; letter-spacing: 0;',
     '  transform-origin: 0 0; transform: translate(79.5px, 600px) rotate(-90deg); }',
     '.tc-dock .gate.is-pass > .gate-name::after { content: none; }',
+    /* every frame of the dock is set by hand: nothing here may ease behind it */
+    '.tc-dock .gate, .tc-dock .gate-shutter { transition-property: none !important; }',
 
     /* ---- the title film: the left field prints in negative for the stop-time hold ---- */
     '.tc-ground { left: var(--spine-w); top: 0; width: calc(926px - var(--spine-w)); height: 1080px; background: var(--c-bg); }',
@@ -194,11 +203,11 @@
     /* ---- walk-in: the catalogue line on Card, and the Flare band the gates stand on ---- */
     '.layout-title > .wk-cat { left: 970px; top: 64px; }',
     '.layout-title > .slab.wk-band { left: 926px; top: 780.6px; width: 994px; height: 299.4px; }',
-    '.wk-band > .wk-do { left: 44px; top: 56px; width: 560px; }',
-    '.wk-band > .wk-live { left: 660px; top: 56px; width: 290px; margin: 0; }',
-    '.wk-live-k { display: block; white-space: nowrap; font-stretch: var(--wdth-label-tight); }',
-    '.wk-live-v { display: block; margin-top: 26px; font-size: 150px; text-transform: uppercase; white-space: nowrap; }',
-    '.wk-band > .wk-rule { left: 628px; top: 56px; width: var(--w-rule); height: 188px; background: var(--c-line); }'
+    '.wk-band > .wk-do { left: 44px; top: 48px; width: 384px; }',
+    '.wk-band > .wk-rule { left: 466px; top: 48px; width: var(--w-rule); height: 205px; background: var(--c-line); }',
+    '.wk-band > .wk-live { left: 510px; top: 48px; width: 440px; margin: 0; }',
+    '.wk-live-k { display: block; white-space: nowrap; }',
+    '.wk-live-v { display: block; margin-top: 35px; font-size: 200px; text-transform: uppercase; white-space: nowrap; }'
   ].join('\n');
 
   var style = doc.createElement('style');
@@ -295,6 +304,10 @@
   function parseStart(ev) {
     if (!ev) { return null; }
     var d = /([A-Za-z]{3})[A-Za-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})/.exec(String(ev.date || ''));
+    if (!d) {                                          // "13 Nov 2026": the day first
+      var alt = /(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]{3})[A-Za-z]*\.?,?\s+(\d{4})/.exec(String(ev.date || ''));
+      if (alt) { d = [alt[0], alt[2], alt[1], alt[3]]; }
+    }
     var t = /(\d{1,2})[:.](\d{2})\s*(?:([ap])\.?m\.?)?/i.exec(String(ev.startsAt || ''));
     if (!d || !t) { return null; }
     var month = MONTHS[d[1].toLowerCase()];
@@ -363,7 +376,7 @@
         '<p class="catalogue wk-cat">' + esc(w.catalogue) + '</p>' +
         dockHtml(w, ['is-pass', 'is-pass', 'is-pass', 'is-shut']) +
         '<div class="slab wk-band">' +
-          '<p class="stack wk-do" data-fit><span class="ln">Take a worksheet</span><span class="ln">and a pen</span></p>' +
+          '<p class="stack wk-do" data-fit data-fit-max="88" data-fit-h="205"><span class="ln">Take a</span><span class="ln">worksheet</span><span class="ln">and a pen</span></p>' +
           '<i class="wk-rule"></i>' +
           '<p class="wk-live" role="timer"><span class="label wk-live-k">' + esc(live.key) + '</span><b class="num wk-live-v">' + esc(live.value) + '</b></p>' +
         '</div>' +

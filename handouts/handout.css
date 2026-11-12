@@ -1,0 +1,817 @@
+/*
+ * handouts/handout.css: the printed worksheet.
+ * "The Most Valuable AI Skill Is Saying No" · NOAI 2026
+ *
+ * One sheet of US Letter, both sides, on an office printer in black and white.
+ * It carries the deck's identity (docs/DIRECTION.md, "Sleeve") in the one ink a
+ * laser printer has:
+ *
+ *   - the same two typefaces, loaded from ../deck/theme/fonts.css: Archivo on
+ *     its width axis (62 shouts, 100 talks, 125 labels) and Fraunces italic as
+ *     the second voice;
+ *   - hard edges, heavy rules, no tints, no greys: everything is solid black or
+ *     bare paper, so nothing depends on a halftone screen surviving the copier;
+ *   - the gate drawn in line: two posts and a lintel standing on a floor line.
+ *     In the verdict row four of them share their posts, as on the slides, and
+ *     each door has two panels: PASS rides high, NO sits on the floor.
+ *
+ * Flare (the deck's spot ink) cannot print here, so it carries nothing. The one
+ * block that is Flare on the title slide, the NO slab, is solid black.
+ *
+ * Colour and type come from ../deck/theme/tokens.css. The first block below
+ * re-points the colour tokens at paper and printer black and adds the paper
+ * sizes (points and millimetres; the deck's sizes are stage pixels).
+ *
+ * The markup is written by tools/build-handouts.js, which also bakes the
+ * fitted widths of the title stack into it and prints the PDF.
+ */
+
+@page {
+  size: 8.5in 11in;
+  margin: 0.4in;
+}
+
+:root {
+  /* paper stock and printer black: pure K, so type and hairlines stay sharp */
+  --c-bg: #fff;
+  --c-bg-alt: #fff;
+  --c-ink: #000;
+  --c-ink-soft: #000;
+  --c-muted: #000;
+  --c-line: #000;
+  --c-accent: #000;           /* Flare does not exist on this sheet */
+  --c-accent-ink: #fff;
+  --c-no: #000;
+  --c-no-ink: #fff;
+  --c-pass: #000;
+  --c-pass-ink: #fff;
+
+  /* the sheet: Letter less 0.4in all round */
+  --sheet-w: 7.7in;
+  --sheet-h: 10.2in;
+
+  /* type on paper */
+  --p-headline: 25pt;         /* an exercise headline */
+  --p-gate: 14pt;             /* a gate's name */
+  --p-body-l: 9.6pt;
+  --p-body: 8.5pt;            /* row labels, instructions */
+  --p-fine: 6.5pt;            /* the working: formulas, assumptions, sources */
+  --p-label: 6.2pt;           /* wide caps */
+  --p-voice: 10pt;            /* Fraunces italic */
+  --p-hand: 9.5pt;            /* the worked example, written in */
+
+  /* lines on paper. One CSS pixel is the thinnest line a browser prints true. */
+  --l-hair: 0.75pt;           /* cell rules, writing lines */
+  --l-rule: 1.5pt;            /* gate posts, block edges */
+  --l-bold: 3pt;              /* the rule a section hangs from */
+
+  /* the scorecard grid */
+  --row: 9mm;                 /* a writing row. Never under 8mm inside */
+  --col-label: 60mm;
+  --col-ex: 18mm;
+
+  /* Fraunces at text sizes: a lower optical size keeps the hairlines printable.
+     The wonk and swash forms stay off, as on stage. */
+  --voice-paper: "opsz" 20, "SOFT" 0, "WONK" 0;
+}
+
+* { box-sizing: border-box; }
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--c-bg);
+  color: var(--c-ink);
+  font-family: var(--f-body);
+  font-size: var(--p-body);
+  font-weight: 500;
+  font-stretch: var(--wdth-text);
+  line-height: 1.22;
+  font-kerning: normal;
+  font-variant-numeric: tabular-nums;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+p, h1, h2, h3, ol, ul, figure { margin: 0; padding: 0; }
+ol, ul { list-style: none; }
+b, strong { font-weight: 800; }
+i, em { font-style: normal; }
+
+/* ==========================================================================
+   The sheet: one side of the paper
+   ========================================================================== */
+
+.sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: var(--sheet-w);
+  height: var(--sheet-h);
+  overflow: hidden;
+  break-after: page;
+  break-inside: avoid;
+}
+
+.sheet:last-of-type { break-after: auto; }
+
+/* On screen the two sides are shown as two pieces of paper, margins included,
+   so what you see is what the printer gets. None of this prints. */
+.screen-note { display: none; }
+
+@media screen {
+  html { background: #8a8275; }
+  body { background: none; padding: 0.3in 0 0.6in; }
+  .sheet {
+    box-sizing: content-box;
+    margin: 0 auto 0.3in;
+    padding: 0.4in;
+    background: var(--c-bg);
+  }
+  .screen-note {
+    display: block;
+    width: calc(var(--sheet-w) + 0.8in);
+    margin: 0 auto 0.2in;
+    color: #fff;
+    font-size: 10pt;
+    font-weight: 600;
+  }
+}
+
+/* ==========================================================================
+   Type
+   ========================================================================== */
+
+/* wide caps: kickers, column heads, tags */
+.label {
+  font-family: var(--f-mono);
+  font-size: var(--p-label);
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-label);
+  line-height: 1;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.label.is-tight { font-stretch: var(--wdth-label-tight); letter-spacing: 0.08em; }
+
+/* display: Archivo at width 62, weight 900, caps, in a cap-height line box */
+.headline,
+.gate-name,
+.plate,
+.num {
+  font-family: var(--f-display);
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  line-height: var(--lh-cap);
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.headline { font-size: var(--p-headline); white-space: nowrap; }
+
+/* the second voice */
+.voice {
+  font-family: var(--f-voice);
+  font-style: italic;
+  font-weight: var(--wght-voice);
+  font-stretch: normal;
+  font-variation-settings: var(--voice-paper);
+  font-optical-sizing: none;
+  font-size: var(--p-voice);
+  line-height: 1.15;
+  letter-spacing: 0;
+}
+
+.fine {
+  font-size: var(--p-fine);
+  font-weight: 500;
+  font-stretch: 95%;
+  line-height: 1.17;
+}
+
+/* a default: a house rule or a rate. The dashed line says "change me". */
+.dflt {
+  font-weight: 800;
+  border-bottom: 1pt dashed var(--c-line);
+  white-space: nowrap;
+}
+
+/* an operator in the working, heavy enough to survive a photocopier */
+.o { font-weight: 900; font-size: 1.12em; line-height: 0; }
+
+/* an arrow, drawn (the embedded fonts carry no arrow glyph) */
+.arr {
+  display: inline-block;
+  width: 0.95em;
+  height: 0.62em;
+  margin: 0 0.05em;
+  background: currentColor;
+  clip-path: polygon(0 38%, 58% 38%, 58% 0, 100% 50%, 58% 100%, 58% 62%, 0 62%);
+}
+
+/* a letter on a block: A, B, C */
+.plate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 5.2mm;
+  height: 5.2mm;
+  background: var(--c-ink);
+  color: var(--c-bg);
+  font-size: 11pt;
+}
+
+/* ==========================================================================
+   Side 1 · the masthead: the title slide at the size of a ticket
+   ========================================================================== */
+
+.mast {
+  flex: none;
+  padding-bottom: 2.6mm;
+  border-bottom: var(--l-bold) solid var(--c-line);
+}
+
+.mast-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 2.8mm;
+}
+
+.mast-main {
+  --slab-pad: 2.4mm;
+  display: flex;
+  align-items: stretch;
+}
+
+/* The stack: two lines justified to one measure on Archivo's width axis.
+   tools/build-handouts.js fits them with the deck's own THEME.fitStack and
+   writes the result into the markup, so nothing is measured at print time. */
+.hd-stack {
+  flex: none;
+  width: 100mm;
+  margin: var(--slab-pad) 0;
+  font-family: var(--f-display);
+  font-size: 34pt;
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  line-height: var(--lh-cap);
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.hd-stack .ln {
+  display: block;
+  width: max-content;
+  white-space: nowrap;
+}
+
+/* The slab: the fourth gate, shut. Its NO is exactly as tall as the stack. */
+.slab {
+  flex: none;
+  margin-left: 3.2mm;
+  padding: var(--slab-pad) 3mm;
+  background: var(--c-ink);
+  color: var(--c-bg);
+}
+
+.slab-no {
+  display: block;
+  height: calc(var(--cap) * 1em);
+  font-family: var(--f-display);
+  font-size: 72pt;
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  line-height: var(--lh-cap);
+  text-transform: uppercase;
+}
+
+.mast-side {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding-left: 4.4mm;
+}
+
+.mast-side .voice {
+  font-size: 12.5pt;
+  line-height: 1.1;
+  white-space: nowrap;
+  padding-bottom: calc(var(--slab-pad) + 0.3mm);
+}
+
+.credit {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4mm;
+  margin-top: 3mm;
+  font-size: var(--p-body);
+  font-weight: 600;
+  font-stretch: 88%;
+  white-space: nowrap;
+}
+
+.credit b { font-weight: 900; text-transform: uppercase; }
+
+/* ==========================================================================
+   An exercise: kicker, headline, the thing to fill in
+   ========================================================================== */
+
+.ex { flex: none; }
+
+.ex-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 6mm;
+}
+
+.ex-head .label { display: block; margin-bottom: 2.2mm; }
+
+.ex-1 { margin-top: 5.2mm; }
+.ex-2 { margin-top: 5.6mm; }
+
+/* the four prompts of Exercise 1 */
+.prompts {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin-top: 3.4mm;
+  border-top: var(--l-rule) solid var(--c-line);
+}
+
+.prompts > li {
+  display: flex;
+  gap: 1.8mm;
+  padding: 1.9mm 2.4mm 2.2mm 0;
+  font-size: var(--p-body-l);
+  font-weight: 600;
+  line-height: 1.16;
+}
+
+.prompts > li + li { padding-left: 2.4mm; border-left: var(--l-hair) solid var(--c-line); }
+.prompts > li > .num { flex: none; font-size: 15pt; padding-top: 0.25mm; }
+
+/* ---- the ruled table ---- */
+.ruled {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.ruled th,
+.ruled td {
+  padding: 0;
+  text-align: left;
+  vertical-align: top;
+  font-weight: inherit;
+}
+
+.inv { margin-top: 0.6mm; border-top: var(--l-bold) solid var(--c-line); }
+.inv col.c-n { width: 7mm; }
+.inv col.c-often { width: 27mm; }
+.inv col.c-min { width: 32mm; }
+.inv col.c-who { width: 36mm; }
+.inv th { height: 6.2mm; padding: 2.1mm 1.6mm 0; border-bottom: var(--l-rule) solid var(--c-line); }
+.inv th + th,
+.inv td + td { border-left: var(--l-hair) solid var(--c-line); }
+.inv td { height: 9.5mm; border-bottom: var(--l-hair) solid var(--c-line); }
+.inv tbody tr:last-child td { border-bottom: var(--l-rule) solid var(--c-line); }
+.inv .n {
+  padding: 0 0 1.5mm;
+  vertical-align: bottom;
+  font-family: var(--f-display);
+  font-size: 9pt;
+  font-weight: 800;
+  font-stretch: 75%;
+  line-height: 1;
+}
+.inv th.n { padding: 2.1mm 0 0; }
+
+/* ---- Exercise 2: three lines to write on ---- */
+.picks { margin-top: 3.4mm; border-top: var(--l-bold) solid var(--c-line); }
+
+.picks > li {
+  display: flex;
+  align-items: flex-end;
+  height: 12.4mm;
+  padding-bottom: 2mm;
+  border-bottom: var(--l-hair) solid var(--c-line);
+}
+
+.picks > li:last-child { border-bottom: var(--l-rule) solid var(--c-line); }
+.picks .plate { width: 7.4mm; height: 7.4mm; font-size: 15.5pt; }
+.picks .ask { flex: none; width: 72mm; padding: 0 0 0.9mm 2.6mm; font-size: 10.5pt; font-weight: 700; line-height: 1.05; white-space: nowrap; }
+.picks .write { flex: 1 1 0; height: 100%; }
+
+/* ---- the foot of a side ---- */
+.foot {
+  flex: none;
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 5mm;
+  padding-top: 2mm;
+}
+
+.foot .turn { display: inline-flex; align-items: center; gap: 2mm; }
+.foot .turn::after {
+  content: "";
+  width: 9mm;
+  height: 2.6mm;
+  background: var(--c-ink);
+  clip-path: polygon(0 38%, 68% 38%, 68% 0, 100% 50%, 68% 100%, 68% 62%, 0 62%);
+}
+
+/* ==========================================================================
+   Side 2 · the scorecard
+   ========================================================================== */
+
+.ex-3 .ex-head { align-items: flex-end; justify-content: flex-start; gap: 0; }
+.ex-3 .what { flex: none; width: var(--col-label); }
+.ex-3 .how { flex: 1 1 0; }
+.ex-3 .how .voice { font-size: 12.5pt; }
+.ex-3 .how .body { margin-top: 1mm; font-size: var(--p-body); font-weight: 600; line-height: 1.2; }
+
+.card { margin-top: 2.8mm; }
+
+.card col.c-label { width: var(--col-label); }
+.card col.c-ex { width: var(--col-ex); }
+
+.card td {
+  height: var(--row);
+  border-bottom: var(--l-hair) solid var(--c-line);
+}
+
+.card td + td { border-left: var(--l-hair) solid var(--c-line); }
+
+/* ---- column heads: the example, then your three ---- */
+.card .heads td {
+  height: 12.4mm;
+  vertical-align: top;
+  border-top: var(--l-bold) solid var(--c-line);
+  border-bottom: 0;
+}
+
+.card .heads .lead { padding: 1.8mm 2mm 0 0; }
+.card .heads .lead .label { display: block; margin-bottom: 1.3mm; }
+
+.col-head {
+  display: flex;
+  flex-direction: column;
+  height: 12.4mm;
+  padding: 1.5mm 1.5mm 0;
+}
+
+.col-head .who { display: flex; align-items: center; gap: 1.5mm; min-height: 5.2mm; }
+.col-head .who .fine { font-weight: 700; line-height: 1.08; }
+.col-head.is-ex { padding: 1.5mm 0.8mm 0 1.3mm; }
+.col-head.is-ex .label { display: block; margin-bottom: 1mm; }
+.col-head.is-ex .fine { font-weight: 700; line-height: 1.06; }
+
+/* ---- a block: the minutes, then each gate. It hangs from a heavy rule. ---- */
+.card .blk td {
+  height: auto;
+  padding: 0;
+  border-top: var(--l-bold) solid var(--c-line);
+  border-bottom: var(--l-rule) solid var(--c-line);
+}
+
+.blk-head {
+  display: flex;
+  align-items: center;
+  gap: 2.2mm;
+  height: 7.6mm;
+  white-space: nowrap;
+}
+
+/* the gate, drawn in line: two posts and a lintel, standing on a floor line
+   that runs past the posts. Frame only: it has not given its verdict. */
+.blk-head .glyph {
+  position: relative;
+  flex: none;
+  width: 3.5mm;
+  height: 4.5mm;
+  margin: 0 1.5mm 0 1.9mm;
+  border: var(--l-rule) solid var(--c-line);
+  border-top-width: 2.4pt;
+  border-bottom: 0;
+}
+
+.blk-head .glyph::after {
+  content: "";
+  position: absolute;
+  left: -1.9mm;
+  right: -1.9mm;
+  bottom: 0;
+  border-bottom: var(--l-hair) solid var(--c-line);
+}
+
+.blk-head .gate-n { flex: none; }
+.blk-head .gate-name { flex: none; font-size: var(--p-gate); }
+.blk-head .voice { flex: none; font-size: 9.2pt; padding-left: 0.6mm; }
+.blk-head .note {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-left: 3mm;
+  text-align: right;
+  white-space: normal;
+  font-weight: 600;
+  line-height: 1.22;
+  text-wrap: balance;
+}
+
+/* ---- a row ---- */
+.card .lab { padding: 1mm 2mm 1mm 0; vertical-align: middle; }
+.card .lab .t { display: block; font-size: var(--p-body); font-weight: 700; line-height: 1.12; }
+.card .lab .fine { display: block; margin-top: 0.45mm; }
+.card .lab .op { display: inline-block; width: 3.4mm; font-weight: 900; }
+
+.card tr.is-sum .lab .t { font-weight: 900; text-transform: uppercase; font-stretch: 88%; letter-spacing: 0.01em; }
+.card tr.is-last td { border-bottom: 0; }
+
+/* the tag on a house rule or a rule of thumb */
+.tag {
+  display: inline-block;
+  margin-right: 0.5mm;
+  padding: 0.35mm 0.9mm 0.3mm;
+  background: var(--c-ink);
+  color: var(--c-bg);
+  font-size: 5pt;
+  font-weight: 800;
+  font-stretch: 112%;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  vertical-align: 0.15mm;
+}
+
+/* the worked example, in the hand of someone who has done it */
+.card .ex {
+  padding: 0 0.8mm 0 1.3mm;
+  vertical-align: middle;
+  font-family: var(--f-voice);
+  font-style: italic;
+  font-weight: 600;
+  font-variation-settings: var(--voice-paper);
+  font-optical-sizing: none;
+  font-size: var(--p-hand);
+  line-height: 1.02;
+}
+
+.card .ex small {
+  display: block;
+  margin-top: 0.3mm;
+  font-size: 6.6pt;
+  line-height: 1.08;
+  font-weight: 600;
+}
+
+/* a box to write in. The unit is printed small so the answer needs none. */
+.card .w { position: relative; padding: 0; }
+
+.w .u {
+  position: absolute;
+  left: 1.3mm;
+  bottom: 1.3mm;
+  font-size: 8.5pt;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.w .u.is-r,
+.w .tk {
+  left: auto;
+  right: 1.2mm;
+  bottom: 1.25mm;
+  font-size: 5.2pt;
+  font-weight: 700;
+  font-stretch: 112%;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* two boxes in one cell, for a sum done in one line */
+.w .split { display: flex; height: 100%; min-height: var(--row); }
+.w .split > span { position: relative; flex: 1 1 0; }
+.w .split > span + span { flex: 1.45 1 0; border-left: var(--l-hair) dashed var(--c-line); }
+.w .split.is-even > span + span { flex: 1 1 0; }
+
+/* yes, to tick */
+.tick {
+  display: inline-block;
+  width: 3.6mm;
+  height: 3.6mm;
+  margin-right: 0.8mm;
+  border: var(--l-hair) solid var(--c-line);
+}
+
+.w .tk { position: absolute; left: 1.4mm; right: auto; bottom: 1.1mm; display: flex; align-items: flex-end; }
+
+/* ---- the tools to circle, with what 1,000 runs cost ---- */
+.card tr.is-tools td { height: 13.6mm; }
+
+.tools {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 13.6mm;
+  padding: 1.2mm 1.6mm 1.25mm;
+}
+
+.tools > li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 7pt;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.tools > li > b { font-weight: 800; }
+
+/* ---- the verdict: the dock, drawn in line ----
+   Four bays share their posts and stand on one floor line. Each door has its
+   name on the lintel and two panels: PASS rides high, NO sits on the floor.
+   Circle one. */
+.card tr.is-verdict td {
+  height: 19.6mm;
+  border-top: var(--l-bold) solid var(--c-line);
+  border-bottom: var(--l-rule) solid var(--c-line);
+  vertical-align: middle;
+}
+
+.card tr.is-verdict .lab { vertical-align: top; padding-top: 2.2mm; }
+.card tr.is-verdict .gate-name { display: block; font-size: var(--p-gate); margin-bottom: 1.6mm; }
+
+.dock {
+  position: relative;
+  display: flex;
+  height: 15mm;
+  margin: 0 1.1mm;
+  border-bottom: var(--l-rule) solid var(--c-line);
+}
+
+/* the floor line runs past the outer posts */
+.dock::before,
+.dock::after {
+  content: "";
+  position: absolute;
+  bottom: calc(var(--l-rule) * -1);
+  width: 1mm;
+  border-bottom: var(--l-rule) solid var(--c-line);
+}
+
+.dock::before { right: 100%; }
+.dock::after { left: 100%; }
+
+.bay {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border: var(--l-rule) solid var(--c-line);
+  border-top-width: 2.4pt;
+  border-bottom: 0;
+}
+
+.bay + .bay { margin-left: calc(var(--l-rule) * -1); }   /* neighbours share a post */
+
+.bay-n,
+.say {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--f-display);
+  font-weight: var(--wght-display);
+  font-stretch: var(--wdth-display);
+  line-height: var(--lh-cap);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* the four names share one size: they are equals */
+.bay-n {
+  flex: none;
+  height: 3.1mm;
+  border-bottom: var(--l-hair) solid var(--c-line);
+  font-size: 5.6pt;
+  letter-spacing: 0.01em;
+}
+
+.say { min-height: 0; }
+.say.is-pass { flex: 1 1 0; font-size: 8.8pt; letter-spacing: 0.03em; border-bottom: var(--l-hair) solid var(--c-line); }
+.say.is-no { flex: 1.35 1 0; font-size: 13.5pt; letter-spacing: 0.02em; }
+
+/* a small gate, shape only: the example's verdicts */
+.gate-s {
+  position: relative;
+  flex: none;
+  display: inline-block;
+  width: 3.7mm;
+  height: 6.2mm;
+  border: var(--l-hair) solid var(--c-line);
+  border-bottom: 0;
+}
+
+.gate-s.is-pass::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1.8mm;
+  background: var(--c-pass);
+}
+
+.gate-s.is-no { background: var(--c-no); height: 7.6mm; margin-bottom: -1.4mm; }
+
+.dock-s {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  height: 6.2mm;
+  width: max-content;
+  margin: 0 0 2.2mm 0.6mm;
+}
+
+.dock-s::after {
+  content: "";
+  position: absolute;
+  left: -0.8mm;
+  right: -0.8mm;
+  bottom: 0;
+  border-bottom: var(--l-hair) solid var(--c-line);
+}
+
+.dock-s .gate-s + .gate-s { margin-left: calc(var(--l-hair) * -1); }
+
+/* ---- the last line: what the math picks ---- */
+.card tr.is-pick td { height: 11.6mm; border-bottom: var(--l-bold) solid var(--c-line); }
+.card tr.is-pick .gate-name { display: block; font-size: var(--p-gate); margin-bottom: 1.1mm; }
+
+.star { margin-top: 1.4mm; font-size: 6pt; line-height: 1.2; }
+
+/* ---- the foot of side 2: the ladder, the standard, the session ---- */
+.foot-2 { flex: none; margin-top: auto; padding-top: 2mm; }
+
+.foot-main {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 6mm;
+}
+
+.rungs { position: relative; }
+.rungs > .label { position: absolute; left: 0; top: 0; }
+
+.ladder { display: flex; align-items: flex-end; padding-top: 1.2mm; }
+
+.ladder > li {
+  position: relative;
+  padding: 0 2mm 0.9mm 1.5mm;
+  margin-bottom: calc(var(--i) * 1.05mm);
+  border-bottom: var(--l-rule) solid var(--c-line);
+  font-size: 7.2pt;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.ladder > li:first-child { padding-left: 0; }
+
+/* the riser up to this rung */
+.ladder > li + li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: calc(-1.05mm - var(--l-rule));
+  height: calc(1.05mm + var(--l-rule));
+  border-left: var(--l-rule) solid var(--c-line);
+}
+
+.standard { text-align: right; }
+.standard .label { display: block; margin-bottom: 1.2mm; }
+.standard .voice { font-size: 9.6pt; line-height: 1.1; max-width: 66mm; margin-left: auto; text-wrap: balance; }
+
+.sign-off {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 1.8mm;
+  padding-top: 1.4mm;
+  border-top: var(--l-hair) solid var(--c-line);
+}
+
+.sign-off .voice { font-size: 8.6pt; }

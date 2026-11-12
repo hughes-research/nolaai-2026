@@ -26,8 +26,9 @@
  *   - All motion runs on Motion (tweens and timelines), so ?fast and the
  *     manual clock work. Nothing fades: marks cut in, blocks grow, lines draw
  *     at one constant speed. Every state can be drawn at once, with no motion.
- *   - Controls are the theme's own (.seg buttons, .slider range inputs). The
- *     engine hands the keyboard back to the deck after every pointer use.
+ *   - Controls are real buttons and range inputs, 72px tall, drawn like the
+ *     theme's own. They are worked with the pointer; the engine hands the
+ *     keyboard back to the deck after every use, so the clicker keeps working.
  *
  * window.CostScenes is the small API the slide file uses:
  *   CostScenes.poster(name)   -> html for a scene host ('ladder' | 'breakeven' | 'showdown')
@@ -51,6 +52,12 @@
   }
 
   function px(n) { return (Math.round(n * 10) / 10) + 'px'; }
+
+  /* A range input's track is drawn thick up to its thumb (32px wide); t is 0..1 along the track. */
+  function fillStyle(t) {
+    var k = isFinite(t) ? Math.max(0, Math.min(1, t)) : 0;
+    return '--fill: calc(16px + (100% - 32px) * ' + k.toFixed(4) + ')';
+  }
 
   function log10(x) { return Math.log(x) / Math.LN10; }
 
@@ -78,12 +85,54 @@
   }
 
   /*
-   * Rough text widths in em, measured once in the deck's fonts. Used only to
-   * decide where things go (which side a label sits on, whether a value fits
-   * inside its bar). The type itself is laid out by the browser.
+   * How long an entrance waits, in seconds. The theme's slide transition
+   * covers the new slide for about the first half of its run, and nothing
+   * should move under it. Zero in ?fast and in print.
    */
-  var EM = { num: 0.41, display: 0.43, label: 0.86, name: 0.47, body: 0.52, voice: 0.46 };
-  function estimate(text, sizePx, kind) { return String(text).length * sizePx * (EM[kind] || 0.5); }
+  function entranceDelay(api) {
+    if (api && api.mode && (api.mode.fast || api.mode.print)) { return 0; }
+    var raw = '';
+    try { raw = W.getComputedStyle(D.documentElement).getPropertyValue('--deck-slide-duration').trim(); } catch (err) { raw = ''; }
+    var n = parseFloat(raw);
+    var seconds = isNaN(n) ? 0.5 : (/ms$/.test(raw) ? n / 1000 : n);
+    return Math.max(0, Math.min(1, seconds)) * 0.7;
+  }
+
+  /* Average letter widths in em, measured once in the deck's fonts: the fallback for estimate() below. */
+  var EM = { num: 0.41, display: 0.45, label: 0.86, name: 0.47, body: 0.52, voice: 0.46 };
+  var FONT = {
+    num: { weight: 900, stretch: 'extra-condensed', family: 'Archivo' },
+    display: { weight: 900, stretch: 'extra-condensed', family: 'Archivo', upper: true },
+    label: { weight: 700, stretch: 'semi-expanded', family: 'Archivo', upper: true, track: 0.08 },
+    name: { weight: 700, stretch: 'semi-condensed', family: 'Archivo' },
+    body: { weight: 600, stretch: 'normal', family: 'Archivo' },
+    voice: { weight: 600, stretch: 'normal', family: 'Fraunces', italic: true }
+  };
+  var ruler = null;
+
+  /*
+   * The width of a piece of text, in px. Used only to decide where things go
+   * (which side a label sits on, whether a value fits inside its bar); the
+   * type itself is laid out by the browser. Measured on a canvas in the
+   * deck's own fonts once they are loaded; before that, and wherever a canvas
+   * cannot set a font width, a per-letter estimate measured once by hand.
+   */
+  function estimate(text, sizePx, kind) {
+    var spec = FONT[kind];
+    var str = String(text);
+    try {
+      if (spec && D.fonts && D.fonts.check && D.fonts.check(spec.weight + ' ' + sizePx + 'px "' + spec.family + '"')) {
+        if (!ruler) { ruler = D.createElement('canvas').getContext('2d'); }
+        if (ruler && 'fontStretch' in ruler) {
+          ruler.font = (spec.italic ? 'italic ' : '') + spec.weight + ' ' + sizePx + 'px "' + spec.family + '"';
+          ruler.fontStretch = spec.stretch;
+          if (spec.upper) { str = str.toUpperCase(); }
+          return ruler.measureText(str).width + (spec.track ? spec.track * sizePx * str.length : 0);
+        }
+      }
+    } catch (err) { /* fall through to the estimate */ }
+    return str.length * sizePx * (EM[kind] || 0.5);
+  }
 
   /* ======================================================================
    * Facts: everything the three slides say, computed once per call
@@ -136,6 +185,9 @@
     return f.tiers.filter(function (t) { return t.modelName && !t.missing && isNum(t.pricePerRun) && t.pricePerRun > 0; });
   }
 
+  /* straight quotes to typographer's quotes, for display */
+  function curly(text) { return String(text).replace(/"([^"]*)"/g, '“$1”'); }
+
   /* 'Premium "pro" model' -> 'Premium' */
   function tierWord(t) { return String(t.label || t.id).split(/\s+/)[0]; }
 
@@ -150,14 +202,14 @@
       volume: DEFAULT_VOLUME,
       volumeText: C.number(DEFAULT_VOLUME),
       frontierSentence: f.summary.sentence,
-      ladderAxis: 'Price of one task · ' + f.tokensText + ' · US dollars · log scale',
+      ladderAxis: c.priced + ' models · price per task · ' + f.tokensText + ' · log scale',
       ladderSource: 'Source: ' + f.source + ' · ' + c.priced + ' of ' + c.rows + ' models have a usable price · ' +
         c.blank + ' blank and ' + c.zeroListed + ' listed at ' + C.money(0).replace(/^about /, '') + ' are left out',
       breakevenSource: 'Source: ' + f.source + (dearest ? ' · ' + dearest.name + ' at ' + C.money(dearest.pricePerRun) + ' a task' : '') +
-        ' · one task = ' + f.tokensText + ' · seconds = price ÷ hourly rate × ' + C.number(3600),
+        ' · one task = ' + f.tokensText,
       barsSource: 'Source: ' + f.source + ' · one record = one task = ' + f.tokensText,
-      scatterSource: 'Source: ' + f.source + ' · ' + f.summary.priced + ' priced models · ' + estimatedPriced +
-        ' of their scores are marked estimated in the file · rank order is not statistically certain'
+      scatterSource: 'Source: ' + f.source + ' · the file marks ' + estimatedPriced + ' of these ' + f.summary.priced +
+        ' scores estimated · rank order is not certain'
     };
   }
 
@@ -170,9 +222,12 @@
     '.slide.is-static [data-scene].cg-host::after { content: none; display: none; }',
     '.cg-host { position: relative; flex: 1 1 0; min-width: 0; min-height: 0; }',
     '.cg-host * { box-sizing: border-box; }',
-    '.cg-host :is([data-step], [data-step-out]) { transition: none; }',
+    '.cg-host b { font-weight: inherit; }',
+    '.cg-host :is([data-step], [data-step-only], [data-step-out]) { transition: none; }',
     '.cg-host .cg-a { position: absolute; }',
     '.cg-host .cg-hide { visibility: hidden; }',
+    /* the gate strip's pointer reaches y = 128: start these headlines just under it */
+    ':is([data-slide-id="gate-cost"], [data-slide-id="cost-people-scale"], [data-slide-id="cost-record-scale"], [data-thumb-of="gate-cost"], [data-thumb-of="cost-people-scale"], [data-thumb-of="cost-record-scale"]) > .kicker { margin-bottom: 42px; }',
     /* slide-level pieces that swap with the view of the cost scene */
     '.cg-swap:is([data-step], [data-step-out]):not(.is-visible), .cg-swap.cg-off { display: none; }',
     '.cg-wipe { position: absolute; left: var(--spine-w); top: 0; right: 0; bottom: 0; z-index: 6; background: var(--c-ink); pointer-events: none; }',
@@ -191,9 +246,9 @@
     '.cg-ladder .cg-tick { position: absolute; width: 0; }',
     '.cg-ladder .cg-tick > i { position: absolute; left: -3px; bottom: 100%; width: var(--w-rule); height: 12px; margin-bottom: 0; background: var(--c-line); }',
     '.cg-ladder .cg-tick > b { position: absolute; left: 0; top: 0; translate: -50% 0; }',
-    '.cg-ladder .cg-times { position: absolute; height: 32px; }',
-    '.cg-ladder .cg-times > i { position: absolute; left: 0; right: 0; top: 14px; height: var(--w-hair); background: var(--c-line); }',
-    '.cg-ladder .cg-times > b { position: absolute; left: 50%; top: 0; translate: -50% 0; padding: 0 16px; background: var(--c-bg); }',
+    '.cg-host .cg-times { position: absolute; height: 32px; }',
+    '.cg-host .cg-times > i { position: absolute; left: 0; right: 0; top: 14px; height: var(--w-hair); background: var(--c-line); }',
+    '.cg-host .cg-times > b { position: absolute; left: 50%; top: 0; translate: -50% 0; padding: 0 16px; background: var(--c-bg); }',
     '.cg-ladder .cg-flag { position: absolute; top: 0; width: 0; }',
     '.cg-ladder .cg-pole { position: absolute; left: -3px; top: 0; width: var(--w-rule); background: var(--c-line); }',
     '.cg-ladder .cg-flag-t { position: absolute; top: 0; display: flex; flex-direction: column; }',
@@ -202,35 +257,36 @@
     '.cg-ladder .cg-flag-t > .cg-num { font-size: 96px; margin-top: 16px; }',
     '.cg-ladder .cg-flag-t > .cg-name { margin-top: 16px; }',
     '.cg-ladder .cg-post { position: absolute; width: var(--w-rule); background: var(--c-line); }',
-    '.cg-ladder .cg-spread { position: absolute; bottom: 0; overflow: hidden; background: var(--c-accent); color: var(--c-accent-ink); }',
+    '.cg-ladder .cg-spread { position: absolute; bottom: 0; z-index: 1; overflow: hidden; background: var(--c-accent); color: var(--c-accent-ink); }',
     '.cg-ladder .cg-spread-in { position: absolute; left: 0; top: 0; bottom: 0; }',
-    '.cg-ladder .cg-sum { position: absolute; left: 34px; top: 16px; font-size: 56px; }',
-    '.cg-ladder .cg-x { position: absolute; left: 34px; bottom: 14px; font-size: 200px; font-variant-numeric: tabular-nums; }',
+    '.cg-ladder .cg-sum { position: absolute; left: 34px; top: 18px; font-size: 54px; }',
+    '.cg-ladder .cg-x { position: absolute; left: 34px; bottom: 16px; font-size: 190px; font-variant-numeric: tabular-nums; }',
     '.cg-ladder .cg-spread .cg-say { position: absolute; right: 36px; bottom: 30px; }',
 
     /* ---------------- break-even ---------------- */
-    '.cg-be { display: grid; grid-template-columns: minmax(0, 1fr) 640px; column-gap: var(--s-7); align-items: start; }',
-    '.cg-be-main { display: flex; flex-direction: column; align-items: flex-start; padding-top: var(--s-5); }',
-    '.cg-be .cg-fig { display: flex; align-items: baseline; gap: 22px; font-size: 380px; }',
+    '.cg-be { display: grid; grid-template-columns: minmax(0, 1fr) 600px; column-gap: var(--s-7); align-items: start; }',
+    '.cg-be-main { display: flex; flex-direction: column; align-items: flex-start; padding-top: var(--s-3); }',
+    '.cg-be .cg-fig { display: flex; align-items: baseline; gap: 22px; font-size: 360px; }',
     '.cg-be .cg-fig > small { font-size: 0.37em; }',
-    '.cg-be .cg-be-cap { margin-top: 44px; font-size: var(--t-voice-l); line-height: var(--lh-voice); white-space: normal; }',
+    '.cg-be .cg-be-cap { margin-top: 40px; font-size: var(--t-voice-l); line-height: var(--lh-voice); white-space: normal; }',
     '.cg-be .cg-be-cap b { font-weight: inherit; white-space: nowrap; }',
-    '.cg-be .cg-rate { display: flex; align-items: center; gap: var(--s-4); margin-top: 52px; }',
-    '.cg-be .cg-rate > .cg-cap { flex: none; }',
-    '.cg-be .cg-rate input[type="range"] { --fill: 50%; appearance: none; -webkit-appearance: none; flex: none; width: 560px; height: 72px; margin: 0; padding: 0; border-radius: 0; cursor: pointer; outline: 0; touch-action: none;' +
+    '.cg-be .cg-rate { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; margin-top: 44px; }',
+    '.cg-be .cg-rate-row { display: flex; align-items: center; gap: var(--s-4); }',
+    '.cg-be .cg-rate input[type="range"] { --fill: 50%; appearance: none; -webkit-appearance: none; flex: none; width: 640px; height: 72px; margin: 0; padding: 0; border-radius: 0; cursor: pointer; outline: 0; touch-action: none;' +
       ' background: linear-gradient(var(--c-ink), var(--c-ink)) left center / var(--fill) 18px no-repeat, linear-gradient(var(--c-ink), var(--c-ink)) left center / 100% var(--w-rule) no-repeat; }',
     '.cg-be .cg-rate input[type="range"]::-webkit-slider-runnable-track { height: 72px; background: transparent; }',
     '.cg-be .cg-rate input[type="range"]::-moz-range-track { height: 72px; background: transparent; }',
     '.cg-be .cg-rate input[type="range"]::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 32px; height: 72px; border: 0; border-radius: 0; background: var(--c-ink); box-shadow: 0 0 0 6px var(--c-bg); }',
     '.cg-be .cg-rate input[type="range"]::-moz-range-thumb { width: 32px; height: 72px; border: 0; border-radius: 0; background: var(--c-ink); }',
-    '.cg-be .cg-rate > output { font-size: 72px; min-width: 2.2em; font-variant-numeric: tabular-nums; }',
-    '.cg-be-side { display: flex; flex-direction: column; gap: var(--s-6); padding-top: var(--s-5); }',
+    '.cg-be .cg-rate output { font-size: 72px; min-width: 2.2em; font-variant-numeric: tabular-nums; }',
+    '.cg-be-side { display: flex; flex-direction: column; gap: var(--s-6); padding-top: var(--s-3); }',
     '.cg-be-cell { display: flex; flex-direction: column; align-items: flex-start; padding-top: 22px; border-top: var(--w-rule) solid var(--c-line); }',
     '.cg-be-cell .cg-fig { font-size: 150px; gap: 14px; margin-top: 30px; }',
     '.cg-be-cell .cg-fig > small { font-size: 56px; }',
     '.cg-be-cell .cg-name { margin-top: 26px; }',
 
     /* ---------------- the showdown: bars ---------------- */
+    '.cg-show .cg-view { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }',
     '.cg-show .cg-ctl { position: absolute; left: 40px; top: 0; right: 56px; height: 72px; display: flex; align-items: center; gap: var(--s-4); }',
     '.cg-show .cg-seg { display: flex; flex: none; }',
     '.cg-show .cg-seg > button { appearance: none; -webkit-appearance: none; height: 72px; margin: 0 0 0 -6px; padding: 0 26px; border: var(--w-rule) solid var(--c-ink); border-radius: 0; background: var(--c-bg); color: var(--c-ink);' +
@@ -257,11 +313,11 @@
     '.cg-show .cg-arrow::before { content: ""; position: absolute; left: -2px; top: 50%; translate: 0 -50%; border: 17px solid transparent; border-left: 0; border-right: 26px solid var(--c-ink); }',
     '.cg-show .cg-brk { position: absolute; border: var(--w-rule) solid var(--c-line); border-left: 0; }',
     '.cg-show .cg-mult { position: absolute; display: flex; flex-direction: column; align-items: flex-end; }',
-    '.cg-show .cg-mult > .cg-sum { font-size: 80px; }',
-    '.cg-show .cg-mult > .cg-x { font-size: 236px; margin-top: 22px; }',
+    '.cg-show .cg-mult > .cg-sum { font-size: 74px; }',
+    '.cg-show .cg-mult > .cg-x { font-size: 216px; margin-top: 20px; }',
     '.cg-show .cg-band { position: absolute; left: 0; right: 0; bottom: 0; background: var(--c-accent); color: var(--c-accent-ink); overflow: hidden; }',
     '.cg-show .cg-band-axis { position: absolute; top: 0; bottom: 0; width: var(--w-rule); background: var(--c-accent-ink); }',
-    '.cg-show .cg-plain { position: absolute; left: 40px; font-family: var(--f-display); font-size: 112px; font-weight: var(--wght-display); font-stretch: var(--wdth-display); line-height: var(--lh-cap); text-transform: uppercase; }',
+    '.cg-show .cg-plain { position: absolute; left: 40px; top: 50%; translate: 0 -50%; font-family: var(--f-display); font-size: 112px; font-weight: var(--wght-display); font-stretch: var(--wdth-display); line-height: var(--lh-cap); text-transform: uppercase; }',
     '.cg-show .cg-plain > span { display: block; width: max-content; white-space: nowrap; }',
     '.cg-show .cg-plain > span + span { margin-top: 0.12em; }',
     '.cg-show .cg-zero { position: absolute; display: flex; align-items: baseline; gap: 26px; }',
@@ -270,7 +326,7 @@
     '.cg-show .cg-nobar { position: absolute; right: 56px; }',
 
     /* ---------------- the showdown: scatter ---------------- */
-    '.cg-show svg.cg-plot { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; }',
+    '.cg-show svg.cg-plot { position: absolute; left: 0; top: 0; overflow: visible; }',
     '.cg-show .cg-ax { stroke: var(--c-line); stroke-width: 6; fill: none; stroke-linecap: square; }',
     '.cg-show .cg-front { stroke: var(--c-ink); stroke-width: 6; fill: none; stroke-linejoin: miter; stroke-linecap: butt; }',
     '.cg-show .cg-arm { stroke: var(--c-ink); stroke-width: 6; fill: none; stroke-linejoin: miter; stroke-linecap: butt; }',
@@ -280,8 +336,8 @@
     '.cg-show g.is-beaten .cg-pt { fill: var(--c-muted); }',
     '.cg-show .cg-lab { position: absolute; display: flex; align-items: center; gap: 14px; font-size: 32px; font-weight: 700; font-stretch: 88%; line-height: 1; white-space: nowrap; }',
     '.cg-show .cg-lab.is-col { flex-direction: column; gap: 8px; }',
-    '.cg-show .cg-est { display: inline-flex; align-items: center; height: 44px; padding: 0 12px 0 40px; border: 4px solid var(--c-ink); background: repeating-linear-gradient(135deg, var(--c-ink) 0 4px, transparent 4px 11px) left top / 28px 100% no-repeat, var(--c-bg);' +
-      ' font-family: var(--f-mono); font-size: var(--t-small); font-weight: var(--wght-label); font-stretch: var(--wdth-label-tight); letter-spacing: 0.08em; line-height: 1; text-transform: uppercase; }',
+    '.cg-show .cg-est { display: inline-flex; align-items: center; height: 48px; padding: 0 12px 0 42px; border: 4px solid var(--c-ink); background: repeating-linear-gradient(135deg, var(--c-ink) 0 4px, transparent 4px 11px) left top / 30px 100% no-repeat, var(--c-bg);' +
+      ' font-family: var(--f-mono); font-size: var(--t-label); font-weight: var(--wght-label); font-stretch: var(--wdth-label-tight); letter-spacing: 0.08em; line-height: 1; text-transform: uppercase; }',
     '.cg-show .cg-tk { position: absolute; }',
     '.cg-show .cg-sign { position: absolute; display: flex; flex-direction: column; align-items: flex-start; padding: 18px 22px 18px; background: var(--c-ink); color: var(--c-bg); font-family: var(--f-display); font-weight: var(--wght-display); font-stretch: var(--wdth-display); line-height: var(--lh-cap); text-transform: uppercase; white-space: nowrap; }',
     '.cg-show .cg-sign.is-point { background: var(--c-accent); color: var(--c-accent-ink); }',
@@ -310,12 +366,11 @@
 
   /* Sizes in the host's own box: 1832 wide (the spine's edge to the stage's edge). Heights hang from the bottom. */
   var LAD = {
-    width: 1832,
     railLeft: 40, railRight: 1776,      // stage x 128 and 1864
     xCheap: 152, xDear: 1696,           // where the cheapest and the dearest dot sit
-    band: 201,                          // height of the spread band, at the bottom
-    tickBottom: 221,                    // bottom edge of the tick labels
-    railBottom: 265,                    // bottom edge of the rail
+    band: 214,                          // height of the spread band, at the bottom
+    tickBottom: 230,                    // bottom edge of the tick labels
+    railBottom: 272,                    // bottom edge of the rail
     r: 14, gap: 4                       // a dot, and the air between two
   };
 
@@ -427,8 +482,10 @@
     var left = LAD.xCheap - 3;
     var width = LAD.xDear - LAD.xCheap + 6;
     var postHeight = LAD.railBottom - LAD.band;
-    h.push('<i class="cg-post"' + step1 + ' data-cg="post-l" style="left:' + px(left) + ';bottom:' + px(LAD.band) + ';height:' + px(postHeight) + '"></i>');
-    h.push('<i class="cg-post"' + step1 + ' data-cg="post-r" style="left:' + px(left + width - 6) + ';bottom:' + px(LAD.band) + ';height:' + px(postHeight) + '"></i>');
+    // the bay under the rail is held vacant until the spread lands in it: two posts and a floor
+    h.push('<i class="cg-post" data-cg="post-l" style="left:' + px(left) + ';bottom:0;height:' + px(postHeight + LAD.band) + '"></i>');
+    h.push('<i class="cg-post" data-cg="post-r" style="left:' + px(left + width - 6) + ';bottom:0;height:' + px(postHeight + LAD.band) + '"></i>');
+    h.push('<i class="cg-post" data-cg="floor" style="left:' + px(left) + ';bottom:0;width:' + px(width) + ';height:6px"></i>');
     h.push('<div class="cg-spread"' + step1 + ' data-cg="spread" data-width="' + width + '" style="left:' + px(left) + ';width:' + px(width) + ';height:' + px(LAD.band) + '">' +
       '<div class="cg-spread-in" style="width:' + px(width) + '">' +
       '<div class="cg-num cg-sum" data-cg="sum">' + esc(C.money(L.hi)) + ' ÷ ' + esc(C.money(L.lo)) + ' =</div>' +
@@ -470,9 +527,9 @@
     h.push('<div class="cg-be-main">');
     h.push('<p class="cg-num cg-fig"><b data-cg="fig">' + esc(main.text) + '</b><small data-cg="unit">' + esc(main.unit) + '</small></p>');
     h.push('<p class="cg-say cg-be-cap">what the dearest model has to save<br>to pay for itself, at <b data-cg="rate">' + esc(C.money(r)) + '</b> an hour</p>');
-    h.push('<label class="cg-rate" data-touch="own"><span class="cg-cap">Example rate · drag</span>' +
-      '<input type="range" data-cg="range" min="' + range.min + '" max="' + range.max + '" step="1" value="' + esc(r) + '" aria-label="Loaded hourly rate in dollars">' +
-      '<output class="cg-num" data-cg="out">' + esc(C.money(r)) + '</output></label>');
+    h.push('<div class="cg-rate" data-touch="own"><span class="cg-cap">Example rate · drag from ' + esc(C.money(range.min)) + ' to ' + esc(C.money(range.max)) + ' an hour</span>' +
+      '<label class="cg-rate-row"><input type="range" data-cg="range" min="' + range.min + '" max="' + range.max + '" step="1" value="' + esc(r) + '" style="' + fillStyle((r - range.min) / (range.max - range.min)) + '" aria-label="Loaded hourly rate in dollars">' +
+      '<output class="cg-num" data-cg="out">' + esc(C.money(r)) + '</output></label></div>');
     h.push('</div>');
 
     h.push('<div class="cg-be-side">');
@@ -494,14 +551,11 @@
    * ==================================================================== */
 
   var BAR = {
-    width: 1832,
     axis: 469,            // left edge of the axis rule (stage x 557)
-    x0: 472,              // bars start here (stage x 560)
-    full: 1360,           // from there to the edge of the stage
-    ctl: 72,              // the control row
-    top: 96, rowH: 80, pitch: 94,
-    band: 269,
-    nominalHeight: 743    // the host's height on the slide, used for the poster
+    x0: 475,              // bars start here, at the right edge of the axis rule (stage x 563)
+    full: 1357,           // from there to the edge of the stage
+    top: 96, rowH: 80, pitch: 94,   // rows start under the 72px control row
+    band: 255             // the plain-code band, at the foot
   };
 
   /* The snap points of the volume slider: 1, 2, 5, 10, 20, 50 ... up to the largest preset. */
@@ -553,6 +607,18 @@
     };
   }
 
+  /*
+   * The bracket that ties the first bar to the last: a tick at the first row,
+   * a rule down, and its foot standing on the last bar. If that bar stops
+   * short of the bracket there is nothing to stand on, so it ends in a second
+   * tick at the last row instead. `right` is the bracket's right edge.
+   */
+  function bracketBox(first, last, right) {
+    var top = first.y + BAR.rowH / 2 - 3;
+    var reaches = BAR.x0 + last.px >= right;
+    return { top: top, height: (reaches ? last.y : last.y + BAR.rowH / 2 + 3) - top, foot: reaches ? '0' : '6px' };
+  }
+
   function screensText(f, r) { return f.C.number(f.C.sig(r.truePx / 1920, 2)); }
 
   function barsHTML(f, live, volume, step) {
@@ -573,22 +639,25 @@
     var stops = volumeStops();
     var at = 0;
     stops.forEach(function (s, i) { if (Math.abs(log10(s) - log10(volume)) < Math.abs(log10(stops[at]) - log10(volume))) { at = i; } });
-    h.push('</div><input type="range" class="cg-vol" data-cg="vol" min="0" max="' + (stops.length - 1) + '" step="1" value="' + at + '" aria-label="Number of records">');
-    h.push('<p class="cg-note"><span class="cg-cap">Cost to run the whole batch</span><span class="cg-cap">US dollars · bars drawn to scale</span></p></div>');
+    h.push('</div><input type="range" class="cg-vol" data-cg="vol" min="0" max="' + (stops.length - 1) + '" step="1" value="' + at + '" style="' + fillStyle(at / Math.max(1, stops.length - 1)) + '" aria-label="Number of records">');
+    h.push('<p class="cg-note"><span class="cg-cap">Cost of the whole batch</span><span class="cg-cap">US dollars · drawn to scale</span></p></div>');
 
     // the axis: one segment beside each row (left out beside a sliver, so the sliver stays an object) and one in each gap
-    var rowsEnd = BAR.top + (B.rows.length - 1) * BAR.pitch + BAR.rowH;
     h.push('<i class="cg-axis" style="left:' + px(BAR.axis) + ';top:' + px(BAR.top - 12) + ';height:12px"></i>');
     B.rows.forEach(function (r, i) {
       var broken = r.px >= 1 && r.px < 12;
       h.push('<i class="cg-axis' + (broken ? ' cg-hide' : '') + '" data-cg="axis-row" style="left:' + px(BAR.axis) + ';top:' + px(r.y) + ';height:' + px(BAR.rowH) + '"></i>');
-      var gapTo = i < B.rows.length - 1 ? B.rows[i + 1].y : rowsEnd + 10;
-      h.push('<i class="cg-axis" style="left:' + px(BAR.axis) + ';top:' + px(r.y + BAR.rowH) + ';height:' + px(gapTo - r.y - BAR.rowH) + '"></i>');
+      if (i < B.rows.length - 1) {
+        h.push('<i class="cg-axis" style="left:' + px(BAR.axis) + ';top:' + px(r.y + BAR.rowH) + ';height:' + px(B.rows[i + 1].y - r.y - BAR.rowH) + '"></i>');
+      } else {
+        // under the last row the axis runs on to the foot: a place is held for one more row
+        h.push('<i class="cg-axis" style="left:' + px(BAR.axis) + ';top:' + px(r.y + BAR.rowH) + ';bottom:0"></i>');
+      }
     });
 
     B.rows.forEach(function (r) {
       var lay = rowLayout(r);
-      h.push('<div class="cg-row-l" style="top:' + px(r.y) + ';height:' + px(BAR.rowH) + '"><b>' + esc(r.tier.label) + '</b><span>' + esc(r.tier.modelName) + '</span></div>');
+      h.push('<div class="cg-row-l" style="top:' + px(r.y) + ';height:' + px(BAR.rowH) + '"><b>' + esc(curly(r.tier.label)) + '</b><span>' + esc(r.tier.modelName) + '</span></div>');
       h.push('<i class="cg-bar" data-cg="bar" style="left:' + px(BAR.x0) + ';top:' + px(r.y) + ';height:' + px(BAR.rowH) + ';width:' + px(r.px) + '"></i>');
       h.push('<b class="cg-num cg-val' + (r.inside ? ' is-in' : '') + '" data-cg="val" style="top:' + px(r.y + (BAR.rowH - 66) / 2) + ';' +
         (r.inside ? 'right:56px' : 'left:' + px(lay.valueLeft)) + '">' + esc(r.text) + '</b>');
@@ -609,9 +678,9 @@
     var first = B.rows[0];
     var last = B.rows[B.rows.length - 1];
     if (first && last && last !== first) {
-      var y1 = first.y + BAR.rowH / 2 - 3;
-      h.push('<i class="cg-brk' + (clear ? '' : ' cg-hide') + '" data-cg="brk" style="left:' + px(multLeft - 80) + ';width:46px;top:' + px(y1) + ';height:' + px(last.y - y1) + ';border-bottom:0"></i>');
-      h.push('<div class="cg-mult' + (clear ? '' : ' cg-hide') + '" data-cg="mult" style="right:56px;top:' + px(first.y + 26) + '">' +
+      var brk = bracketBox(first, last, multLeft - 34);
+      h.push('<i class="cg-brk' + (clear ? '' : ' cg-hide') + '" data-cg="brk" style="left:' + px(multLeft - 80) + ';width:46px;top:' + px(brk.top) + ';height:' + px(brk.height) + ';border-bottom-width:' + brk.foot + '"></i>');
+      h.push('<div class="cg-mult' + (clear ? '' : ' cg-hide') + '" data-cg="mult" style="right:56px;top:' + px(first.y + 6) + '">' +
         '<span class="cg-num cg-sum" data-cg="msum">' + esc(B.sum) + '</span><b class="cg-num cg-x" data-cg="mx">' + esc(B.mult) + '</b></div>');
     }
 
@@ -621,9 +690,9 @@
     var zeroParts = /^(\D*?)\s*(\$.*)$/.exec(zero) || [zero, '', zero];
     h.push('<div class="cg-band' + (live && step < 1 ? ' cg-hide' : '') + '" data-cg="band"' + band12 + ' style="height:' + px(BAR.band) + '">' +
       '<i class="cg-band-axis" style="left:' + px(BAR.axis) + '"></i>' +
-      '<div class="cg-plain" data-cg="plain" style="top:' + px((BAR.band - 2 * 77 - 13) / 2) + '">' + plain.split(/\s+/).map(function (w) { return '<span>' + esc(w) + '</span>'; }).join('') + '</div>' +
-      '<div class="cg-zero" data-cg="zero" style="left:' + px(BAR.x0 + 36) + ';bottom:37px"><span class="cg-say">' + esc(zeroParts[1]) + '</span><b class="cg-num">' + esc(zeroParts[2]) + '</b></div>' +
-      '<p class="cg-say cg-nobar" data-cg="nobar" style="bottom:46px">No bar to draw.</p></div>');
+      '<div class="cg-plain" data-cg="plain">' + plain.split(/\s+/).map(function (w) { return '<span>' + esc(w) + '</span>'; }).join('') + '</div>' +
+      '<div class="cg-zero" data-cg="zero" style="left:' + px(BAR.x0 + 36) + ';bottom:34px"><span class="cg-say">' + esc(zeroParts[1]) + '</span><b class="cg-num">' + esc(zeroParts[2]) + '</b></div>' +
+      '<p class="cg-say cg-nobar" data-cg="nobar" style="bottom:44px">No bar to draw.</p></div>');
 
     h.push('</div>');
     return h.join('');
@@ -638,10 +707,10 @@
     axisX: 148,                 // the score axis (stage x 236)
     right: 1776,                // the right end of the price axis (stage x 1864)
     xCheap: 244, xDear: 1702,
-    top: 54,                    // the top of the plot
+    top: 70,                    // the top of the plot
     foot: 132,                  // room under the price axis: tick labels, then the legend
     r: 13,
-    nominalHeight: 652
+    nominalHeight: 658
   };
 
   function overlap(a, b, pad) {
@@ -715,7 +784,7 @@
       var u1 = 'for ' + gainText(s1.scoreGain) + ' points';
       var w1 = Math.max(estimate(t1, 76, 'display'), estimate(u1, 52, 'display')) + 44;
       ups.push({ from: a, to: b, line1: t1, line2: u1, arm: 'M' + a.x + ' ' + a.y + ' V' + b.y + ' H' + b.x, armLength: (a.y - b.y) + (b.x - a.x),
-        box: { x0: a.x - 3, x1: a.x - 3 + w1, y1: b.y - 3, y0: b.y - 3 - 138 } });
+        box: { x0: a.x - 3, x1: a.x - 3 + w1, y1: b.y - 3, y0: b.y - 3 - 138, sign: true } });
     }
     if (b && c && c.x > b.x && c.y < b.y) {
       var s2 = C.stepComparison(b.m, c.m);
@@ -723,7 +792,7 @@
       var u2 = 'for ' + gainText(s2.scoreGain) + ' points';
       var w2 = Math.max(estimate(t2, 76, 'display'), estimate(u2, 52, 'display')) + 44;
       ups.push({ from: b, to: c, line1: t2, line2: u2, arm: 'M' + b.x + ' ' + b.y + ' V' + c.y + ' H' + c.x, armLength: (b.y - c.y) + (c.x - b.x),
-        box: { x0: b.x - 3, x1: b.x - 3 + w2, y1: c.y - 3, y0: c.y - 3 - 138 } });
+        box: { x0: b.x - 3, x1: b.x - 3 + w2, y1: c.y - 3, y0: c.y - 3 - 138, sign: true } });
     }
 
     // things a label must not sit on
@@ -742,12 +811,13 @@
     });
 
     // place the five labels: try a list of places, take the first that touches nothing
-    var TAG_W = 196;
+    var estWord = (theme() && theme().tags && theme().tags.estimated) || 'estimated';
+    var TAG_W = estimate(estWord, 32, 'label') + 42 + 12 + 8 + 6;
     var placed = [];
     front.forEach(function (p) {
       var nameW = estimate(p.m.name, 32, 'name');
       var layouts = p.est
-        ? [{ w: Math.max(nameW, TAG_W), h: 84, col: true }, { w: nameW + 14 + TAG_W, h: 44, col: false }]
+        ? [{ w: Math.max(nameW, TAG_W), h: 88, col: true }, { w: nameW + 14 + TAG_W, h: 48, col: false }]
         : [{ w: nameW, h: 32, col: false }];
       var best = null;
       var spots = [];
@@ -758,6 +828,7 @@
         spots.push({ lay: lay, x0: p.x + 18, y0: up, align: 'left' });                   // above, to the right
         spots.push({ lay: lay, x0: p.x - 24 - lay.w, y0: mid, align: 'right' });         // level, to the left
         [18, 36, 54, 72].forEach(function (d) { spots.push({ lay: lay, x0: p.x - 18 - lay.w + d, y0: up, align: 'right' }); });
+        [24, 48, 72, 96].forEach(function (d) { spots.push({ lay: lay, x0: p.x + 18 + d, y0: up, align: 'left' }); });
         spots.push({ lay: lay, x0: p.x + 24, y0: mid, align: 'left' });                  // level, to the right
         spots.push({ lay: lay, x0: p.x + 18, y0: p.y + SC.r + 10, align: 'left' });      // below, to the right
       });
@@ -765,7 +836,7 @@
         var sp = spots[i];
         var box = { x0: sp.x0, x1: sp.x0 + sp.lay.w, y0: sp.y0, y1: sp.y0 + sp.lay.h };
         if (box.x0 < SC.axisX + 14 || box.x1 > SC.right || box.y0 < 0 || box.y1 > y1 - 8) { continue; }
-        var hit = blocks.some(function (bl) { return bl.of !== p && overlap(box, bl, bl.line ? 6 : 4); }) ||
+        var hit = blocks.some(function (bl) { return bl.of !== p && overlap(box, bl, bl.line ? 6 : (bl.sign ? 16 : 4)); }) ||
           placed.some(function (pl) { return overlap(box, pl.box, 14); });
         if (!hit) { best = { p: p, box: box, col: sp.lay.col, align: sp.align }; }
       }
@@ -795,7 +866,7 @@
     var h = [];
 
     h.push('<div class="cg-view" data-cg="scatter"' + in2 + '>');
-    h.push('<svg class="cg-plot" data-cg="svg" viewBox="0 0 ' + SC.width + ' ' + S.H + '" preserveAspectRatio="none" aria-hidden="true">');
+    h.push('<svg class="cg-plot" data-cg="svg" width="' + SC.width + '" height="' + S.H + '" viewBox="0 0 ' + SC.width + ' ' + S.H + '" aria-hidden="true">');
     h.push('<path class="cg-ax" d="M' + SC.axisX + ' ' + S.y0 + ' V' + S.y1 + ' H' + SC.right + '"/>');
     S.xt.forEach(function (t) { h.push('<path class="cg-ax" d="M' + t.x.toFixed(1) + ' ' + S.y1 + ' v14"/>'); });
     S.yt.forEach(function (t) { h.push('<path class="cg-ax" d="M' + SC.axisX + ' ' + t.y.toFixed(1) + ' h-14"/>'); });
@@ -805,13 +876,19 @@
     S.ups.forEach(function (u, i) {
       h.push('<path class="cg-arm' + (live && step < 3 + i ? ' cg-hide' : '') + '" data-cg="arm" data-length="' + u.armLength.toFixed(1) + '"' + (live ? '' : ' data-step="' + (3 + i) + '"') + ' d="' + u.arm + '"/>');
     });
-    S.front.forEach(function (p, i) { h.push(dotSVG(p, false).replace('data-cg="pt"', 'data-cg="pt" data-reach="' + S.reach[i].toFixed(1) + '"')); });
     h.push('</svg>');
 
     // axis words
     h.push('<span class="cg-cap cg-a" style="left:40px;top:0">Overall score</span>');
     S.yt.forEach(function (t) { h.push('<span class="cg-cap cg-tk" style="right:' + px(SC.width - SC.axisX + 26) + ';top:' + px(t.y - 16) + '">' + esc(C.number(t.v)) + '</span>'); });
-    S.xt.forEach(function (t) { h.push('<span class="cg-cap cg-tk" style="left:' + px(t.x) + ';top:' + px(S.y1 + 26) + ';translate:-50% 0">' + esc(C.money(t.v)) + '</span>'); });
+    S.xt.forEach(function (t, i) {
+      h.push('<span class="cg-cap cg-tk" style="left:' + px(t.x) + ';top:' + px(S.y1 + 26) + ';translate:-50% 0">' + esc(C.money(t.v)) + '</span>');
+      if (i > 0) {
+        var a = S.xt[i - 1].x + 96;
+        var b = t.x - 96;
+        h.push('<span class="cg-times" style="left:' + px(a) + ';width:' + px(b - a) + ';top:' + px(S.y1 + 26) + '"><i></i><b class="cg-cap">' + esc(C.ratio(t.v / S.xt[i - 1].v)) + '</b></span>');
+      }
+    });
 
     // the five names
     S.labels.forEach(function (l, i) {
@@ -825,17 +902,30 @@
 
     // the two step-ups
     S.ups.forEach(function (u, i) {
-      var isPoint = i === S.ups.length - 1 || (live && step === 3 + i);
-      h.push('<div class="cg-sign' + (isPoint ? ' is-point' : '') + (live && step < 3 + i ? ' cg-hide' : '') + '" data-cg="sign"' + (live ? '' : ' data-step="' + (3 + i) + '"') +
-        ' style="left:' + px(u.box.x0) + ';bottom:' + px(S.H - u.box.y1) + '"><b>' + esc(u.line1) + '</b><span>' + esc(u.line2) + '</span></div>');
+      var last = i === S.ups.length - 1;
+      var body = ' style="left:' + px(u.box.x0) + ';bottom:' + px(S.H - u.box.y1) + '"><b>' + esc(u.line1) + '</b><span>' + esc(u.line2) + '</span></div>';
+      if (live) {
+        h.push('<div class="cg-sign' + (last || step === 3 + i ? ' is-point' : '') + (step < 3 + i ? ' cg-hide' : '') + '" data-cg="sign"' + body);
+      } else if (last) {
+        h.push('<div class="cg-sign is-point" data-step="' + (3 + i) + '"' + body);
+      } else {
+        // the sign of the moment takes Flare; when the next one lands it steps back to ink
+        h.push('<div class="cg-sign is-point" data-step-only="' + (3 + i) + '"' + body);
+        h.push('<div class="cg-sign" data-step="' + (4 + i) + '"' + body);
+      }
     });
+
+    // the five on the line are drawn last, over everything, so a sign can sit behind its dot
+    h.push('<svg class="cg-plot" width="' + SC.width + '" height="' + S.H + '" viewBox="0 0 ' + SC.width + ' ' + S.H + '" aria-hidden="true">');
+    S.front.forEach(function (p, i) { h.push(dotSVG(p, false).replace('data-cg="pt"', 'data-cg="pt" data-reach="' + S.reach[i].toFixed(1) + '"')); });
+    h.push('</svg>');
 
     // legend and the price axis' own words
     var s = f.summary;
-    h.push('<div class="cg-legend"><span class="cg-cap"><i class="cg-sw"></i>' + esc(s.frontier) + ' nothing beats</span>' +
+    h.push('<div class="cg-legend"><span class="cg-cap"><i class="cg-sw"></i>' + esc(s.frontier) + ' not beaten</span>' +
       '<span class="cg-cap"><i class="cg-sw is-beaten"></i>' + esc(s.dominated) + ' beaten</span>' +
       '<span class="cg-cap"><i class="cg-sw is-est"></i>score ' + esc(estWord) + '</span>' +
-      '<span class="cg-cap cg-xt">Price of one task · log scale</span></div>');
+      '<span class="cg-cap cg-xt">Price of one task</span></div>');
 
     h.push('</div>');
     return h.join('');
@@ -953,8 +1043,7 @@
     var sum = q(host, 'sum');
     var mult = q(host, 'x');
     var say = q(host, 'say');
-    var postL = q(host, 'post-l');
-    var postR = q(host, 'post-r');
+    var bay = [q(host, 'post-l'), q(host, 'post-r'), q(host, 'floor')];
     var bandWidth = Number(band.getAttribute('data-width'));
     var finalMult = C.ratio(f.spread.ratio);
     var ratio = f.spread.ratio;
@@ -978,19 +1067,21 @@
       dots.forEach(function (d) { show(d, true); });
       flags.forEach(function (fl) { show(fl, true); });
       var on = step >= 1;
-      show(band, on); show(postL, on); show(postR, on); show(sum, on); show(say, on);
+      bay.forEach(function (b) { show(b, true); });
+      show(band, on); show(sum, on); show(say, on);
       band.style.clipPath = '';
       mult.textContent = finalMult;
     }
 
-    /* Arriving: the rail is ruled, the dots land cheapest first, then the four flags on swung beats. */
+    /* Arriving: the rail is ruled, the dots land cheapest first, then the flags on swung beats, then the vacant bay. */
     function intro() {
       tl = M.timeline();
-      var sweepStart = K.eighth + K.sixteenth;
+      var t0 = entranceDelay(api);
+      var sweepStart = t0 + K.eighth + K.sixteenth;
       var sweep = 1.25;
-      tl.add({ from: 100, to: 0, duration: K.eighth, ease: K.arrive, onUpdate: function (v) { rail.style.clipPath = 'inset(0 ' + v.toFixed(2) + '% 0 0)'; } }, 0);
+      tl.add({ from: 100, to: 0, duration: K.eighth, ease: K.arrive, onUpdate: function (v) { rail.style.clipPath = 'inset(0 ' + v.toFixed(2) + '% 0 0)'; } }, t0);
       ticks.forEach(function (t) { show(t, false); });
-      tl.at(K.eighth, function () { ticks.forEach(function (t) { show(t, true); }); }, function () { ticks.forEach(function (t) { show(t, false); }); });
+      tl.at(t0 + K.eighth, function () { ticks.forEach(function (t) { show(t, true); }); }, function () { ticks.forEach(function (t) { show(t, false); }); });
       dots.forEach(function (d) {
         show(d, false);
         var when = sweepStart + sweep * (Number(d.getAttribute('data-x')) - LAD.xCheap) / (LAD.xDear - LAD.xCheap);
@@ -1000,6 +1091,9 @@
         show(fl, false);
         tl.at(sweepStart + sweep + K.eighth + K.swung(i), function () { show(fl, true); }, function () { show(fl, false); });
       });
+      // last, the vacant bay under the rail
+      bay.forEach(function (b) { show(b, false); });
+      tl.at(sweepStart + sweep + K.eighth + K.swung(flags.length) + K.eighth, function () { bay.forEach(function (b) { show(b, true); }); }, function () { bay.forEach(function (b) { show(b, false); }); });
       tl.play();
     }
 
@@ -1008,7 +1102,7 @@
       tl = M.timeline();
       var time = bandWidth / K.speed;
       var ticksN = Math.max(1, Math.round(time / K.sixteenth));
-      show(postL, true); show(band, true); show(postR, false); show(sum, false); show(say, true);
+      show(band, true); show(sum, false); show(say, true);
       tl.add({
         from: 0, to: 1, duration: time, ease: 'linear',
         onUpdate: function (p) {
@@ -1017,8 +1111,8 @@
           mult.textContent = p >= 1 ? finalMult : C.ratio(Math.max(1, Math.round(Math.pow(ratio, stepped))));
         }
       }, 0);
-      tl.at(time, function () { show(postR, true); show(sum, true); band.style.clipPath = ''; mult.textContent = finalMult; },
-        function () { show(postR, false); show(sum, false); });
+      tl.at(time, function () { show(sum, true); band.style.clipPath = ''; mult.textContent = finalMult; },
+        function () { show(sum, false); });
       tl.play();
     }
 
@@ -1109,8 +1203,9 @@
       if (!isNum(main.value) || main.value < 2) { return; }
       var ease = (theme() && theme().motion && theme().motion.ease && theme().motion.ease.tick) || M.ease.steps(12);
       var arrive = typeof K.arrive === 'function' ? K.arrive : M.ease.outExpo;
+      fig.textContent = C.seconds(0, true);
       counting = M.tween({
-        from: 0, to: main.value, duration: 1.5, ease: function (p) { return arrive(ease(p)); },
+        from: 0, to: main.value, delay: entranceDelay(api), duration: 1.5, ease: function (p) { return arrive(ease(p)); },
         onUpdate: function (v, p) { fig.textContent = p >= 1 ? main.text : C.seconds(Math.round(v), true); },
         onDone: function () { fig.textContent = main.text; counting = null; }
       });
@@ -1164,6 +1259,13 @@
     var els = {};
 
     host.classList.add('cg-host', 'cg-show');
+    var built = false;
+    whenFonts(function () {
+      // fonts that land after the first draw change the headline's height and every measured width
+      if (!alive || !built || chase.length || running.some(function (t) { return t.playing; })) { return; }
+      view = '';
+      drawStep();
+    });
 
     /* Slide-level pieces (two headlines, two source lines) swap with the view. Take them over from the engine. */
     var swaps = slide ? Array.prototype.slice.call(slide.querySelectorAll('.cg-swap')) : [];
@@ -1176,7 +1278,7 @@
       swaps.forEach(function (el) { el.classList.toggle('cg-off', el.getAttribute('data-cg-view') !== name); });
     }
 
-    function play(t) { running.push(t); t.play(); return t; }
+    function play(t) { running = running.filter(function (r) { return r.playing; }); running.push(t); t.play(); return t; }
     function stopStep() { running.forEach(function (t) { t.cancel(); }); running = []; }
     function stopChase() { chase.forEach(function (t) { t.cancel(); }); chase = []; }
     function stopAll() { stopStep(); stopChase(); }
@@ -1196,7 +1298,7 @@
         bars: qa(host, 'bar'), vals: qa(host, 'val'), longs: qa(host, 'long'), axis: qa(host, 'axis-row'),
         whole: q(host, 'whole'), brk: q(host, 'brk'), mult: q(host, 'mult'), msum: q(host, 'msum'), mx: q(host, 'mx'),
         band: q(host, 'band'), plain: q(host, 'plain'), zero: q(host, 'zero'), nobar: q(host, 'nobar'),
-        presets: qa(host, 'preset'), vol: q(host, 'vol'), ctl: q(host, 'ctl')
+        presets: qa(host, 'preset'), vol: q(host, 'vol')
       };
     }
 
@@ -1230,7 +1332,7 @@
       if (!els.plain || !t || typeof t.fitStack !== 'function') { return; }
       try {
         each(els.plain.children, function (ln) { ln.classList.add('ln'); });
-        t.fitStack(els.plain, { measure: 360 });
+        t.fitStack(els.plain, { measure: 250 });
       } catch (err) { /* the plain setting stands */ }
     }
 
@@ -1258,15 +1360,20 @@
       }
       show(els.whole, showWhole);
       if (els.mult) {
-        var edge = host.offsetWidth - 56 - (els.mult.offsetWidth || 470) - 100;
+        els.msum.textContent = B.sum;
+        els.mx.textContent = B.mult;
+        matchWidth(els.msum, els.mx, 40);
+        // the sum is set to the width of the multiple, so the multiple alone says how wide the pair is
+        var edge = host.offsetWidth - 56 - (els.mx.offsetWidth || 400) - 100;
         var clear = !anyMoving && B.rows.slice(0, -1).every(function (r) {
           var end = rowLayout(r).end + (s === r && showWhole ? 30 + (els.whole.offsetWidth || 470) : 0);
           return end < edge;
         });
-        els.msum.textContent = B.sum;
-        els.mx.textContent = B.mult;
-        matchWidth(els.msum, els.mx, 40);
+        var brk = bracketBox(B.rows[0], B.rows[B.rows.length - 1], edge + 66);
         els.brk.style.left = px(edge + 20);
+        els.brk.style.top = px(brk.top);
+        els.brk.style.height = px(brk.height);
+        els.brk.style.borderBottomWidth = brk.foot;
         show(els.mult, clear);
         show(els.brk, clear);
       }
@@ -1299,7 +1406,8 @@
       placeBars(B, moving);
       B.rows.forEach(function (r, i) {
         if (!moving[i]) { els.bars[i].style.width = px(r.px); return; }
-        var from = before.rows[i].px;
+        var shown = parseFloat(els.bars[i].style.width);                 // where the bar is now, even if it was still travelling
+        var from = isNum(shown) ? shown : before.rows[i].px;
         var t = M.tween({
           from: from, to: r.px, duration: Math.abs(r.px - from) / K.speed, ease: 'linear',
           onUpdate: function (v) { els.bars[i].style.width = px(Math.round(v)); },
@@ -1353,7 +1461,7 @@
       B.rows.forEach(function (r, i) {
         if (!moving[i]) { return; }
         var t = M.tween({
-          from: 0, to: r.px, delay: K.eighth + K.swung(i), duration: r.px / K.speed, ease: 'linear',
+          from: 0, to: r.px, delay: entranceDelay(api) + K.eighth + K.swung(i), duration: r.px / K.speed, ease: 'linear',
           onUpdate: function (v) { els.bars[i].style.width = px(Math.round(v)); },
           onDone: function () {
             moving[i] = false;
@@ -1512,6 +1620,7 @@
     return {
       step: function (n, dir) {
         var from = step;
+        built = true;
         stopAll();
         dropWipe();
         step = n;
