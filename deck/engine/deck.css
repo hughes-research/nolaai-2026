@@ -540,19 +540,105 @@ html.mode-debug .scene-missing::after {
   right: 0;
   bottom: 0;
   z-index: 20;
+  display: flex;
+  flex-direction: column;
   max-height: 46%;
-  overflow: auto;
+  overflow: hidden;             /* the head stays; .deck-notes-body scrolls */
   box-sizing: border-box;
-  padding: 2.2vh 4vw 3vh;
+  padding: 2.2vh 4vw 0;
   border-top: 2px solid rgba(255, 255, 255, 0.25);
   background: rgba(12, 13, 16, 0.95);
   color: #f3f1ec;
   font: 400 clamp(16px, 2vw, 38px)/1.4 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
+.deck-notes-overlay[hidden] {
+  display: none;
+}
+
+.deck-notes-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding-bottom: 3vh;
+}
+
 .deck-notes-overlay p {
-  margin: 0 0 0.7em;
+  margin: 0 0 0.9em;
   max-width: 50em;
+}
+
+/* Notes text, shared by the overlay and the presenter view (deck.js notesHtml):
+   one block per line, and a chip for a label at the start of a line. */
+.deck-notes-line {
+  display: block;
+}
+
+.deck-notes-line + .deck-notes-line[data-label] {
+  margin-top: 0.3em;            /* "DO: click." then "SAY: ..." in one paragraph */
+}
+
+.deck-notes-label {
+  display: inline-block;
+  margin-right: 0.35em;
+  padding: 0.14em 0.45em 0.1em;
+  border: 0.09em solid currentColor;
+  font-size: 0.62em;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  vertical-align: 0.16em;
+  white-space: nowrap;
+}
+
+/* SAY: what to say, solid */
+.deck-notes-label-say {
+  border-color: #f3f1ec;
+  background: #f3f1ec;
+  color: #15171b;
+}
+
+/* NEXT: the hand-off */
+.deck-notes-label-next::after {
+  content: " \2192";
+}
+
+/* TIME and IF SHORT OF TIME: about the clock */
+.deck-notes-label-time,
+.deck-notes-label-if-short-of-time {
+  border-style: dashed;
+}
+
+/* YOUR STORY ("only you know this") and NOT FILLED IN ("you left this empty"):
+   louder than the rest, a block in the accent */
+.deck-notes-label-your-story,
+.deck-notes-label-not-filled-in {
+  border-color: #ffd166;
+  background: #ffd166;
+  color: #15171b;
+  font-size: 0.7em;
+}
+
+/* the scroll cue: overlays the bottom of a notes pane while text is hidden below */
+.deck-notes-more {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  padding: 0.35em 4vw 0.4em;
+  border-top: 2px solid currentColor;
+  background: rgba(12, 13, 16, 1);
+  font-size: 0.55em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-align: right;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.deck-notes-more[hidden] {
+  display: none;
 }
 
 .deck-notes-head {
@@ -567,10 +653,16 @@ html.mode-debug .scene-missing::after {
 }
 
 /* "YOUR STORY: ..." paragraphs in notes (overlay and presenter view) */
-.deck-notes-story {
+.deck-notes-story,
+.deck-notes-unfilled {
   padding-left: 0.6em;
   border-left: 0.2em solid #ffd166;
   color: #ffd166;
+}
+
+/* "NOT FILLED IN: ..." paragraphs: the same, with a dashed bar (an empty slot) */
+.deck-notes-unfilled {
+  border-left-style: dashed;
 }
 
 .deck-notes-empty {
@@ -899,16 +991,33 @@ html.mode-presenter body {
   min-height: 0;
 }
 
+/* the notes column: the scrolling notes, and the scroll cue laid over its foot */
+.deck-pv-notescol {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
 .deck-pv-notes {
+  flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
   padding: 24px 32px 40px;
-  line-height: 1.45;            /* font-size is set inline by the A- / A+ buttons */
+  line-height: 1.38;            /* font-size is set inline by the A- / A+ buttons */
 }
 
 .deck-pv-notes p {
   margin: 0 0 0.8em;
   max-width: 44em;
+}
+
+.deck-pv-notescol .deck-notes-more {
+  padding: 8px 32px;
+  background: var(--deck-pv-bg, #15171b);
+  color: var(--pv-fg);
+  font-size: 16px;
 }
 
 /* The side column, top to bottom, in order of importance:

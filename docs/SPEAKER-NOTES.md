@@ -29,11 +29,11 @@ Each note has the same three parts: **SAY** (the point, in your words), **DO** (
 **SAY:** Say nothing at first. Let the room read it.  
 "Your best AI idea is probably wrong." Stop. Count two.  
 (click) "The boring one you didn’t pitch is probably worth thousands."  
-The next 90 minutes are how you tell which is which.  
+Today is about telling which is which.  
   
 **DO:** One click for the second line. Do not rush the first.  
   
-**NEXT:** "I’m Dustin. Here is how we find out."
+**NEXT:** (click to the title) "So, who is asking."
 
 ## 3. Title
 
@@ -41,20 +41,20 @@ The next 90 minutes are how you tell which is which.
 
 **SAY:** I’m Dustin Hughes. VP of Technology at Laborde Products.  
 This is a workshop, not a demo. You do the work, on paper.  
-By 4:00 PM you will have run three of your own ideas through four gates, and said no to at least two of them.  
+You will run three of your own ideas through four gates, and say no to at least two of them.  
   
 **DO:** The card builds itself in about eight seconds. Talk over it. Nothing to click.  
   
-**NEXT:** "I did not pick the reading for this fest. The organizers did. It is one page, from 1956."
+**NEXT:** "First, some homework. I did not pick it."
 
 ## 4. The Bandwagon
 
 *2:31:30 · 2.5 min · 2 clicks · id `bandwagon`*
 
-**SAY:** The organizers assigned one page of reading. Claude Shannon, 1956, "The Bandwagon."  
+**SAY:** The organizers assigned one page of reading: Claude Shannon, 1956, "The Bandwagon."  
 Shannon founded information theory. He still wrote this, to say his own field was being oversold.  
 (click) The assignment: swap two words. Read it again.  
-(click) And this is the line I built today around. A few secrets give way at a time. The skill is picking which few.  
+(click) And this is the line today is built around. A few secrets give way at a time. The skill is picking which few.  
   
 **DO:** Click one makes the edit. It is flagged "our edit" so nobody thinks Shannon wrote "AI". Click two brings his second sentence and the year.  
   
@@ -70,7 +70,7 @@ Shannon founded information theory. He still wrote this, to say his own field wa
 (click) I lead Waypoint, our company-wide AI program. It has one rule. A win only counts with the task, the prompt, the output and the time saved.  
 (click) All four, or it does not count.  
   
-**DO:** Three clicks: the facts, the four boxes, the line.  
+**DO:** Three clicks: the facts, the four boxes, the line. The facts arrive whole; nothing counts.  
   
 **YOUR STORY:** one Waypoint win with all four boxes filled, and one thing you turned down.  
   
@@ -88,21 +88,20 @@ Sounding good and paying back are two different axes. A pitch only tests the fir
   
 **DO:** One click singles out the dull dot.  
   
-**NEXT:** "For the next 90 minutes we check the second one."
+**NEXT:** "So today we only test the second one. Here is how."
 
 ## 7. The promise
 
 *2:38 · 2 min · 1 click · id `the-promise`*
 
-**SAY:** Here is the deal for the next 90 minutes.  
-You inventory two weeks of real work. Not ideas. Work. You pick three. Each one goes through four gates.  
-The math picks, not the loudest voice in the room. Then we build the winner: a real one, from my own shop.  
-(click) You leave with one use case worth doing, and two you can stop thinking about.  
-The two you drop are worth as much as the one you keep.  
+**SAY:** The next 90 minutes, in five steps.  
+You inventory two weeks of real work. Not ideas. Work. You pick three. Each one goes through four gates, and the math picks, not the loudest voice in the room.  
+Then I show you one from my own shop being built: the real numbers, and the method running on made-up data, because I can’t show you our building.  
+(click) You leave with one use case worth doing, and two you can stop thinking about. The two you drop are worth as much as the one you keep.  
   
 **DO:** Hold up the worksheet. Check everyone has one and a pen. One click for the last line.  
   
-**NEXT:** "Four gates. Any one of them can say no."
+**NEXT:** "Before you write anything, here is the screen."
 
 ---
 
@@ -125,114 +124,113 @@ That is not the screen failing. That is the screen working. Saying no early is t
   
 **NEXT:** Before the first gate, one thing about minutes.  
   
-TIME: 1.5 minutes.
+**TIME:** 1.5 minutes.
 
 ## 9. Minutes are the raw material
 
 *2:41:30 · 1 min · 1 click · id `minutes-to-money`*
 
-**SAY:** At work we count wins in minutes. Waypoint, our AI program, will not count a win without the time saved.  
-Nobody in this room is paid in minutes. You count cash.  
-So minutes are the raw material. Money is what they turn into, and they turn into it two ways.  
+**SAY:** At work we count wins in minutes. Waypoint, our AI program, does not count a win without the time saved.  
+But you count cash.  
   
-**DO:** Click once. The two piles of minutes turn into the two channels.  
+**DO:** Click. The minutes run into two channels.  
   
-**SAY:** Either way, the hours are worth what an hour costs you. That is plain ROI.  
-The second channel depends on the business. On the product side, cash comes in sooner. On the service side, the same crew does more paid work. We have both under one roof.  
+**SAY:** Either way, an hour saved is worth what an hour costs you. That is plain ROI.  
+Then it depends on the business. Product side: cash in sooner. Service side: the same crew does more paid work. We have both.  
   
-**NEXT:** Gate one. What does it cost to run?  
+**NEXT:** Four gates turn those minutes into a yes or a no. First, the one everybody asks about.  
   
-TIME: 1 minute.
+**TIME:** 1 minute.
 
 ## 10. Gate 1: Cost
 
 *2:42:30 · 1.5 min · 1 click · id `gate-cost`*
 
-**SAY:** Gate one. What does it cost to run?  
-Every dot is a model from the BenchLM leaderboard file. 41 of the 50 have a usable price. Same task for every one: read about a page and a half, write a few paragraphs.  
+**SAY:** Every dot is a model, one AI engine you pay by the use: 41 of the 50 in the BenchLM leaderboard file.  
+Same task for every one: read about a page and a half, write a few paragraphs. The file counts that in tokens, pieces of words: 2,000 tokens in, 500 out.  
+The price is per run. One go at that task.  
 The cheapest does it for $0.00045. The dearest for $0.15.  
+It is a log scale: each step along is ten times the last.  
 You look this up before you start. Not after.  
   
-**DO:** Click once for the spread: 333× between the cheapest and the dearest. The scale is a log scale: each tick is ten times the last. If someone asks about a dot, point at it with the mouse and its name comes up.  
+**DO:** Click once for the spread: 333× between the cheapest and the dearest. Two models share the top price and two share the bottom one; the source line names them. If someone asks about a dot, point at it with the mouse and its name comes up.  
   
-**NEXT:** 333× sounds like a lot. For one person, it is nothing. Here is why.
+**NEXT:** 333× sounds like a lot. For one person, it is nothing.
 
 ## 11. Cost at people scale: 18 seconds
 
 *2:44 · 1 min · 1 click · id `cost-people-scale`*
 
-**SAY:** Take the dearest model on that list, GPT-5.5 Pro. $0.15 a task.  
+**SAY:** Take one of the two dearest models on that list, GPT-5.5 Pro (tied with GPT-5.4 Pro). $0.15 a run.  
 At $30 an hour it pays for itself if it saves 18 seconds. Once.  
-So when one person does one task, cost almost never says no.  
 LESSON ONE: at people scale, cost rarely says no. Effort and return decide. Those gates are coming.  
   
-**DO:** The $30 is an example rate. If the room pays more, drag the slider and the number follows. Click once for the other two tiers: the frontier model needs 4.3 seconds, the small one 0.05 seconds.  
+**DO:** The $30 is an example rate. If the room pays more, drag the slider and the number follows. Click once for the other two tiers: the frontier model needs 4.3 seconds, the small one 0.05 seconds. If asked: frontier is the top-scoring tier; premium is the "pro" tier, priced highest.  
   
-**NEXT:** Now stop thinking about one person. Think about 100,000 records.
+**NEXT:** That is one person, once. Now hand the same job to a machine, over and over.
 
 ## 12. Cost at record scale: plain code wins
 
 *2:45 · 2 min · 4 clicks · id `cost-record-scale`*
 
-**SAY:** Same task. Not one person this time: 100,000 records.  
+**SAY:** 100,000 records. Each record is one run of that same task.  
 Small model: $45. Premium: $15,000. Drawn to scale.  
 LESSON TWO: at record scale, the tool you pick is the whole game. And plain code wins.  
   
 **DO:** Volume buttons if there is time.  
 Click 1: plain code. About zero. No bar to draw.  
-Click 2: score against price. 36 of 41 are beaten by something that costs the same or less. Only 5 are on the line.  
+Click 2: score against price. Up is the overall score: the leaderboard’s average across its tests, so a rough grade. Along is price, the same log scale. 36 of 41 are beaten by something that costs the same or less. Only 5 are on the line.  
 Click 3: small to mid, 20× the price for about 22 points.  
 Click 4: mid to frontier, another 4× for an estimated 3.5.  
 The scores are the file’s own. Hollow dots are the 12 it marks estimated. Talk in tiers, not ranks.  
   
-**NEXT:** So you do not start at the top. You climb only as far as the task makes you.
+**NEXT:** So which tool do you reach for first? Not the dearest one.
 
 ## 13. The ladder of tools
 
 *2:47 · 1 min · 1 click · id `tool-ladder`*
 
-**SAY:** This is the ladder of tools. Climb only as far as the task makes you.  
-Bottom rung: do not automate it at all. Then a spreadsheet formula. Then plain code. A model only when the task needs judgment. An agent last.  
+**SAY:** Climb only as far as the task makes you.  
+Bottom rung: do not automate it. Then a spreadsheet formula, then plain code. A model only when the task needs judgment. An agent last.  
 Every rung up costs more to run and more to keep alive.  
   
 **DO:** Click. Frontier model and plain code light up.  
   
 **SAY:** Use the expensive model once, to write the tool. Then the tool runs for free.  
-That is the cheapest right tool. You will see exactly that in the project at the end.  
+You will see it in my own project.  
   
-**NEXT:** Gate two. What comes back?  
+**NEXT:** Cost is one side. Gate two asks what comes back, starting with a business that sells parts.  
   
-TIME: 1 minute.
+**TIME:** 1 minute.
 
 ## 14. Gate 2: Return, product side
 
-*2:48 · 2 min · 2 clicks · id `gate-return-cash`*
+*2:48 · 1.5 min · 2 clicks · id `gate-return-cash`*
 
-**SAY:** Gate two, on the product side. This is the language your CFO speaks.  
+**SAY:** This is the language your CFO speaks.  
 Parts sit on the shelf: days of inventory. The customer takes a while to pay: days to collect. You take a while to pay your supplier: days to pay.  
-Add the first two, take off the third. That is how long your cash is out. In this example, 68 days.  
+Add the first two, take off the third. That is how long your cash is out. Here, 68 days.  
   
 **DO:** Click. One day comes off days to collect.  
   
-**SAY:** One day off the cycle frees about one day of sales. The invoice goes out a day sooner, the money is in a day sooner.  
+**SAY:** One day off the cycle frees about one day of sales.  
   
 **DO:** Click. The example figure lands.  
   
-**SAY:** For this example company that is about $54,800. It is an example, not our number.  
-It comes once, not every year. And it is cash, not profit. But it was sitting in somebody else’s account.  
+**SAY:** For this example company, about $54,800.  
+It comes once, not every year, and it is cash, not profit. But it was sitting in somebody else’s account.  
 Where to look: inventory, invoicing, collections.  
   
-**NEXT:** That was the product side. Now the service side.  
+**NEXT:** That is a business that sells parts. A business that sells hours gets paid differently.  
   
-TIME: 2 minutes.
+**TIME:** 1.5 minutes.
 
 ## 15. Gate 2: Return, service side
 
-*2:50 · 1.5 min · 2 clicks · id `gate-return-capacity`*
+*2:49:30 · 1.5 min · 2 clicks · id `gate-return-capacity`*
 
-**SAY:** The service side. Time is money. Literally.  
-Say a tool gives a service crew 6 hours a week back. Same crew. Same payroll.  
-There is one question on this slide: how much of the freed time becomes paid work? Right now the answer is nothing.  
+**SAY:** Say a tool gives a service crew 6 hours a week back. Same crew. Same payroll.  
+One question on this slide: how much of the freed time becomes paid work? Right now, none.  
   
 **DO:** Click. The slider runs up to 100 percent. (You can also drag it with the mouse.)  
   
@@ -240,104 +238,102 @@ There is one question on this slide: how much of the freed time becomes paid wor
   
 **DO:** Click. The slider runs back to zero.  
   
-**SAY:** And at zero percent it is zero dollars. The tool worked. The hours came back. Nothing happened with them.  
-Zero is also a decision. Somebody made it, or nobody did, which comes to the same thing.  
-Hold on to that. It comes back at the end.  
+**SAY:** At zero percent it is zero dollars. The tool worked, the hours came back, and nothing happened with them.  
+Zero is also a decision. Hold on to that. It comes back at the end.  
   
-**NEXT:** One question sorts ideas faster than any other.  
+**NEXT:** Both sides come down to one question you can ask in a hallway.  
   
-TIME: 1.5 minutes.
+**TIME:** 1.5 minutes.
 
 ## 16. Does it touch the cash path?
 
-*2:51:30 · 1 min · 3 clicks · id `cash-path`*
+*2:51 · 1 min · 3 clicks · id `cash-path`*
 
-**SAY:** One question to ask of every idea. Does it touch the cash path?  
-Quote, order, pick, ship, invoice, collect. That is how cash gets into the building.  
-Two ideas. Each one saves the same 20 minutes.  
+**SAY:** Does it touch the cash path? Quote to collect: how cash gets in.  
+Two ideas, the same 20 minutes saved.  
   
 **DO:** Click. Invoicing.  
   
-**SAY:** Invoicing sits on the path. It counts twice: the labor, and the cash that comes in sooner.  
+**SAY:** Invoicing is on the path. It counts twice: labor, and cash in sooner.  
   
 **DO:** Click. Internal memos.  
   
-**SAY:** Internal memos. Counts once. Maybe. If those 20 minutes turn into anything at all.  
+**SAY:** Internal memos count once. Maybe.  
   
 **DO:** Click for the line.  
   
 **SAY:** The boring idea on the cash path beats the exciting one off it.  
+Touching the path is the first question, not the test. The test is whether cash arrives sooner.  
   
-**NEXT:** Gate three. What it takes.  
+**DO:** If asked: the house rule waves a small return through only when it takes days off the cash cycle. On the path with zero days, it counts once, like the memo.  
   
-TIME: 1 minute.
+**NEXT:** That is what comes back. Now what it costs you to keep it coming.  
+  
+**TIME:** 1 minute.
 
 ## 17. Gate 3: Effort
 
-*2:52:30 · 1 min · 2 clicks · id `gate-effort`*
+*2:52 · 1 min · 2 clicks · id `gate-effort`*
 
-**SAY:** Gate three. The demo is the cheap part. It is that sliver on the left.  
+**SAY:** The demo is the cheap part. It is that sliver on the left.  
   
 **DO:** Click. Build and roll out.  
   
-**SAY:** Then you build the real thing. Then you roll it out: training, switching people over. Each of those happens once.  
+**SAY:** Then you build the real thing, and roll it out: training, switching people over. Each happens once.  
   
 **DO:** Click. Keep alive.  
   
-**SAY:** And then you keep it alive. Every month. Things change underneath it. The person who built it leaves.  
-This is the part that never ends, and it is the part nobody puts in the pitch.  
-In the math: build hours and rollout hours once, upkeep hours every month.  
+**SAY:** Then you keep it alive. Every month. Things change underneath it. The person who built it leaves.  
+Nobody puts this part in the pitch.  
+  
+**DO:** In the math: build and rollout hours once, upkeep hours every month.  
   
 **YOUR STORY:** one tool that was quick to demo and then needed looking after every month. What the upkeep turned out to be.  
   
-**NEXT:** Last gate.  
+**NEXT:** Last gate. This one looks forward.  
   
-TIME: 1 minute.
+**TIME:** 1 minute.
 
 ## 18. Gate 4: Potential
 
-*2:53:30 · 1 min · 3 clicks · id `gate-potential`*
+*2:53 · 1 min · 3 clicks · id `gate-potential`*
 
-**SAY:** Gate four. If it works, how far does it grow?  
-Today: one site, one team. You built it once, it pays back once.  
+**SAY:** How far does it grow? Today: one site, one team. Built once, pays back once.  
   
 **DO:** Click. Three sites.  
   
-**SAY:** Three sites. The return comes back three times. You still built it once.  
+**SAY:** Three sites. The return comes back three times. Still built once.  
   
 **DO:** Click. Every team.  
   
-**SAY:** One team, then every team. Growth multiplies the return. It does not multiply the build.  
-This is a projection, so be honest with the number you write down.  
+**SAY:** Every team. Growth multiplies the return, not the build. It is a projection, so write down a number you would defend.  
   
 **DO:** Click. The check line.  
   
-**SAY:** And one check before this gate opens. Who owns the freed time? I want a name.  
-No owner, no growth. The minutes come back and nobody is there to catch them.  
+**SAY:** One check before this gate opens: who owns the freed time? I want a name. No owner, no growth.  
   
-**NEXT:** Four gates. Now the math.  
+**NEXT:** That is all four gates. Here is how they add up.  
   
-TIME: 1 minute.
+**TIME:** 1 minute.
 
 ## 19. Let the math pick
 
-*2:54:30 · 30 sec · 2 clicks · id `the-math`*
+*2:54 · 1 min · 2 clicks · id `the-math`*
 
 **SAY:** Let the math pick. Return, minus cost, minus effort. Then grown by potential.  
-Any no and the idea is out. Among the ones left standing, the biggest number wins.  
+Any no and it is out. Of the survivors, the biggest number wins.  
   
 **DO:** Click. The rule for the worksheet.  
   
-**SAY:** One number to carry in your head. A minute a week is $25 a year. That is at $30 an hour. At $60 an hour it is $50.  
+**SAY:** One number to carry: a minute a week is $25 a year, at $30 an hour. At $60 it is $50.  
   
-**DO:** Click. The house rules.  
+**DO:** Click. The house rules. (The worksheet does this arithmetic for them.)  
   
-**SAY:** And this is where each gate says no. These are my defaults. Change them. Just change them before you score your favorite, not after.  
-The worksheet does the arithmetic for you.  
+**SAY:** This is where each gate says no. My defaults. Change them, but before you score your favorite, not after.  
   
-**NEXT:** Your turn. Pens out.  
+**NEXT:** That is the whole method. Now your own work goes on the table.  
   
-TIME: 30 seconds.
+**TIME:** 1 minute.
 
 ---
 
@@ -349,15 +345,15 @@ TIME: 30 seconds.
 
 **SAY:** Exercise one. Worksheet and pen.  
 Write down what you actually did in the last two weeks. Not your job description. What you did.  
-Four questions to jog it. They stay on the screen the whole time.  
-Boring is good.  
+Four questions to jog it. They stay up the whole time. Boring is good.  
   
-**DO:** Press T to start the ten minutes. R resets it.  
-Then leave the laptop and walk the room. Read over shoulders.  
-If a list is all strategy and no chores, point at question two: what did you copy from one place to another?  
-Call "one minute" when the clock turns orange. If the room is done early, move on.  
+**DO:** Press T to start the ten minutes. Leave the laptop and walk the room. Read over shoulders.  
+AT 5:00 LEFT, say: "Five minutes. If you have fewer than six things, look at question two: what did you copy from one place to another?"  
+AT 1:00 LEFT (the clock turns orange), say: "One minute. Finish the line you're on."  
+STUCK: a list that is all strategy and no chores. Point at question two.  
+EARLY: if most pens are down before the orange, say "Thirty seconds" and move on.  
   
-**NEXT:** Pens down. You have a list. Now cut it to three.
+**NEXT:** Pens down. However long your list is, it's about to get short.
 
 ## 21. Exercise 2: Pick three
 
@@ -366,13 +362,14 @@ Call "one minute" when the clock turns orange. If the room is done early, move o
 **SAY:** Exercise two. From your list, pick three.  
 One you'd love to pitch. One that's boring. One you'd be embarrassed to bring up.  
 The embarrassing one is often the winner.  
-Circle the three on your worksheet.  
   
-**DO:** Press T for the five minutes.  
-Keep walking. If someone has three exciting ones, send them back: one has to be boring, one has to be embarrassing.  
-If someone is stuck on the third, ask what they do every week that they would never put in a status report.  
+**DO:** Press T for the five minutes. Keep walking.  
+AT 2:30 LEFT, say: "Halfway. If all three of yours are exciting, swap one for a boring one."  
+AT 1:00 LEFT (orange), say: "One minute. Circle your three."  
+STUCK on the third: ask what they do every week that they would never put in a status report.  
+EARLY: when most people have circled three, move on. Don't wait for the clock.  
   
-**NEXT:** Before you screen yours, watch three made-up ones go through.
+**NEXT:** Hold on to your three. First, watch the gates work on someone else's.
 
 ## 22. Worked example: three candidates, four gates
 
@@ -380,10 +377,11 @@ If someone is stuck on the third, ask what they do every week that they would ne
 
 **SAY:** Three candidates. They are made up. None of them is a Laborde project.  
 Each one goes through the gates in order and stops at its first no.  
-A, the exciting one: Customer chatbot for parts lookup. NO at Effort. It never pays back: after running costs and $27,000 a year of upkeep, it loses $15,270 a year.  
-B, the easy one: Meeting-notes summaries for managers. NO at Cost. Running it costs $2,880 a year, which is 58% of the $5,000 it returns. The limit is 30%.  
-C, the boring one: Invoice follow-up reminders. YES. It passes all four gates, with a two-year value of $17,547.  
+A, the exciting one: Customer chatbot for parts lookup. NO at Effort.  
+B, the easy one: Meeting-notes summaries for managers. NO at Cost.  
+C, the boring one: Invoice follow-up reminders. Passes all four.  
 The exciting one and the easy one are out. The boring one is what is left.  
+Yes, the winner uses a model, right after the tool ladder: a small model drafts each reminder, and it costs $1.35 a year. And yes, I chose these three so you would see Effort and Cost each say no.  
   
 **DO:** 12 clicks. The first click on each candidate puts its numbers in the gates. Each click after that is one gate.  
 Read the sentence under the gates out loud: that is the gate's reason.  
@@ -392,210 +390,216 @@ The last click shows what the survivor is worth.
   
 **YOUR STORY:** swap in your real three if you have them. Change the three candidates in content/your-numbers.js and this slide follows. It will still say "Example candidates", so say out loud that yours are real.  
   
-**NEXT:** Your turn. Same four gates, your three.
+**NEXT:** Those numbers were mine to pick. Now use yours.
 
 ## 23. Exercise 3: Run your three through the gates
 
 *3:15 · 10 min · 1 click · id `ex-screen`*
 
 **SAY:** Exercise three. Run your three through the gates, in order. Stop at the first no.  
-Cost, return, effort, potential. The four questions are on the screen.  
-The rule of thumb is on your worksheet: a minute a week is $25 a year, at $30 an hour.  
+The four questions are on the screen. On your worksheet: a minute a week is $25 a year, at $30 an hour.  
 Most of you will kill two of your three. That is the exercise working.  
   
-**DO:** Press T for the ten minutes. Give the room three or four minutes alone.  
-Then ask for a volunteer with three candidates and press the right arrow once. The screener comes up. The clock keeps running at the top.  
-Click A, B or C to choose a column. Type its name in the box at the top of the column.  
-Set the numbers with the minus and plus buttons, or click a number and type. While the cursor is in a box the keys type. Enter leaves the box, and the arrow keys drive the deck again.  
-Ask the volunteer for each number out loud. HOUSE RULES opens the thresholds if the room argues with one. RESET puts the examples back.  
-Read the bottom row out loud: "the math picks".  
+**DO:** Press T for the ten minutes. Leave the four questions up and walk the room.  
+AT 5:00 LEFT, say: "Halfway. Still on your first one? Skip to Return: what comes back?"  
+Then ask: "Who has a favorite they suspect is going to die?" Take the first hand near an aisle. One candidate, their favorite. Not all three.  
+Press the right arrow: the screener comes up, the clock keeps running at the top. Click A, then A's name box. Type their candidate, press Enter.  
+Ask for each number out loud and set it in column A (minus and plus, or click and type, Enter to leave the box): minutes saved, times a week, what runs it, tools a month (0 if nothing to pay), build and rollout hours, upkeep hours a month, growth, owner yes or no, cash path yes or no. Leave the rest.  
+Read A down from Cost and stop at its first NO. RULES opens the thresholds if the room argues with one.  
+IF NOBODY VOLUNTEERS: screen the example yourself. Press the right arrow, click C and ask: "How many minutes would one reminder really save?" Type what the room calls out and read where it stops. Then try 1.  
+AT 1:00 LEFT, press the left arrow to bring the four questions back, and say: "One minute. Circle the one still standing."  
   
-**NEXT:** Time. Hands up.
+**NEXT:** Pens down. Count what's still standing on your sheet.
 
 ## 24. Share-out
 
 *3:25 · 5 min · 1 click · id `share-out`*
 
 **SAY:** Who killed their favorite? Hands up. Keep them up.  
-Pick one hand. Which gate killed it? Repeat the answer so the room hears it.  
-Then the second question: who's keeping the boring one?  
-Three hands, one sentence each.  
+Pick one hand. Which gate killed it? Repeat the answer into the microphone.  
+Then: who's keeping the boring one? Three hands, one sentence each.  
   
 **DO:** The right arrow brings up the second question. T starts the five minutes if you want the clock.  
-Repeat every answer into the microphone. If nobody volunteers, go back to the volunteer from the screener.  
+If no hand goes up, use the worked example: the exciting one died at Effort. Ask: whose died at the same gate?  
+At 1:00 left, take one last answer and move on.  
   
-**NEXT:** You have screened three. Now the one we actually built.
+**NEXT:** You've screened made-up ones and your own. Now one that's real.
 
 ---
 
 # Act 4: Build the Winner
 
-## 25. The winner: where the parts live
+## 25. The one we built: where the parts live
 
 *3:30 · 1 min · 1 click · id `the-winner`*
 
-**SAY:** Here is the one that won at my place. Warehouse slotting.  
-      Slotting is deciding which shelf each part lives on.  
-      Nobody pitches this. It is not exciting. It is where the parts live.  
+**SAY:** Here is the one we built at my place: warehouse slotting.  
+Slotting is deciding which shelf each part lives on. Nobody pitches this.  
+I'll run it through my own gates at the end, and it doesn't pass the way you'd expect.  
   
-      YOUR STORY: how slotting came up, and who brought it up.  
+**YOUR STORY:** how slotting came up, and who brought it up.  
   
-      DO: Click once for the number.  
+**DO:** Click once for the number.  
   
-      SAY: 6,493 parts were moving to a new building. Every one needed a new address.  
-      Somebody was going to decide where each one went. The only question was how.  
+**SAY:** 6,493 parts were moving to a new building. Every one needed a new address.  
+Somebody was going to decide where each one went. The only question was how.  
   
-      NEXT: Here is what that decision looks like on one rack.
+**NEXT:** Here is what that decision looks like on one rack.
 
 ## 26. 6,493 parts. 7,110 slots.
 
 *3:31 · 1.5 min · 1 click · id `slotting-problem`*
 
 **SAY:** 6,493 parts. 7,110 slots to put them in.  
-      This is a rack from the side. Floor shelf: you bend. The golden zone is waist to shoulder: no bending, no reaching.  
-      Above that you reach. Above that you go and get a ladder.  
+This is a rack from the side. Floor shelf: you bend. The golden zone is waist to shoulder: no bending, no reaching.  
+Above that you reach. Above that you go and get a ladder.  
   
-      DO: Click once for the ladder figure.  
+**DO:** Click once for the ladder figure.  
   
-      SAY: The easy move is to carry every part across in the order it sits in today. That is the as-is move: no re-slotting.  
-      Do that, and 23% of picks need a ladder.  
-      Taller racks make it worse. More of the shelf is up high, and whatever lands there stays there.  
+**SAY:** The easy move is to carry every part across in the order it sits in today. That is the as-is move: no re-slotting.  
+Do that, and 23% of picks need a ladder.  
+Taller racks make it worse. More of the shelf is up high, and whatever lands there stays there.  
   
-      NEXT: I can't show you our building. I can show you the method, running.
+**NEXT:** I can't show you our building. I can show you the method, running.
 
 ## 27. The method, live (synthetic re-creation)
 
-*3:32:30 · 6 min · 6 clicks · id `slotting-live`*
+*3:32:30 · 5 min · 6 clicks · id `slotting-live`*
 
-**SAY:** This is not our building. It is a made-up warehouse running the same method, in this browser.  
-Every dot is a part on a shelf. Big dot, fast mover.  
-All of it is synthetic. The real numbers are the next slide.  
+**SAY:** This is not our building. It is a made-up warehouse running the same method, live in this browser.  
+Every dot is a part. Big dot, fast mover. Speck, slow.  
+All synthetic. Ours comes after.  
   
-DO, step 1 (on screen when the slide opens): Point at the pack station. Then the side view: floor, golden zone, reach, ladder.  
+DO, step 1 (on screen as the slide opens): Point at the pack station, bottom left. Then the side view: floor, golden zone, reach, ladder.  
   
 DO, step 2: Click. A year of orders rains in. Point at the hatched bars: those picks need a ladder.  
   
-DO, step 3: Click. The as-is move. Pickers walk the busiest day. Let it finish. Watch the ladder count.  
+DO, step 3: Click. The as-is move. The dashed line is the walk for the busiest day. Point at the ladder count.  
   
-DO, step 4: Click. Rule of thumb first. Then the search: swap two parts, replay the orders, keep the swap if pick time dropped.  
+DO, step 4: Click. Rule of thumb first: fast movers to the golden shelves by the door. Then the search: swap two parts, replay the orders, keep the swap if pick time drops.  
   
-DO, step 5: Click. Same orders, same pickers, same speed. Say nothing until they finish.  
+DO, step 5: Click. Both walks again, same orders, same speed. Solid is new, dashed is old. Say nothing until the dashed one gets home.  
   
 DO, step 6: Click. Read the four lines, before then after. The 100% is a rule the search has to keep, not something it found.  
+**SAY:** Don't write these down. This is a made-up building, and its numbers are bigger than ours. The real result is next, and it's smaller.  
   
 DO, step 7: Click. Read the headline, then the block. Stop.  
+**SAY:** That time is how long the arithmetic took on this laptop. Nothing on this slide calls a model.  
   
-**SAY:** You watched a replay of a search this laptop finished a moment ago. The time on screen is how long the arithmetic took.  
-Nothing on this slide calls a model.  
-  
-**NEXT:** That was a toy on made-up data. Here are the real numbers.
+**NEXT:** Same method. Our building, our orders.
 
 ## 28. The real numbers
 
-*3:38:30 · 2.5 min · 2 clicks · id `slotting-results`*
+*3:37:30 · 2.5 min · 2 clicks · id `slotting-results`*
 
 **SAY:** That was a re-creation on made-up data. These are the real numbers, from the runs of Oct 27–28, 2026.  
-        Left: the as-is move, every part carried across in today's order. Right: the layout the tool chose.  
+Left: the as-is move, every part carried across in today's order. Right: the layout the tool chose.  
   
-        DO: Click once. Read each result as it lands.  
+**DO:** Click once. Read each result as it lands.  
   
-        SAY: The caveats, out loud, before anyone writes these down.  
-        The baseline is the as-is move. It says so on the slide.  
-        The pick times are placeholders until we do a time study on the floor.  
-        And they hold for the pack station we chose. Move it and the numbers move.  
+**SAY:** The caveats, out loud, before anyone writes these down.  
+The baseline is the as-is move. It says so on the slide.  
+The pick times are placeholders until we do a time study on the floor.  
+And they hold for the pack station we chose. Move it and the numbers move.  
   
-        DO: Click once more for the old building.  
+**DO:** Click once more for the old building.  
   
-        SAY: Against the old building as it runs today: 12.3 percent less walking, 22.7 percent less pick time. In a bigger building.  
-        The old building's floor plan is an estimate. That is on the slide too.  
+**SAY:** Against the old building as it runs today: 12.3 percent less walking, 22.7 percent less pick time. In a bigger building.  
+The old building's floor plan is an estimate. That is on the slide too.  
   
-        NEXT: It did not come out like that the first time. Or the third.
+**NEXT:** It did not come out like that the first time. Or the third.
 
 ## 29. Seven attempts
 
-*3:41 · 2.5 min · 3 clicks · id `seven-attempts`*
+*3:40 · 2.5 min · 3 clicks · id `seven-attempts`*
 
 **SAY:** This is what the work actually looked like. Seven attempts.  
-        The line is the old building. Above it: less walking than today. Below it: more.  
+The line is the old building. Above it: less walking than today. Below it: more.  
   
-        DO: Click once for the first three. Read them as they land.  
+**DO:** Click once for the first three. Read them as they land.  
   
-        SAY: Three attempts in, we were losing to the old building. The fancier the math got, the worse it did. We retired two of them.  
+**SAY:** Three attempts in, we were losing to the old building. The fancier the math got, the worse it did. We retired two of them.  
   
-        YOUR STORY: what made you keep going after three losses.  
+**YOUR STORY:** what made you keep going after three losses.  
   
-        DO: Click once for the climb. Read the four bars as they land.  
+**DO:** Click once for the climb. Read the four bars as they land.  
   
-        SAY: The gains came from measuring real orders, not from fancier solvers.  
+**SAY:** The gains came from measuring against real orders. Not from fancier math.  
+These are from the March model, on a placeholder floor plan. The October runs, on the real shelving plan with every part, came out at 12.3% against the old building: the number on the last slide.  
   
-        DO: Click once for three lines from our own experiment log.  
+**DO:** Click once for three lines from our own experiment log.  
   
-        SAY: We found placements that could not physically happen, so we marked our own headline down.  
-        Two ways of measuring the same layout disagreed. We reported the lower one.  
-        And a bug once said 220 percent. We called it nonsense and fixed it.  
+**SAY:** We found placements that could not physically happen, so we marked our own headline down.  
+Two ways of measuring the same layout disagreed. We reported the lower one.  
+And a bug once said 220 percent. We called it nonsense and fixed it.  
   
-        NEXT: That is the building of it. Now the part this talk is named after.
+**NEXT:** That is the building of it. Now the part this talk is named after.
 
 ## 30. What we said no to
 
-*3:43:30 · 2 min · 4 clicks · id `said-no`*
+*3:42:30 · 2 min · 4 clicks · id `said-no`*
 
-**SAY:** This is the title of the talk, inside one project. Four things we said no to.  
+**SAY:** Four of them, inside one project.  
   
-        DO: Click once for each. Say the idea as it appears, let the NO land, then give the reason.  
+**DO:** Click once for each. Say the idea as it appears, let the NO land, then give the reason.  
   
-        SAY: One. An AI model in the loop. It didn’t fit the problem. Plain rules do the job, and no data leaves the building.  
+**SAY:** One. An AI model in the loop. It didn’t fit the problem. Plain rules do the job, and no data leaves the building.  
   
-        SAY: Two. A fancier solver. Tried two. Both lost. You just saw them: attempts two and three.  
+**SAY:** Two. A fancier solver. Tried two. Both lost. You just saw them: attempts two and three.  
   
-        SAY: Three. Re-slotting every month. The move is the one free re-slot. Every part was moving anyway. After that, a full re-slot on a schedule is hard to justify.  
+**SAY:** Three. Re-slotting every month. The move is the one free re-slot. Every part was moving anyway. After that, a full re-slot on a schedule is hard to justify.  
   
-        SAY: Four. A $500,000-a-year savings claim. No source. Excluded. We found the figure online with no primary source behind it. We excluded it as unverified.  
+**SAY:** Four. A $500,000-a-year savings claim. No source. Excluded. We found it online. Unverified, so it stays out.  
   
-        YOUR STORY: which of the four was hardest to say no to, and who you had to say it to.  
+**YOUR STORY:** which of the four was hardest to say no to, and who you had to say it to.  
   
-        NEXT: So what does the thing we did build cost to run?
+**NEXT:** So what does the thing we did build cost to run?
 
 ## 31. What it costs to run: nothing
 
-*3:45:30 · 2 min · 2 clicks · id `slotting-cost`*
+*3:44:30 · 2 min · 2 clicks · id `slotting-cost`*
 
-**SAY:** Gate one, on a real project. What does it cost to run? Nothing.  
-        33 of our 47 commits were co-written with an AI coding assistant. AI helped write this tool.  
-        When the tool runs, the number of AI models running is 0. It is plain math.  
-        One run tries 10 million swaps in about 3.5 minutes, on one machine with 10 cores.  
+**SAY:** Gate one, on a real project: nothing.  
+33 of our 47 commits, the saved versions of the code, were co-written with an AI coding assistant.  
+When the tool runs, 0 AI models run. It is plain math: 10 million swaps in about 3.5 minutes, on one 10-core machine.  
   
-        DO: Click once for the thought experiment.  
+**DO:** Click once for the thought experiment.  
   
-        SAY: Now pretend every one of those 10 million tries was a call to a model. Same task size I have used all afternoon.  
-        Small model: $4,500 for one run. Frontier model: $360,000 for one run. Premium “pro” model: $1,500,000 for one run.  
-        Plain code: the electricity.  
-        Nobody would build it this way. That is the point. It is the wrong tool for the job, and the cost gate tells you so before you start.  
+**SAY:** This is a deliberately silly design. Nobody would call a model 10 million times.  
+I show it because that is what "put AI in the loop" means for a problem like this. Tokens are pieces of words; it is the same task size as the cost slides.  
+Small model: $4,500. Frontier model: $360,000. Premium “pro” model: $1,500,000. For one run.  
+Plain code: the electricity.  
   
-        DO: Click once for the line.  
+**DO:** Click once for the line.  
   
-        SAY: The model's job was to help write the tool. Not to be the tool.  
+**SAY:** The model's job was to help write the tool. Not to be the tool.  
   
-        NEXT: So it passes cost. Now the other three gates. My own project, my own rules.
+**NEXT:** So it passes cost. That is one gate of four.
 
 ## 32. My own project, through my own gates
 
-*3:47:30 · 2.5 min · 3 clicks · id `slotting-scorecard`*
+*3:46:30 · 2.5 min · 2 clicks · id `slotting-scorecard`*
 
+**NOT FILLED IN:** the bigger return, the effort and the growth are empty in your-numbers.js, so this slide stops at the NO.  
+  
 **SAY:** Now the uncomfortable part. My own favorite project, through my own four gates.  
   
-        DO: Click: Cost. SAY: $0 to run. No model runs when it runs. Pass.  
+**DO:** Click: Cost.  
+**SAY:** $0 to run. No model runs when it runs. Pass.  
   
-        DO: Click: Return. SAY: On minutes alone it saves 15.4 pick hours a year. At $30 an hour, $462.  
-        My own rule says under $5,000 a year is a no. So on minutes alone: no. I would be telling you so.  
+**DO:** Click: Return. Let the NO land before you speak.  
+**SAY:** On minutes alone it saves 15.4 pick hours a year. At $30 an hour, $462.  
+My rule: under $5,000 a year, and no days off the cash cycle, is a no.  
+Picking is on my cash path. But walking less doesn't bring cash in any sooner. So: no.  
+And any no ends it. Effort and Potential never get asked.  
   
-        DO: Click: the bigger return.  
+**DO:** Nothing more to click here. The line top right lands on its own.  
   
-        YOUR STORY: the bigger return. The move is the one free re-slot: every part moved anyway, so it was never automate or not. It was guess or calculate.  
-  
-        YOUR STORY: effort, and where it goes next.  
-  
-        NEXT: We just got the minutes back. So who owns them?
+**SAY:** So on minutes alone my own project fails my own screen. $462 a year.  
+I'm not going to put a number up here that I can't show you all four Waypoint boxes for.  
+What made it worth doing: every part was moving anyway. The choice was never automate or not.  
+It was guess or calculate. And calculating took ladder picks from 23% to 0.6%.  
+**NEXT:** Mine was never about the minutes. Yours might be. Look at the one you kept.
 
 ---
 
@@ -603,98 +607,101 @@ Nothing on this slide calls a model.
 
 ## 33. Who owns the minutes?
 
-*3:50 · 30 sec · 1 click · id `who-owns`*
+*3:49 · 30 sec · 1 click · id `who-owns`*
 
-**SAY:** That was the build. The minutes came back.  
-      Now the part a business case usually skips.  
-      Who owns them?  
+**SAY:** Say your boring one works. Six hours a week come back.  
+(click) Who owns them?  
   
-      DO: Click once for the question. Then stop. Count to three before you say anything.  
+**DO:** Click once for the question. Then stop. Count to three before you say anything.  
   
-      NEXT: If you're already thinking the objection, I'll say it for you.
+**NEXT:** If you're already thinking the objection, I'll say it for you.
 
 ## 34. The objection
 
-*3:50:30 · 1.5 min · 1 click · id `the-objection`*
+*3:49:30 · 1.5 min · 1 click · id `the-objection`*
 
 **SAY:** “My people will just waste the time.” A fair worry.  
-      But the tool did its job. It handed back minutes.  
-      What they turn into is a management decision.  
-      If nobody decides, the time leaks away. That's on us, not the AI.  
+But the tool did its job. It handed back minutes.  
+What they turn into is a management decision.  
+If nobody decides, the time leaks away. That's on us, not the AI.  
   
-      DO: Read the objection out loud. Click. Let the answer land, then speak.  
+**DO:** Read the objection out loud. Click. Let the answer land, then speak.  
   
-      NEXT: So what does managing it look like? Three things. My view, not a study.
+**NEXT:** So what does managing it look like? Three things. My view, not a study.
 
 ## 35. Share the gain
 
-*3:52 · 2 min · 4 clicks · id `share-the-gain`*
+*3:51 · 2 min · 4 clicks · id `share-the-gain`*
 
-**SAY:** My view, not a study.  
-      One. Name the goal: decide what the freed hours are for.  
-      Two. Measure it, the way we measured the minutes.  
-      Three. Share the upside: income, a bonus or an ownership stake, tied to growth.  
-      People content with the status quo are not who you build around.  
+**SAY:** Name the goal for the freed hours. That's a leader's call. Measure it.  
+Share the upside: income, a bonus or an ownership stake, tied to growth.  
+Build around people who want a piece. Make sure there's one to want.  
   
-      DO: One click per beat, one more for the last line.  
+**DO:** A click per beat, one for the line. Read it.  
   
-      YOUR STORY: how you share the gain at work.  
+**YOUR STORY:** how the gain is shared at your place, if it is; if not, say what you would do.  
   
-      NEXT: A shared gain needs proof. Back to Waypoint.
+**NEXT:** And a shared gain needs proof.
 
 ## 36. The Waypoint standard
 
-*3:54 · 1 min · 1 click · id `waypoint-standard`*
+*3:53 · 1 min · 1 click · id `waypoint-standard`*
 
-**SAY:** You saw these four at the start. It's the Waypoint standard.  
-      The task. The prompt. The output. The time saved.  
-      A win only counts with all four.  
-      That's what keeps a shared gain honest. If you can't show all four, it didn't happen.  
-      Proof, not vibes.  
+**SAY:** You saw these four at the start: the Waypoint standard.  
+The task. The prompt. The output. The time saved.  
+That's what keeps it honest.  
+(click) If you can't show all four, it didn't happen. Proof, not vibes.  
   
-      DO: Point at the four boxes, left to right. Click for the line.  
+**DO:** Point at the boxes, left to right. Click for the line.  
   
-      NEXT: So here is what I'm asking you to do on Monday.
+**NEXT:** So here is what I'm asking you to do on Monday.
 
 ## 37. Monday morning
 
-*3:55 · 1 min · 3 clicks · id `monday`*
+*3:54 · 1 min · 3 clicks · id `monday`*
 
 **SAY:** Three things. You already hold the worksheet for the first two.  
-      One. Inventory two weeks of real work. You started today. Finish it.  
-      Two. Run three candidates through the four gates.  
-      Three. Say no twice. Out loud, to the two that lose.  
-      That leaves one. Build that one.  
+One. Inventory two weeks of real work. You started today. Finish it.  
+Two. Run three candidates through the four gates.  
+Three. Say no twice. Out loud, to the two that lose.  
+That leaves one. Build that one.  
   
-      DO: One click per line. Hold up the worksheet.  
+**DO:** One click per line. Hold up the worksheet.  
   
-      NEXT: One more line from 1956.
+**NEXT:** One more line from 1956.
 
 ## 38. Close: say yes to the math
 
-*3:56 · 1 min · 3 clicks · id `close`*
+*3:55 · 1 min · 3 clicks · id `close`*
 
 **SAY:** Shannon again. His sentence, as he wrote it.  
-      (click) The swap we made at the start. Our edit, not his.  
-      He said it in 1956. Find the few.  
-      (click) Say no to the exciting.  
-      (click) Say yes to the math.  
+(click) The swap from the start. Our edit, not his.  
+He said it in 1956. Find the few.  
+(click) Say no to the exciting.  
+(click) Say yes to the math.  
   
-      DO: Read his sentence.  
-      Click: our edit.  
-      Click: line one. The stage flips to black for one second. Say nothing.  
-      Click: line two. Hands off the clicker until THE MATH lands.  
+**DO:** After line one the stage goes black for one second: say nothing. Hands off the clicker until THE MATH lands.  
   
-      NEXT: Thank you.
+**NEXT:** Let it sit for two beats. That's the talk.
 
 ## 39. Thank you. Questions.
 
-*3:57 · 3 min · 0 clicks · id `thanks`*
+*3:56 · 4 min · 0 clicks · id `thanks`*
 
-**SAY:** Thank you.  
-      I'm Dustin T Hughes, VP of Technology, Laborde Products.  
-      Questions.  
+**SAY:** Thank you. I'm Dustin T Hughes. Questions.  
   
-      DO: Leave this slide up for all of Q&A. If the room is quiet, ask who killed their favorite today.  
+**DO:** Leave this up through Q&A. Quiet room? Ask who killed their favorite.  
+Asked which AI assistant: “an AI coding assistant”. Never name it.  
   
-      NEXT: Q&A until 4:00. Then stop on time.
+Q1 “All that for 15.4 hours a year?” On minutes, no: $462. I said so.  
+Every part moved anyway: guess or calculate. Ladder picks went 23% to 0.6%.  
+Q2 “47% is against a baseline nobody picks.” True: the as-is move.  
+Old building: 12.3% less walking, 22.7% less pick time. Both rest on estimates.  
+Q3 “It’s on your cash path. Doesn’t it pass?” Only if cash comes sooner.  
+Walking less doesn’t do that. The rule wants cash days, not a tick.  
+Q4 “Prices change every quarter. Stale?” One export, November 2026.  
+17 of 50 scores estimated: tiers, not ranks. The lessons hold.  
+Q5 “How do I keep my numbers honest?” Set house rules before you score.  
+Then hold every win to all four Waypoint boxes.  
+  
+**NEXT:** Q&A until 4:00. Then stop on time.

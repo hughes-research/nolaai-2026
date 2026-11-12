@@ -5,9 +5,6 @@
  *   gate-dock      four-gates        the dock assembles one gate at a time; the
  *                                    last step runs one example through it and
  *                                    shows what a NO does
- *   minutes-flow   minutes-to-money  a dial of sixty dots turns, one minute at a
- *                                    time leaves down a rail, and the rail splits
- *                                    into two channels
  *   effort-march   gate-effort       the "keep alive" band never stops moving
  *
  * HOW THESE SCENES ARE BUILT
@@ -25,16 +22,12 @@
  *   arrive(ctx), moved(ctx)  slide hooks: a slide entered at a later step is shown built
  *   sequence()            cancellable timers on the Motion clock
  *   esc(text)             text -> html
- *   minutesFlowSvg()      the static drawing for minutes-to-money
- *   MINUTES               its geometry (stage pixels)
  */
 (function () {
   'use strict';
   if (!window.Scenes || !window.Motion) { return; }
 
   var M = window.Motion;
-  var doc = document;
-  var SVG_NS = 'http://www.w3.org/2000/svg';
 
   function theme() { return window.THEME || null; }
 
@@ -212,232 +205,6 @@
   });
 
   /* ======================================================================
-   * minutes-flow  (minutes-to-money)
-   * ----------------------------------------------------------------------
-   * A dial of sixty dots turns. Each time a dot passes the outlet a minute
-   * leaves down the rail. The rail splits; the minutes pile up, a slice at a
-   * time, in two trays. That is step 0: raw material.
-   * Step 1: each pile draws back like the block of a block reveal and leaves
-   * what it turned into, on Flare: the two channels, by name.
-   *
-   * The picture is an inline SVG that is already in the slide (drawn by
-   * minutesFlowSvg below, so the overview has it too). The scene moves the
-   * same nodes. Everything is a pure function of the time since it mounted.
-   * ==================================================================== */
-
-  var MINUTES = (function () {
-    var g = {
-      cx: 378, cy: 672, R: 240, r: 10, count: 60,       // the dial: sixty dots
-      jx: 900,                                           // where the rail splits
-      fx: 1180, fw: 684, fh: 250, line: 8,               // the two trays
-      ya: 477, yb: 867,                                  // their centre lines
-      slices: 24,                                        // minutes a tray holds
-      rate: 6,                                           // minutes released per second
-      speed: 300                                         // px per second on the rail
-    };
-    g.ex = g.cx + g.R;                                   // the outlet, at three o'clock
-    g.legs = [g.jx - g.ex, g.cy - g.ya, g.fx - g.jx];    // rail: out, up or down, in
-    g.length = g.legs[0] + g.legs[1] + g.legs[2];
-    g.travel = g.length / g.speed;
-    g.ix = g.fx + g.line;                                // the inside of a tray
-    g.iw = g.fw - g.line * 2;
-    g.ih = g.fh - g.line * 2;
-    g.fillTime = g.travel + (g.slices * 2 - 1) / g.rate; // when both trays are full
-    return g;
-  }());
-
-  /* where a minute is, s pixels down the rail, on the upper (0) or lower (1) branch */
-  function railPoint(s, branch) {
-    var g = MINUTES;
-    var sign = branch ? 1 : -1;
-    if (s <= g.legs[0]) { return [g.ex + s, g.cy]; }
-    s -= g.legs[0];
-    if (s <= g.legs[1]) { return [g.jx, g.cy + sign * s]; }
-    s -= g.legs[1];
-    return [g.jx + Math.min(s, g.legs[2]), g.cy + sign * g.legs[1]];
-  }
-
-  function minutesFlowSvg() {
-    var g = MINUTES;
-    var i, a, out = [];
-    out.push('<svg class="m2m-svg" viewBox="0 0 1920 1080" aria-hidden="true" focusable="false">');
-    // a pile of minutes is a halftone: one column of dots for every minute that arrives
-    var px = g.iw / g.slices;
-    var rows = Math.max(1, Math.round(g.ih / px));
-    var py = g.ih / rows;
-    out.push('<defs>' + ['a', 'b'].map(function (name, b) {
-      var top = (b ? g.yb : g.ya) - g.ih / 2;
-      return '<pattern id="m2m-dots-' + name + '" patternUnits="userSpaceOnUse" x="' + g.ix + '" y="' + top + '" width="' + px.toFixed(4) + '" height="' + py.toFixed(4) + '">' +
-        '<circle cx="' + (px / 2).toFixed(3) + '" cy="' + (py / 2).toFixed(3) + '" r="' + g.r + '"/></pattern>';
-    }).join('') + '</defs>');
-    // rails: one out of the dial, then a hard corner up and a hard corner down
-    out.push('<g class="m2m-rails">' +
-      '<polyline points="' + g.ex + ',' + g.cy + ' ' + g.jx + ',' + g.cy + ' ' + g.jx + ',' + g.ya + ' ' + g.fx + ',' + g.ya + '"/>' +
-      '<polyline points="' + g.jx + ',' + g.cy + ' ' + g.jx + ',' + g.yb + ' ' + g.fx + ',' + g.yb + '"/>' +
-      '</g>');
-    // the dial
-    out.push('<g class="m2m-ring">');
-    for (i = 0; i < g.count; i++) {
-      a = i / g.count * Math.PI * 2;
-      out.push('<circle cx="' + (g.cx + g.R * Math.cos(a)).toFixed(2) + '" cy="' + (g.cy + g.R * Math.sin(a)).toFixed(2) + '" r="' + g.r + '"/>');
-    }
-    out.push('</g>');
-    // minutes on the rail (a still frame; the scene takes these over)
-    out.push('<g class="m2m-flow">');
-    var gap = g.speed / g.rate;
-    for (i = 1; i * gap < g.length - 20; i++) {
-      var p = railPoint(i * gap, i % 2);
-      out.push('<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + g.r + '"/>');
-    }
-    out.push('</g>');
-    // the piles (full in the still frame)
-    out.push('<g class="m2m-piles">' +
-      '<rect class="m2m-pile is-a" fill="url(#m2m-dots-a)" x="' + g.ix + '" y="' + (g.ya - g.ih / 2) + '" width="' + g.iw + '" height="' + g.ih + '"/>' +
-      '<rect class="m2m-pile is-b" fill="url(#m2m-dots-b)" x="' + g.ix + '" y="' + (g.yb - g.ih / 2) + '" width="' + g.iw + '" height="' + g.ih + '"/>' +
-      '</g>');
-    // the trays
-    var half = g.line / 2;
-    out.push('<g class="m2m-trays">' +
-      '<rect x="' + (g.fx + half) + '" y="' + (g.ya - g.fh / 2 + half) + '" width="' + (g.fw - g.line) + '" height="' + (g.fh - g.line) + '"/>' +
-      '<rect x="' + (g.fx + half) + '" y="' + (g.yb - g.fh / 2 + half) + '" width="' + (g.fw - g.line) + '" height="' + (g.fh - g.line) + '"/>' +
-      '</g>');
-    out.push('</svg>');
-    return out.join('');
-  }
-
-  window.Scenes.define('minutes-flow', function (host, opts, api) {
-    var g = MINUTES;
-    var svg = host.querySelector('.m2m-svg');
-    if (!svg) { return {}; }
-    var ring = svg.querySelector('.m2m-ring');
-    var flow = svg.querySelector('.m2m-flow');
-    var piles = [svg.querySelector('.m2m-pile.is-a'), svg.querySelector('.m2m-pile.is-b')];
-    var money = [host.querySelector('.m2m-money.is-a'), host.querySelector('.m2m-money.is-b')];
-    var seq = sequence();
-    var stopLoop = null;
-    var startedAt = M.now();
-    var prev = null;
-    var step = 0;
-    var topUp = 0;        // 0..1: step 1 first fills whatever is not yet full
-    var retreat = 0;      // 0..1: then the piles draw back and leave the money
-    var POOL = Math.ceil(g.travel * g.rate) + 3;
-    var dots = [];
-    var i;
-
-    host.classList.add('is-live');
-
-    // the scene's own dots replace the still ones
-    while (flow.firstChild) { flow.removeChild(flow.firstChild); }
-    for (i = 0; i < POOL; i++) {
-      var c = doc.createElementNS(SVG_NS, 'circle');
-      c.setAttribute('r', g.r);
-      c.setAttribute('visibility', 'hidden');
-      flow.appendChild(c);
-      dots.push(c);
-    }
-
-    function setClip(el, shown) {
-      if (!el) { return; }
-      el.style.clipPath = shown >= 1 ? '' : 'inset(0 ' + ((1 - shown) * 100).toFixed(3) + '% 0 0)';
-    }
-
-    function render(tau) {
-      // the dial turns one dot per minute released
-      var turn = (tau * g.rate * (360 / g.count)) % 360;
-      ring.setAttribute('transform', 'rotate(' + turn.toFixed(3) + ' ' + g.cx + ' ' + g.cy + ')');
-
-      // minutes on the rail: number k left the dial at k / rate
-      var newest = Math.floor(tau * g.rate);
-      var oldest = Math.max(0, Math.ceil((tau - g.travel) * g.rate));
-      var used = 0;
-      var k;
-      for (k = oldest; k <= newest && used < POOL; k++) {
-        var s = (tau - k / g.rate) * g.speed;
-        if (s < 0 || s > g.length) { continue; }
-        var p = railPoint(s, k % 2);
-        var node = dots[used++];
-        node.setAttribute('cx', p[0].toFixed(1));
-        node.setAttribute('cy', p[1].toFixed(1));
-        node.setAttribute('visibility', 'visible');
-      }
-      for (; used < POOL; used++) { dots[used].setAttribute('visibility', 'hidden'); }
-
-      // the piles: one slice for every minute that has arrived
-      var arrived = tau < g.travel ? 0 : Math.floor((tau - g.travel) * g.rate) + 1;
-      [0, 1].forEach(function (b) {
-        // even minutes go up, odd minutes go down
-        var mine = b === 0 ? Math.ceil(arrived / 2) : Math.floor(arrived / 2);
-        var frac = Math.min(1, mine / g.slices);
-        frac = frac + (1 - frac) * topUp;
-        var left = g.iw * retreat;
-        var width = Math.max(0, g.iw * frac - left);
-        piles[b].setAttribute('x', (g.ix + left).toFixed(1));
-        piles[b].setAttribute('width', width.toFixed(1));
-        setClip(money[b], step >= 1 ? retreat : 1);
-      });
-    }
-
-    function tick() { render(M.now() - startedAt); }
-
-    function settle(n) {
-      seq.clear();
-      step = n;
-      topUp = n >= 1 ? 1 : 0;
-      retreat = n >= 1 ? 1 : 0;
-    }
-
-    function turnToMoney() {
-      seq.clear();
-      step = 1;
-      topUp = 0;
-      retreat = 0;
-      var tau = M.now() - startedAt;
-      var arrived = tau < g.travel ? 0 : Math.floor((tau - g.travel) * g.rate) + 1;
-      var least = Math.min(1, Math.floor(arrived / 2) / g.slices);
-      var fillSeconds = (1 - least) * g.iw / barSpeed();      // bars grow at one speed
-      seq.tween({
-        from: 0, to: 1, duration: fillSeconds, ease: 'linear',
-        onUpdate: function (v) { topUp = v; },
-        onDone: function () {
-          topUp = 1;
-          seq.after(0.25, function () {
-            seq.tween({
-              from: 0, to: 1, duration: dur('blockOut', 0.25) * 2, ease: easeOf('arrive'),
-              onUpdate: function (v) { retreat = v; },
-              onDone: function () { retreat = 1; tick(); }
-            });
-          });
-        }
-      });
-    }
-
-    var fillTimer = null;
-    if (api.mode.print) {
-      // one still frame, piles full
-      startedAt = M.now() - g.fillTime - 1;
-    } else {
-      stopLoop = M.raf(tick);
-      // a finite tween for as long as the trays take to fill, so that tools
-      // waiting for the slide to settle (screenshots) see them full
-      fillTimer = M.tween({ from: 0, to: 1, duration: g.fillTime + 0.05, ease: 'linear', immediate: false });
-    }
-
-    return {
-      step: function (n, dir) {
-        var forwardOne = dir > 0 && prev !== null && n === prev + 1 && !api.mode.print;
-        if (forwardOne && n === 1) { turnToMoney(); } else { settle(n); }
-        prev = n;
-        tick();
-      },
-      destroy: function () {
-        seq.clear();
-        if (fillTimer) { fillTimer.cancel(); fillTimer = null; }
-        if (stopLoop) { stopLoop(); stopLoop = null; }
-      }
-    };
-  });
-
-  /* ======================================================================
    * effort-march  (gate-effort)
    * ----------------------------------------------------------------------
    * "Keep alive" is the part that never ends, so its band never stops: the
@@ -497,8 +264,6 @@
     list: list,
     dur: dur,
     easeOf: easeOf,
-    barSpeed: barSpeed,
-    minutesFlowSvg: minutesFlowSvg,
-    MINUTES: MINUTES
+    barSpeed: barSpeed
   };
 }());

@@ -6,6 +6,7 @@
  * and a headline per step) and the honesty tag; the scene owns everything else.
  *
  * Step 0 plays when the slide enters, so the slide has 6 builds for 7 steps.
+ * Planned for 5 minutes (lead's decision D8).
  *
  * Every number in a caption is computed: the counts come from Slotting.params()
  * here, and the scene overwrites each [data-wh] span with the value from the
@@ -68,33 +69,32 @@
     id: 'slotting-live',
     act: 4,
     title: 'The method, live (synthetic re-creation)',
-    minutes: 6,
+    minutes: 5,
     layout: 'scene',
     steps: captions.length - 1,
     html: html,
     notes: [
-      'SAY: This is not our building. It is a made-up warehouse running the same method, in this browser.\n' +
-      'Every dot is a part on a shelf. Big dot, fast mover.\n' +
-      'All of it is synthetic. The real numbers are the next slide.',
+      'SAY: This is not our building. It is a made-up warehouse running the same method, live in this browser.\n' +
+      'Every dot is a part. Big dot, fast mover. Speck, slow.\n' +
+      'All synthetic. Ours comes after.',
 
-      'DO, step 1 (on screen when the slide opens): Point at the pack station. Then the side view: floor, golden zone, reach, ladder.',
+      'DO, step 1 (on screen as the slide opens): Point at the pack station, bottom left. Then the side view: floor, golden zone, reach, ladder.',
 
       'DO, step 2: Click. A year of orders rains in. Point at the hatched bars: those picks need a ladder.',
 
-      'DO, step 3: Click. The as-is move. Pickers walk the busiest day. Let it finish. Watch the ladder count.',
+      'DO, step 3: Click. The as-is move. The dashed line is the walk for the busiest day. Point at the ladder count.',
 
-      'DO, step 4: Click. Rule of thumb first. Then the search: swap two parts, replay the orders, keep the swap if pick time dropped.',
+      'DO, step 4: Click. Rule of thumb first: fast movers to the golden shelves by the door. Then the search: swap two parts, replay the orders, keep the swap if pick time drops.',
 
-      'DO, step 5: Click. Same orders, same pickers, same speed. Say nothing until they finish.',
+      'DO, step 5: Click. Both walks again, same orders, same speed. Solid is new, dashed is old. Say nothing until the dashed one gets home.',
 
-      'DO, step 6: Click. Read the four lines, before then after. The 100% is a rule the search has to keep, not something it found.',
+      'DO, step 6: Click. Read the four lines, before then after. The 100% is a rule the search has to keep, not something it found.\n' +
+      "SAY: Don't write these down. This is a made-up building, and its numbers are bigger than ours. The real result is next, and it's smaller.",
 
-      'DO, step 7: Click. Read the headline, then the block. Stop.',
+      'DO, step 7: Click. Read the headline, then the block. Stop.\n' +
+      'SAY: That time is how long the arithmetic took on this laptop. Nothing on this slide calls a model.',
 
-      'SAY: You watched a replay of a search this laptop finished a moment ago. The time on screen is how long the arithmetic took.\n' +
-      'Nothing on this slide calls a model.',
-
-      'NEXT: That was a toy on made-up data. Here are the real numbers.'
+      'NEXT: Same method. Our building, our orders.'
     ].join('\n\n')
   });
 }());

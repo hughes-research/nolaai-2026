@@ -2296,6 +2296,186 @@ test('Motion: switching to the manual clock while things run never steps backwar
   } finally { await t.close(); }
 });
 
+test('speaker notes: a label at the start of a line becomes a chip (SAY, DO, NEXT, TIME, YOUR STORY, NOT FILLED IN, IF SHORT OF TIME)', async () => {
+  const t = await open({ flags: 'fast' });
+  try {
+    const p = t.page;
+    const r = await p.evaluate(() => {
+      const box = document.createElement('div');
+      box.className = 'deck-notes-overlay';             // the overlay's own styles, theme included
+      box.style.position = 'fixed';
+      document.body.appendChild(box);
+      const render = (text) => {
+        box.innerHTML = window.__deck.notesHtml(text);
+        return Array.from(box.querySelectorAll('p')).map((para) => ({
+          cls: para.className,
+          label: para.getAttribute('data-label'),
+          lines: Array.from(para.querySelectorAll('.deck-notes-line')).map((line) => {
+            const chip = line.querySelector('.deck-notes-label');
+            return { chip: chip ? chip.textContent : null, label: line.getAttribute('data-label'), text: line.textContent };
+          })
+        }));
+      };
+      const out = {};
+      out.all = render([
+        '    SAY: First line.',
+        '      and its continuation, indented',
+        '',
+        '  DO: Click once.',
+        'SAY: then say this, in the same paragraph.',
+        '',
+        'NEXT: The hand-off.',
+        '',
+        'TIME: two minutes.',
+        '',
+        'IF SHORT OF TIME: skip the second click.',
+        '',
+        'YOUR STORY: only you know this.',
+        '',
+        'NOT FILLED IN: the growth is empty.'
+      ].join('\n'));
+      out.not = render('We SAY: this mid-line.\n\nsay: lower case is prose.\n\nDOT: not a label.\n\nSAY: <b>escaped</b> & kept');
+      out.notHtml = box.innerHTML;
+      out.empty = render('   \n  \n');
+      out.emptyText = box.textContent;
+      // looks: chips are told apart, and the two "only you" labels are the loudest
+      box.innerHTML = window.__deck.notesHtml('SAY: a\n\nDO: b\n\nYOUR STORY: c\n\nNOT FILLED IN: d\n\nplain e');
+      const chip = (k) => box.querySelector('.deck-notes-label-' + k);
+      const cs = (el) => getComputedStyle(el);
+      const look = (k) => { const s = cs(chip(k)); return { bg: s.backgroundColor, color: s.color, size: parseFloat(s.fontSize), weight: Number(s.fontWeight), display: s.display }; };
+      out.look = { say: look('say'), do: look('do'), story: look('your-story'), unfilled: look('not-filled-in') };
+      const paras = box.querySelectorAll('p');
+      out.paraWeight = { story: Number(cs(paras[2]).fontWeight), unfilled: Number(cs(paras[3]).fontWeight), plain: Number(cs(paras[4]).fontWeight) };
+      out.paraBar = { story: cs(paras[2]).borderLeftStyle, unfilled: cs(paras[3]).borderLeftStyle, plain: cs(paras[4]).borderLeftStyle };
+      out.gap = parseFloat(cs(paras[0]).marginBottom);
+      out.lineHeight = parseFloat(cs(box).fontSize);
+      box.remove();
+      return out;
+    });
+
+    const a = r.all;
+    eq(a.length, 7, 'one paragraph per blank-line block');
+    eq(a[0].lines, [
+      { chip: 'SAY', label: 'say', text: 'SAY First line.' },
+      { chip: null, label: null, text: 'and its continuation, indented' }
+    ], 'leading whitespace is ignored; the label is a chip, its colon is gone; a continuation line has no chip');
+    eq(a[1].lines.map((l) => l.chip), ['DO', 'SAY'], 'a label at the start of any line of a paragraph is a chip');
+    eq(a.map((x) => x.label), ['say', 'do', 'next', 'time', 'if-short-of-time', 'your-story', 'not-filled-in'], 'every label is recognised, the paragraph says which it opens with');
+    eq(a[5].cls, 'deck-notes-p deck-notes-story', 'YOUR STORY marks its paragraph');
+    eq(a[6].cls, 'deck-notes-p deck-notes-unfilled', 'NOT FILLED IN marks its paragraph');
+    eq(a.slice(0, 5).map((x) => x.cls), Array(5).fill('deck-notes-p'), 'the other paragraphs are plain');
+
+    eq(r.not.map((x) => x.lines[0].chip), [null, null, null, 'SAY'], 'only a capitalised label at the very start of a line counts');
+    assert(r.notHtml.includes('&lt;b&gt;escaped&lt;/b&gt; &amp; kept') && !r.notHtml.includes('<b>'), 'note text is escaped');
+    eq(r.empty, [{ cls: 'deck-notes-empty', label: null, lines: [] }], 'blank notes say so');
+    eq(r.emptyText, 'No notes for this slide.', 'the empty message');
+
+    const L = r.look;
+    assert(L.say.bg !== L.do.bg, 'SAY and DO chips look different: ' + L.say.bg + ' / ' + L.do.bg);
+    assert(L.story.bg !== L.say.bg && L.story.bg !== L.do.bg && L.story.bg === L.unfilled.bg, 'YOUR STORY and NOT FILLED IN share a louder chip: ' + JSON.stringify(L));
+    assert(L.story.size > L.say.size && L.unfilled.size > L.say.size, 'and a bigger one: ' + L.story.size + ' > ' + L.say.size);
+    assert(L.say.weight >= 700 && L.do.weight >= 700, 'chips are bold');
+    assert(r.paraWeight.story > r.paraWeight.plain && r.paraWeight.unfilled > r.paraWeight.plain, 'YOUR STORY and NOT FILLED IN paragraphs are bolder than the rest: ' + JSON.stringify(r.paraWeight));
+    eq([r.paraBar.story, r.paraBar.unfilled, r.paraBar.plain], ['solid', 'dashed', 'none'], 'a bar beside them: solid for YOUR STORY, dashed (an empty slot) for NOT FILLED IN');
+    assert(r.gap >= 0.8 * r.lineHeight, 'paragraphs get air: ' + r.gap + 'px');
+    eq(t.problems, [], 'console errors');
+  } finally { await t.close(); }
+});
+
+test('presenter view and N overlay: a 60-word note fits without scrolling; a long one scrolls with a cue and ends on a whole line', async () => {
+  const sixty = [
+    'SAY: Here is the rule I use on every idea, before anything else.',
+    '  Price the minutes first. Twenty-five dollars a minute is my line.',
+    '  Under it, the answer is no, however clever it looks.',
+    '',
+    'DO: Point at the first gate.',
+    '',
+    'SAY: Most ideas stop right here. That is fine.',
+    '',
+    'YOUR STORY: one idea you turned down this year, and why.',
+    '',
+    'NEXT: So what does saying no actually cost us?'
+  ].join('\n');
+  eq(sixty.replace(/^\s*[A-Z ]+:/gm, '').trim().split(/\s+/).length >= 50, true, 'the test note is about 60 words');
+  for (const [w, h] of [[1440, 900], [1920, 1080]]) {
+    const t = await open({ flags: 'presenter', hash: 'demo-reveals/0', viewport: { width: w, height: h } });
+    try {
+      const m = await t.page.evaluate((text) => {
+        const n = document.querySelector('.deck-pv-notes');
+        n.innerHTML = window.__deck.notesHtml(text);
+        n.dispatchEvent(new Event('scroll'));
+        return { sh: n.scrollHeight, ch: n.clientHeight, size: parseFloat(getComputedStyle(n).fontSize), cue: !document.querySelector('.deck-pv-notescol .deck-notes-more').hidden };
+      }, sixty);
+      assert(m.size >= 32, w + 'x' + h + ': notes at their default size (' + m.size + 'px)');
+      assert(m.sh <= m.ch, w + 'x' + h + ': a 60-word note needs no scrolling (' + m.sh + ' > ' + m.ch + ')');
+      eq(m.cue, false, w + 'x' + h + ': and shows no scroll cue');
+      eq(t.problems, [], 'console errors');
+    } finally { await t.close(); }
+  }
+
+  // a long note (the demo's long-notes slide) in a laptop-sized window
+  const t = await open({ flags: 'presenter', hash: 'demo-counter/0', viewport: { width: 1280, height: 720 } });
+  try {
+    const p = t.page;
+    await p.waitForFunction(() => document.querySelector('.deck-pv-notes').textContent.includes('deliberately long notes'));
+    const state = () => p.evaluate(() => {
+      const n = document.querySelector('.deck-pv-notes');
+      const cue = document.querySelector('.deck-pv-notescol .deck-notes-more');
+      const pane = n.getBoundingClientRect();
+      const last = n.lastElementChild.getBoundingClientRect();
+      const cueBox = cue.getBoundingClientRect();
+      return {
+        overflow: n.scrollHeight > n.clientHeight + 1,
+        cue: !cue.hidden && getComputedStyle(cue).display !== 'none',
+        cueText: cue.textContent,
+        cueInPane: cueBox.bottom <= pane.bottom + 1 && cueBox.top >= pane.top,
+        lastInView: last.bottom <= pane.top + n.clientTop + n.clientHeight + 1,
+        hasMore: n.classList.contains('has-more'),
+        story: !!n.querySelector('.deck-notes-story .deck-notes-label-your-story')
+      };
+    });
+    let s = await state();
+    eq([s.overflow, s.cue, s.hasMore, s.cueInPane], [true, true, true, true], 'a long note overflows and shows the cue at the foot of the pane');
+    assert(/more/i.test(s.cueText), 'the cue says there is more: ' + s.cueText);
+    eq(s.story, true, 'the YOUR STORY paragraph has its chip');
+    await p.evaluate(() => { const n = document.querySelector('.deck-pv-notes'); n.scrollTop = n.scrollHeight; });
+    await p.waitForFunction(() => document.querySelector('.deck-pv-notescol .deck-notes-more').hidden);
+    s = await state();
+    eq([s.cue, s.hasMore, s.lastInView], [false, false, true], 'scrolled to the end: the cue is gone and the last line is whole');
+    // a new slide with a short note: no cue
+    await p.keyboard.press('Home');
+    await p.waitForFunction(() => document.querySelector('.deck-pv-notes').scrollTop === 0);
+    await p.waitForTimeout(100);
+    const short = await p.evaluate(() => {
+      const n = document.querySelector('.deck-pv-notes');
+      return { overflow: n.scrollHeight > n.clientHeight + 1, cue: !document.querySelector('.deck-pv-notescol .deck-notes-more').hidden };
+    });
+    eq(short.cue, short.overflow, 'the cue shows only when the note overflows');
+    eq(t.problems, [], 'console errors');
+  } finally { await t.close(); }
+
+  // the N overlay: its head stays, its body scrolls under the same cue
+  const o = await open({ flags: 'fast', hash: 'demo-counter/0', viewport: { width: 1280, height: 720 } });
+  try {
+    const p = o.page;
+    await p.keyboard.press('n');
+    const ov = () => p.evaluate(() => {
+      const box = document.querySelector('.deck-notes-overlay');
+      const body = box.querySelector('.deck-notes-body');
+      const cue = box.querySelector('.deck-notes-more');
+      return { hidden: box.hidden, display: getComputedStyle(box).display, overflow: body.scrollHeight > body.clientHeight + 1, cue: !cue.hidden, head: !!box.querySelector('.deck-notes-head'), chips: box.querySelectorAll('.deck-notes-label').length };
+    });
+    let s = await ov();
+    eq([s.hidden, s.head, s.overflow, s.cue], [false, true, true, true], 'N: head, a scrolling body and the cue');
+    await p.evaluate(() => { const b = document.querySelector('.deck-notes-body'); b.scrollTop = b.scrollHeight; });
+    await p.waitForFunction(() => document.querySelector('.deck-notes-overlay .deck-notes-more').hidden);
+    await p.keyboard.press('n');
+    s = await ov();
+    eq([s.hidden, s.display], [true, 'none'], 'N hides the overlay completely');
+    eq(o.problems, [], 'console errors');
+  } finally { await o.close(); }
+});
+
 /* ===================================================================== run */
 
 (async () => {

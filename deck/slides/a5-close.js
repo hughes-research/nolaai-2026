@@ -7,9 +7,9 @@
  *   waypoint-standard   1     the four Waypoint items return (rhymes with whos-talking)
  *   monday              1     three numbered actions
  *   close               1     Shannon, our edit, then the last sentence of the talk
- *   thanks              3     stays on screen through Q&A
+ *   thanks              4     stays on screen through Q&A (the notes hold the hard questions)
  *                      --
- *                      10 minutes
+ *                      11 minutes
  *
  * Copy is final (docs/BRIEF.md, section 8). The Shannon sentence is line 5 of
  * section 6, held once in SHANNON_5 below and never retyped: the slide markup
@@ -637,9 +637,8 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
       <p class="voice a5-ask" data-step="1" data-anim="wipe">Who owns them?</p>
     `,
     notes: `
-      SAY: That was the build. The minutes came back.
-      Now the part a business case usually skips.
-      Who owns them?
+      SAY: Say your boring one works. Six hours a week come back.
+      (click) Who owns them?
 
       DO: Click once for the question. Then stop. Count to three before you say anything.
 
@@ -702,17 +701,15 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
       <i hidden data-scene="a5-cue" data-opts='{"at": 3, "for": ${seconds(NOTE.drop + NOTE.beat)}}'></i>
     `,
     notes: `
-      SAY: My view, not a study.
-      One. Name the goal: decide what the freed hours are for.
-      Two. Measure it, the way we measured the minutes.
-      Three. Share the upside: income, a bonus or an ownership stake, tied to growth.
-      People content with the status quo are not who you build around.
+      SAY: Name the goal for the freed hours. That's a leader's call. Measure it.
+      Share the upside: income, a bonus or an ownership stake, tied to growth.
+      Build around people who want a piece. Make sure there's one to want.
 
-      DO: One click per beat, one more for the last line.
+      DO: A click per beat, one for the line. Read it.
 
-      YOUR STORY: how you share the gain at work.
+      YOUR STORY: how the gain is shared at your place, if it is; if not, say what you would do.
 
-      NEXT: A shared gain needs proof. Back to Waypoint.
+      NEXT: And a shared gain needs proof.
     `
   });
 
@@ -736,13 +733,12 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
       <p class="say a5-proof" data-step="1" data-anim="pop">If you can’t show <span class="punch">all four</span>,<br>it didn’t happen.</p>
     `,
     notes: `
-      SAY: You saw these four at the start. It's the Waypoint standard.
+      SAY: You saw these four at the start: the Waypoint standard.
       The task. The prompt. The output. The time saved.
-      A win only counts with all four.
-      That's what keeps a shared gain honest. If you can't show all four, it didn't happen.
-      Proof, not vibes.
+      That's what keeps it honest.
+      (click) If you can't show all four, it didn't happen. Proof, not vibes.
 
-      DO: Point at the four boxes, left to right. Click for the line.
+      DO: Point at the boxes, left to right. Click for the line.
 
       NEXT: So here is what I'm asking you to do on Monday.
     `
@@ -826,17 +822,14 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
     `,
     notes: `
       SAY: Shannon again. His sentence, as he wrote it.
-      (click) The swap we made at the start. Our edit, not his.
+      (click) The swap from the start. Our edit, not his.
       He said it in 1956. Find the few.
       (click) ${LAST_HALVES[0]}
       (click) ${LAST_HALVES[1]}
 
-      DO: Read his sentence.
-      Click: our edit.
-      Click: line one. The stage flips to black for ${NOTE.hold === 1000 ? 'one second' : seconds(NOTE.hold) + ' seconds'}. Say nothing.
-      Click: line two. Hands off the clicker until THE MATH lands.
+      DO: After line one the stage goes black for ${NOTE.hold === 1000 ? 'one second' : seconds(NOTE.hold) + ' seconds'}: say nothing. Hands off the clicker until THE MATH lands.
 
-      NEXT: Thank you.
+      NEXT: Let it sit for two beats. That's the talk.
     `
   });
 
@@ -859,11 +852,48 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
     ? '<p class="kicker a5-last">' + esc(LAST_HALVES.join(' ')) + '</p>'
     : '';
 
+  /* The five hardest questions the room is likely to ask, with the honest
+   * answer the brief supports (from the skeptical-executive review). Two
+   * lines of answer each, so he can glance at them mid-question. Every figure
+   * is read from window.YOUR, window.PROJECT, CostMath or the BenchLM file; a
+   * question whose figures are missing is left out rather than guessed. */
+  function hardQuestions() {
+    var P = window.PROJECT;
+    var CM = window.CostMath;
+    var R = (YOUR.slotting && YOUR.slotting.results) || {};
+    var old = R.oldBuilding || {};
+    var ok = function (x) { return typeof x === 'number' && isFinite(x); };
+    var pct = function (x) { return (P ? P.num(x) : String(x)) + '%'; };
+    var out = [];
+    var ma = null;
+    try { ma = P && P.minutesAlone ? P.minutesAlone() : null; } catch (err) { ma = null; }
+    if (ma && ma.ok && ok(R.ladderPctAsIs) && ok(R.ladderPctOptimized)) {
+      out.push('Q1 “All that for ' + P.num(ma.hours) + ' hours a year?” On minutes, no: ' + P.money(ma.value) + '. I said so.',
+        'Every part moved anyway: guess or calculate. Ladder picks went ' + pct(R.ladderPctAsIs) + ' to ' + pct(R.ladderPctOptimized) + '.');
+    }
+    if (ok(R.pickTimePctLess) && ok(old.walkPctLess) && ok(old.pickTimePctLess)) {
+      out.push('Q2 “' + pct(R.pickTimePctLess) + ' is against a baseline nobody picks.” True: the as-is move.',
+        'Old building: ' + pct(old.walkPctLess) + ' less walking, ' + pct(old.pickTimePctLess) + ' less pick time. Both rest on estimates.');
+    }
+    out.push('Q3 “It’s on your cash path. Doesn’t it pass?” Only if cash comes sooner.',
+      'Walking less doesn’t do that. The rule wants cash days, not a tick.');
+    var c = null;
+    try { c = CM && CM.counts ? CM.counts() : null; } catch (err) { c = null; }
+    var meta = (window.BENCHLM && window.BENCHLM.meta) || {};
+    if (c && c.rows && meta.retrieved) {
+      out.push('Q4 “Prices change every quarter. Stale?” One export, ' + meta.retrieved + '.',
+        c.estimated + ' of ' + c.rows + ' scores estimated: tiers, not ranks. The lessons hold.');
+    }
+    out.push('Q5 “How do I keep my numbers honest?” Set house rules before you score.',
+      'Then hold every win to all four Waypoint boxes.');
+    return out.join('\n      ');
+  }
+
   Deck.slide({
     id: 'thanks',
     act: 5,
     title: 'Thank you. Questions.',
-    minutes: 3,
+    minutes: 4,
     layout: 'statement',
     html: `
       ${lastLineHtml}
@@ -876,11 +906,12 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
       </div>
     `,
     notes: `
-      SAY: Thank you.
-      I'm ${name}, ${roleLine}.
-      ${repoUrl ? 'The deck and the code are at the address on the screen.\n      ' : ''}Questions.
+      SAY: Thank you. I'm ${name}. ${repoUrl ? 'The deck and the code are at that address. ' : ''}Questions.
 
-      DO: Leave this slide up for all of Q&A. If the room is quiet, ask who killed their favorite today.
+      DO: Leave this up through Q&A. Quiet room? Ask who killed their favorite.
+      Asked which AI assistant: “an AI coding assistant”. Never name it.
+
+      ${hardQuestions()}
 
       NEXT: Q&A until ${endsAt}. Then stop on time.
     `

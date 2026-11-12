@@ -4,10 +4,15 @@
  * One scene, two modes, both pure functions of time on the Motion clock:
  *
  *   mode "walkin"  the vamp. Four gates on the right field count in and never
- *                  resolve: one, two, three open, the fourth tries and cannot,
- *                  they shut, and it starts again. A 32 second loop (16 bars at
- *                  120 BPM) whose first and last frames are the same frame, so
- *                  there is no seam. One live line counts down to the start.
+ *                  resolve: one, two, three pass, and the fourth bay is held
+ *                  vacant (NOT YET, the frame only). The NO is the title's.
+ *                  Most of the loop holds that picture, which is also the
+ *                  static card; then the three shutters roll up, the dock
+ *                  rests empty, and the gates are examined and pass again.
+ *                  A 32 second loop (16 bars at 120 BPM) whose first and last
+ *                  frames are the same frame, so there is no seam. It enters
+ *                  on its first frame, the finished picture. One live line
+ *                  counts down to the start.
  *   mode "build"   the title film, 8 seconds, once: the stack arrives behind
  *                  blocks on the swung off-beat, the gates rise shut, three
  *                  open, the fourth tries and cannot, and the slab drops with
@@ -219,9 +224,11 @@
    * The card's words, from window.YOUR
    * ==================================================================== */
 
-  /* The venue's position, for the catalogue line (docs/DIRECTION.md, Part 1,
-   * section 7). It is the only thing on the card that is not in YOUR. */
-  var VENUE_POSITION = '29°57.7′N 090°03.5′W';
+  /* The catalogue line (docs/DIRECTION.md, Part 1, section 7) ends with the
+   * city. It reads YOUR.event.city when that is set; the session is in New
+   * Orleans (docs/BRIEF.md section 1). There are no coordinates on the card:
+   * nothing offline could source them. */
+  var CITY = 'New Orleans';
   var PROGRAM = 'Waypoint';
   var DEFAULT_TITLE = 'The Most Valuable AI Skill Is Saying No';
 
@@ -267,7 +274,7 @@
       sub: halve(ev.subtitle || 'Screening AI use cases for real return.'),
       name: sp.name || 'Dustin T Hughes',
       role: [sp.role || 'VP of Technology', sp.company || 'Laborde Products'].join(', '),
-      catalogue: [PROGRAM, ev.name || 'NOAI 2026', VENUE_POSITION].join(' · '),
+      catalogue: [PROGRAM, ev.name || 'NOAI 2026', ev.city || CITY].join(' · '),
       when: comma > 0 ? [date.slice(0, comma).trim(), date.slice(comma + 1).trim()] : [date],
       time: [String(ev.time || '2:30–4:00 PM'), minutes + ' minutes'],
       room: halve(room),
@@ -374,7 +381,7 @@
       var live = liveLine(null, null, ev);
       return left +
         '<p class="catalogue wk-cat">' + esc(w.catalogue) + '</p>' +
-        dockHtml(w, ['is-pass', 'is-pass', 'is-pass', 'is-shut']) +
+        dockHtml(w, ['is-pass', 'is-pass', 'is-pass', '']) +
         '<div class="slab wk-band">' +
           '<p class="stack wk-do" data-fit data-fit-max="88" data-fit-h="205"><span class="ln">Take a</span><span class="ln">worksheet</span><span class="ln">and a pen</span></p>' +
           '<i class="wk-rule"></i>' +
@@ -421,7 +428,7 @@
     if (!g) { return; }
     if (g.state !== state) {
       g.el.classList.remove('is-shut', 'is-pass');
-      g.el.classList.add(state);
+      if (state) { g.el.classList.add(state); }     // '' is NOT YET: the frame only
       g.state = state;
     }
     var px = Math.round(h * 10) / 10;
@@ -439,25 +446,41 @@
 
   /* ======================================================================
    * The walk-in loop: 16 bars, 32 seconds. Frame 0 = frame 32.
+   * ----------------------------------------------------------------------
+   *   0 .. 20     the picture: three PASS, the fourth bay vacant
+   *   20, 20⅓, 20½  the PASS words cut out and the shutters roll up (a beat)
+   *   21 .. 23    the dock rests: four empty frames, NOT YET
+   *   23, 25, 27  a gate is examined: its shutter drops to the floor
+   *   24, 26, 28  one bar later it lifts to the top fifth; PASS cuts in a
+   *               sixteenth before it stops
+   *   28.5 .. 32  the picture again
+   * Gate four is never examined here: it waits for the title, where the NO
+   * drops. A shut shutter is only ever seen for the one bar of examination.
    * ==================================================================== */
 
   var LOOP = {
     period: 32,
-    lifts: [4, 6, 8],              // one gate a bar: one, two, three
-    tries: 10,                     // gate four tries on the next downbeat
-    drops: [22, 22 + SWING, 22.5], // they shut again, long-short
-    pose: 16                       // the frame a PDF gets: three open, one shut
+    retracts: [20, 20 + SWING, 20.5],  // long-short, like every stagger
+    shuts: [23, 25, 27],               // one gate a bar: one, two, three
+    lifts: [24, 26, 28],
+    pose: 0                            // the frame a PDF gets, and the frame it enters on
   };
 
   function renderLoop(gates, t) {
     for (var i = 0; i < 3; i++) {
-      var up = lift(seg(t, LOOP.lifts[i], BEAT));
-      var down = drop(seg(t, LOOP.drops[i], DROP));
-      var open = t >= LOOP.lifts[i] + BEAT - SIXTEENTH && t < LOOP.drops[i];
-      var h = down > 0 ? RAISED + (FULL - RAISED) * down : FULL - (FULL - RAISED) * up;
-      setGate(gates[i], open ? 'is-pass' : 'is-shut', h);
+      var g = gates[i];
+      if (t < LOOP.retracts[i]) {
+        setGate(g, 'is-pass', RAISED);
+      } else if (t < LOOP.shuts[i]) {
+        setGate(g, '', RAISED * (1 - lift(seg(t, LOOP.retracts[i], BEAT))));
+      } else if (t < LOOP.lifts[i]) {
+        setGate(g, 'is-shut', FULL * drop(seg(t, LOOP.shuts[i], DROP)));
+      } else {
+        var up = lift(seg(t, LOOP.lifts[i], BEAT));
+        setGate(g, t >= LOOP.lifts[i] + BEAT - SIXTEENTH ? 'is-pass' : 'is-shut', FULL - (FULL - RAISED) * up);
+      }
     }
-    setGate(gates[3], 'is-shut', tryHeight(t - LOOP.tries));
+    setGate(gates[3], '', 0);
   }
 
   /* ======================================================================
@@ -579,7 +602,7 @@
           if (printing || !Motion) {
             renderLoop(gates, LOOP.pose);
           } else {
-            var t0 = Motion.now();
+            var t0 = Motion.now() - LOOP.pose;            // enter on the finished picture
             var frame = function (now) {
               var t = (now - t0) % LOOP.period;
               if (t < 0) { t += LOOP.period; }

@@ -60,10 +60,10 @@
 .slide.yt-step :is([data-step], [data-step-out]) { transition: none; }
 .slide > .yt-live { position: absolute; left: 128px; top: 120px; width: 1736px; height: 920px; flex: none; }
 .slide[data-current-step="1"] > .yt-kicker { visibility: hidden; }
-.slide[data-current-step="1"] > .yt-head { position: absolute; left: 128px; top: 52px; margin: 0; font-size: 60px; line-height: 0.708; white-space: nowrap; }
-.slide[data-current-step="1"] .yt-side { position: absolute; left: 1060px; top: 36px; width: 180px; height: 72px; border: 0; }
+.slide[data-current-step="1"] > .yt-head { position: absolute; left: 128px; top: 34px; margin: 0; font-size: 96px; line-height: 0.708; white-space: nowrap; }
+.slide[data-current-step="1"] .yt-side { position: absolute; right: 56px; top: 28px; width: 300px; height: 84px; border: 0; }
 /* in the top bar the last minute is an ink block, so the winner below keeps the slide's one Flare */
-.slide[data-current-step="1"] .yt-side > .timer-host { --timer-size: 76px; --timer-warn-bg: var(--c-ink); --timer-warn-color: var(--c-bg); }
+.slide[data-current-step="1"] .yt-side > .timer-host { --timer-size: 96px; --timer-warn-bg: var(--c-ink); --timer-warn-color: var(--c-bg); }
 .slide[data-current-step="1"] .yt-side .timer-bar,
 .slide[data-current-step="1"] .yt-side .timer-hint,
 .slide[data-current-step="1"] .yt-side .timer-label { display: none; }
@@ -110,6 +110,9 @@
   var walkSteps = S ? S.walkthroughSteps() : 0;
   var exampleLines = '';
   var exampleOutcome = '';
+  var survivorLine = '';
+  var riggedLine = '';
+  var shareFallback = 'If no hand goes up, ask: who kept all three? Then: which gate would you check first?';
   if (G && S) {
     try {
       var names = [];      // "the exciting one", or "A" when a candidate has no pitch
@@ -117,7 +120,9 @@
         var r = G.evaluate(c);
         var letter = ['A', 'B', 'C'][i];
         names.push(c.pitch ? String(c.pitch).charAt(0).toLowerCase() + String(c.pitch).slice(1) : letter);
-        exampleLines += (i ? '\n' : '') + letter + ', ' + names[i] + ': ' + r.name + '. ' + r.summary;
+        // The reason itself is printed under the gates and read from there, so the note only says where each one stops.
+        exampleLines += (i ? '\n' : '') + letter + ', ' + names[i] + ': ' + r.name + '. ' +
+          (r.verdict === 'YES' ? 'Passes all four.' : 'NO at ' + r.gates[r.firstNo].label + '.');
         return r.verdict;
       });
       var say = function (list) {
@@ -126,10 +131,37 @@
       };
       var out = names.filter(function (n, i) { return verdicts[i] !== 'YES'; });
       var left = names.filter(function (n, i) { return verdicts[i] === 'YES'; });
+      /* The skeptic's question about the survivor ("a model, ten minutes after the tool ladder?") and the
+         admission that the three were chosen to show the gates working. Both read Gates, so they stay true. */
+      var results = S.exampleCandidates().map(function (c) { return G.evaluate(c); });
+      var survivor = null, killed = [], firstOut = null;
+      results.forEach(function (r, i) {
+        if (r.verdict === 'YES') { if (!survivor || r.twoYearValue > survivor.twoYearValue) { survivor = r; } }
+        else {
+          var label = r.gates[r.firstNo].label;
+          if (killed.indexOf(label) === -1) { killed.push(label); }
+          if (!firstOut) { firstOut = { name: names[i], gate: label }; }
+        }
+      });
+      if (survivor && CM) {
+        var tierId = survivor.candidate.tier;
+        var usesModel = tierId && tierId !== 'code' && tierId !== 'none';
+        var tierInfo = usesModel ? CM.tier(tierId) : null;
+        var what = tierInfo ? String(tierInfo.label).replace(/\s*"pro"/i, '').toLowerCase() : '';
+        survivorLine = usesModel
+          ? 'Yes, the winner uses a model, right after the tool ladder: ' +
+            (survivor.candidate.id === 'reminders' ? 'a ' + what + ' drafts each reminder' : 'it runs on a ' + what) +
+            ', and it costs ' + CM.money(survivor.costPerYear) + ' a year.'
+          : '';
+        riggedLine = killed.length
+          ? 'And yes, I chose these three so you would see ' + say(killed) + (killed.length > 1 ? ' each' : '') + ' say no.'
+          : 'And yes, I chose these three.';
+      }
+      if (firstOut) { shareFallback = 'If no hand goes up, use the worked example: ' + firstOut.name + ' died at ' + firstOut.gate + '. Ask: whose died at the same gate?'; }
       exampleOutcome = !left.length ? 'All three are out.'
         : !out.length ? 'All three pass. Then the math picks the one worth most over two years.'
         : say(out) + (out.length === 1 ? ' is' : ' are') + ' out. ' + say(left) + (left.length === 1 ? ' is' : ' are') + ' what is left.';
-    } catch (e) { exampleLines = ''; exampleOutcome = ''; }
+    } catch (e) { exampleLines = ''; exampleOutcome = ''; survivorLine = ''; riggedLine = ''; }
   }
   /* Where the screener lives, if the speaker has filled the link in. Read when asked, so a late edit counts. */
   function screenerLink() {
@@ -164,15 +196,15 @@
     notes: `
 SAY: Exercise one. Worksheet and pen.
 Write down what you actually did in the last two weeks. Not your job description. What you did.
-Four questions to jog it. They stay on the screen the whole time.
-Boring is good.
+Four questions to jog it. They stay up the whole time. Boring is good.
 
-DO: Press T to start the ten minutes. R resets it.
-Then leave the laptop and walk the room. Read over shoulders.
-If a list is all strategy and no chores, point at question two: what did you copy from one place to another?
-Call "one minute" when the clock turns orange. If the room is done early, move on.
+DO: Press T to start the ten minutes. Leave the laptop and walk the room. Read over shoulders.
+AT 5:00 LEFT, say: "Five minutes. If you have fewer than six things, look at question two: what did you copy from one place to another?"
+AT 1:00 LEFT (the clock turns orange), say: "One minute. Finish the line you're on."
+STUCK: a list that is all strategy and no chores. Point at question two.
+EARLY: if most pens are down before the orange, say "Thirty seconds" and move on.
 
-NEXT: Pens down. You have a list. Now cut it to three.
+NEXT: Pens down. However long your list is, it's about to get short.
 `
   });
 
@@ -201,13 +233,14 @@ NEXT: Pens down. You have a list. Now cut it to three.
 SAY: Exercise two. From your list, pick three.
 One you'd love to pitch. One that's boring. One you'd be embarrassed to bring up.
 The embarrassing one is often the winner.
-Circle the three on your worksheet.
 
-DO: Press T for the five minutes.
-Keep walking. If someone has three exciting ones, send them back: one has to be boring, one has to be embarrassing.
-If someone is stuck on the third, ask what they do every week that they would never put in a status report.
+DO: Press T for the five minutes. Keep walking.
+AT 2:30 LEFT, say: "Halfway. If all three of yours are exciting, swap one for a boring one."
+AT 1:00 LEFT (orange), say: "One minute. Circle your three."
+STUCK on the third: ask what they do every week that they would never put in a status report.
+EARLY: when most people have circled three, move on. Don't wait for the clock.
 
-NEXT: Before you screen yours, watch three made-up ones go through.
+NEXT: Hold on to your three. First, watch the gates work on someone else's.
 `
   });
 
@@ -230,6 +263,7 @@ SAY: Three candidates. They are made up. None of them is a Laborde project.
 Each one goes through the gates in order and stops at its first no.
 ${exampleLines}
 ${exampleOutcome}
+${survivorLine} ${riggedLine}
 
 DO: ${walkSteps} clicks. The first click on each candidate puts its numbers in the gates. Each click after that is one gate.
 Read the sentence under the gates out loud: that is the gate's reason.
@@ -238,7 +272,7 @@ The last click shows what the survivor is worth.
 
 YOUR STORY: swap in your real three if you have them. Change the three candidates in content/your-numbers.js and this slide follows. It will still say "Example candidates", so say out loud that yours are real.
 
-NEXT: Your turn. Same four gates, your three.
+NEXT: Those numbers were mine to pick. Now use yours.
 `
   });
 
@@ -289,18 +323,19 @@ NEXT: Your turn. Same four gates, your three.
     },
     notes: `
 SAY: Exercise three. Run your three through the gates, in order. Stop at the first no.
-Cost, return, effort, potential. The four questions are on the screen.
-The rule of thumb is on your worksheet: a minute a week is ${minuteRule} a year, at ${hourly} an hour.
+The four questions are on the screen. On your worksheet: a minute a week is ${minuteRule} a year, at ${hourly} an hour.
 Most of you will kill two of your three. That is the exercise working.
 
-DO: Press T for the ten minutes. Give the room three or four minutes alone.${screenerUrl ? '\nThe QR code opens the same screener on a phone.' : ''}
-Then ask for a volunteer with three candidates and press the right arrow once. The screener comes up. The clock keeps running at the top.
-Click A, B or C to choose a column. Type its name in the box at the top of the column.
-Set the numbers with the minus and plus buttons, or click a number and type. While the cursor is in a box the keys type. Enter leaves the box, and the arrow keys drive the deck again.
-Ask the volunteer for each number out loud. HOUSE RULES opens the thresholds if the room argues with one. RESET puts the examples back.
-Read the bottom row out loud: "the math picks".
+DO: Press T for the ten minutes. Leave the four questions up and walk the room.${screenerUrl ? ' The QR code opens the same screener on a phone.' : ''}
+AT 5:00 LEFT, say: "Halfway. Still on your first one? Skip to Return: what comes back?"
+Then ask: "Who has a favorite they suspect is going to die?" Take the first hand near an aisle. One candidate, their favorite. Not all three.
+Press the right arrow: the screener comes up, the clock keeps running at the top. Click A, then A's name box. Type their candidate, press Enter.
+Ask for each number out loud and set it in column A (minus and plus, or click and type, Enter to leave the box): minutes saved, times a week, what runs it, tools a month (0 if nothing to pay), build and rollout hours, upkeep hours a month, growth, owner yes or no, cash path yes or no. Leave the rest.
+Read A down from Cost and stop at its first NO. RULES opens the thresholds if the room argues with one.
+IF NOBODY VOLUNTEERS: screen the example yourself. Press the right arrow, click C and ask: "How many minutes would one reminder really save?" Type what the room calls out and read where it stops. Then try 1.
+AT 1:00 LEFT, press the left arrow to bring the four questions back, and say: "One minute. Circle the one still standing."
 
-NEXT: Time. Hands up.
+NEXT: Pens down. Count what's still standing on your sheet.
 `
   });
 
@@ -322,14 +357,14 @@ NEXT: Time. Hands up.
       clockHtml(5, 'yt-corner-clock'),
     notes: `
 SAY: Who killed their favorite? Hands up. Keep them up.
-Pick one hand. Which gate killed it? Repeat the answer so the room hears it.
-Then the second question: who's keeping the boring one?
-Three hands, one sentence each.
+Pick one hand. Which gate killed it? Repeat the answer into the microphone.
+Then: who's keeping the boring one? Three hands, one sentence each.
 
 DO: The right arrow brings up the second question. T starts the five minutes if you want the clock.
-Repeat every answer into the microphone. If nobody volunteers, go back to the volunteer from the screener.
+${shareFallback}
+At 1:00 left, take one last answer and move on.
 
-NEXT: You have screened three. Now the one we actually built.
+NEXT: You've screened made-up ones and your own. Now one that's real.
 `
   });
 }());

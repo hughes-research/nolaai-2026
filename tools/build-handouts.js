@@ -131,7 +131,8 @@ const COPY = {
     how: 'Start with the minutes, then take the gates in order. Stop at the first NO.'
   },
   minutesLine: 'Minutes are the raw material. Money is what they turn into.',
-  cashLine: 'One day off the cycle frees about one day of sales.',
+  /* Gate 2 on paper: the tick alone exempts nothing (Gates' RETURN rule); the days do. */
+  cashDaysLine: 'A tick is not enough: only the days count.',
   cashPath: 'quote → order → pick → ship → invoice → collect',
   ladder: ['Don’t automate', 'Spreadsheet formula', 'Plain code', 'Small model', 'Frontier model', 'Agent'],
   ladderLine: 'Climb only as far as the task makes you.',
@@ -139,8 +140,9 @@ const COPY = {
   standard: 'A win only counts with the task, the prompt, the output, and the time saved.',
   /* A gloss tied to one task size: printed only while the sheet uses that size. */
   taskSize: { in: 2000, out: 500, text: 'about a page and a half read, a few paragraphs written' },
-  /* The record-sleeve catalogue line (docs/DIRECTION.md, Part 1, section 7): the venue's position. */
-  catalogue: (eventName) => 'WAYPOINT · ' + eventName + ' · 29°57.7′N 090°03.5′W'
+  /* The record-sleeve catalogue line (docs/DIRECTION.md, Part 1, section 7). The venue's
+     coordinates could not be sourced, so the line names the city instead. */
+  catalogue: (eventName) => 'WAYPOINT · ' + eventName + ' · NEW ORLEANS'
 };
 
 /* The price list, printed once, cheapest first, and the CostMath tier that prices each.
@@ -242,7 +244,10 @@ function paperWalk(c, f) {
   const costNo = over(costAYear, f.rules.costMaxShareOfReturn * dollarsAYear);
 
   // RETURN
-  const returnNo = under(dollarsAYear, f.rules.minReturnPerYear) && !c.touchesCashPath;
+  // Under the floor is a NO unless it takes days off the cash cycle. Being on the cash
+  // path is not enough; a service candidate has no cash days (as in Gates).
+  const cashSooner = !service && c.daysOffCashCycle > 0;
+  const returnNo = under(dollarsAYear, f.rules.minReturnPerYear) && !cashSooner;
 
   // EFFORT
   const oneTime = ((c.buildHours || 0) + (c.rolloutHours || 0)) * f.rates.builderHourly;
@@ -658,7 +663,7 @@ function render(f, fit) {
     blockHead({ gate: true, kicker: 'Gate ' + gateById['return'].n, name: gateById['return'].label, voice: gateById['return'].question, note: ruleHtml('return', f.ruleText['return']) }) +
     row({
       t: 'On the cash path? Days faster?',
-      fine: '<span class="nw">' + arrows(COPY.cashPath) + '.</span> ' + esc(COPY.cashLine), fineCls: 'is-tight',
+      fine: '<span class="nw">' + arrows(COPY.cashPath) + '.</span> ' + esc(COPY.cashDaysLine), fineCls: 'is-tight',
       ex: exAt('return', (c.touchesCashPath ? 'yes' : 'no') + (c.daysOffCashCycle > 0 ? small(esc(num(c.daysOffCashCycle)) + (c.daysOffCashCycle === 1 ? ' day' : ' days') + ' faster') : '')),
       cells: three(cashCell), last: true
     }) +

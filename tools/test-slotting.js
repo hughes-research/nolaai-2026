@@ -647,7 +647,7 @@ async function testSlide(S, r) {
     });
     is(info.steps, 6, 'the slide has 6 builds: seven steps, the first on entry');
     is(info.act, 4, 'it is in Act 4');
-    is(info.minutes, 6, 'it is planned for 6 minutes');
+    is(info.minutes, 5, 'it is planned for 5 minutes');
     ok(/SAY:/.test(info.notes) && /NEXT:/.test(info.notes) && (info.notes.match(/DO, step \d/g) || []).length === 7,
       'the speaker notes have SAY, NEXT and a DO line for each of the seven steps');
     is(info.debug.fingerprint, S.digest(r).hash, 'the run the slide made has the same fingerprint as the command line');

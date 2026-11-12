@@ -105,10 +105,6 @@
     yearsBuilding: Number(sp.yearsBuilding) || 25,
     aiSince: Number(sp.aiSince) || 2013
   };
-  var eventYear = (function () {
-    var m = /(\d{4})/.exec(String(ev.date || ''));
-    return m ? Number(m[1]) : BIO.aiSince;
-  }());
 
   /* The plot of exciting-vs-valuable has a fixed size on the stage, so its
    * static copy (thumbnails) and its canvas (the stage) share one geometry. */
@@ -144,12 +140,13 @@
     '.bw-q1:not(.is-visible) * { transition: none !important; }',
 
     /* ---- whos-talking ---- */
-    /* the line holds the middle of the slide on its own, then lifts to the head of it when the facts arrive.
-       Stepping back is a cut, like every other step back in the deck. */
-    '.wt-say { margin: 0; transition: translate var(--beat) var(--e-lift); }',
-    '.slide[data-current-step="0"] > .wt-say { translate: 0 372px; transition: none; }',
+    /* the line sits at the head of the slide from the first frame and never moves: the empty stock under
+       it is the pause. Nothing on this slide reflows between steps (later parts hold their place hidden). */
+    '.wt-say { margin: 0; }',
     '.wt-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: var(--gutter); margin-top: 56px; border-top: var(--w-rule) solid var(--c-line); }',
     '.wt-facts > .counter { padding-top: 26px; }',
+    /* the value is its own block, as wide as its figures, so the block reveal covers the figures only */
+    '.wt-facts .counter-v { width: max-content; }',
     '.wt-facts .label { white-space: nowrap; font-stretch: var(--wdth-text); letter-spacing: 0.08em; }',
     '.wt-standard { margin-top: auto; }',
     '.wt-standard > .kicker { margin-bottom: 22px; }',
@@ -175,13 +172,18 @@
 
     /* ---- the-promise ---- */
     '.pr-head { width: max-content; }',
-    '.pr-beats { margin-top: 150px; }',
-    '.pr-beats > li { font-size: 42px; }',
+    /* the path sits close under the headline; the first column is as wide as its longest line,
+       so beat one takes two lines like beat five, and the three between take one */
+    '.pr-beats { margin-top: 112px; grid-template-columns: max-content repeat(4, minmax(0, 1fr)); }',
+    '.pr-beats > li { font-size: 38px; }',
+    '.pr-beats > li:first-child { padding-right: var(--s-3); }',
+    '.pr-l { display: block; white-space: nowrap; }',
     '.pr-beats > li::after { z-index: 2; }',
     '.pr-beats.is-building { border-top-color: transparent; background: linear-gradient(var(--c-line), var(--c-line)) no-repeat left top / calc(var(--pr-p, 1) * 100%) var(--w-rule); background-origin: border-box; }',
     '.pr-beats.is-building > li:not(.pr-on) { visibility: hidden; }',
     '.pr-beats.is-building > li:not(.pr-arrow)::after { visibility: hidden; }',
-    '.pr-foot { margin-top: auto; margin-bottom: 36px; max-width: 1560px; }'
+    /* the footer is the quiet aside: under beat one, on the bottom margin, broken where the sentence turns */
+    '.pr-foot { margin-top: auto; margin-bottom: 0; width: max-content; max-width: none; }'
   ].join('\n');
 
   var style = doc.createElement('style');
@@ -257,10 +259,10 @@
       'Say nothing at first. Let the room read it.',
       '"Your best AI idea is probably wrong." Stop. Count two.',
       '(click) "The boring one you didn’t pitch is probably worth thousands."',
-      'The next ' + minutes + ' minutes are how you tell which is which.'
+      'Today is about telling which is which.'
     ],
       'One click for the second line. Do not rush the first.',
-      '"I’m ' + spokenName.split(' ')[0] + '. Here is how we find out."'
+      '(click to the title) "So, who is asking."'
     ),
     enter: function (ctx) {
       if (!FX || !FX.shouldPlay(ctx)) { return; }
@@ -285,9 +287,6 @@
    * title
    * ==================================================================== */
 
-  /* the end of the session, for the notes: the part of "2:30–4:00 PM" after the dash */
-  var endsAt = String(ev.time || '').split(/[–—-]/).pop().trim();
-
   Deck.slide({
     id: 'title',
     act: 1,
@@ -303,10 +302,10 @@
     notes: notes([
       'I’m ' + spokenName + '. ' + (sp.role || 'VP of Technology') + ' at ' + company + '.',
       'This is a workshop, not a demo. You do the work, on paper.',
-      (endsAt ? 'By ' + endsAt + ' you' : 'You') + ' will have run three of your own ideas through four gates, and said no to at least two of them.'
+      'You will run three of your own ideas through four gates, and say no to at least two of them.'
     ],
       'The card builds itself in about eight seconds. Talk over it. Nothing to click.',
-      '"I did not pick the reading for this fest. The organizers did. It is one page, from 1956."'
+      '"First, some homework. I did not pick it."'
     )
   });
 
@@ -347,10 +346,10 @@
       '</div>' +
       '<p class="attribution">' + esc(SHANNON) + '</p>',
     notes: notes([
-      'The organizers assigned one page of reading. Claude Shannon, 1956, "The Bandwagon."',
+      'The organizers assigned one page of reading: Claude Shannon, 1956, "The Bandwagon."',
       'Shannon founded information theory. He still wrote this, to say his own field was being oversold.',
       '(click) The assignment: swap two words. Read it again.',
-      '(click) And this is the line I built today around. A few secrets give way at a time. The skill is picking which few.'
+      '(click) And this is the line today is built around. A few secrets give way at a time. The skill is picking which few.'
     ],
       'Click one makes the edit. It is flagged "our edit" so nobody thinks Shannon wrote "AI". Click two brings his second sentence and the year.',
       '"So who am I to tell you which few?"'
@@ -371,9 +370,13 @@
   /* ======================================================================
    * whos-talking
    * ----------------------------------------------------------------------
-   * State 0  the line, alone.     State 2  the Waypoint standard: four boxes
-   * State 1  it lifts; four facts          land one by one.
-   *          count up.            State 3  "A win only counts with all four."
+   * State 0  the line, alone, at   State 2  the Waypoint standard: four boxes
+   *          the head of the slide.         land one by one.
+   * State 1  four facts arrive     State 3  "A win only counts with all four."
+   *          behind blocks, swung.
+   * The facts are about the speaker, so they never count (a counter on its way
+   * to 95 shows "86 people", and a year counting shows a wrong year): each
+   * value arrives whole behind a block (lead decision D11).
    *
    * THE WAYPOINT FOUR (the close slide "waypoint-standard" uses the same
    * pattern, larger): an <ol> of four equal framed boxes in one row, each
@@ -383,13 +386,11 @@
   var FOUR = [['The', 'task'], ['The', 'prompt'], ['The', 'output'], ['The time', 'saved']];
   var SWUNG = [0, 333, 500, 833];
 
-  function fact(label, value, opts) {
+  function fact(label, value, i, opts) {
     var o = opts || {};
     return '<li class="counter">' +
       '<p class="label">' + esc(label) + '</p>' +
-      '<p class="counter-v"><b data-count-to="' + value + '"' +
-        (o.from != null ? ' data-count-from="' + o.from + '"' : '') +
-        ' data-count-format="%d" data-count-duration="1.5" data-count-steps="12">' + value + '</b>' +
+      '<p class="counter-v" data-step="1" data-anim="pop" style="--delay: ' + SWUNG[i] + 'ms"><b>' + esc(value) + '</b>' +
         (o.unit ? '<small>' + esc(o.unit) + '</small>' : '') + '</p>' +
       '</li>';
   }
@@ -403,11 +404,11 @@
     steps: 3,
     html:
       '<p class="say is-l wt-say">I say <b class="punch">no</b> for a living.</p>' +
-      '<ul class="wt-facts" data-step="1" style="--delay: 333ms">' +      // cut in once the line has lifted clear
-        fact('People', BIO.people) +
-        fact('Locations', BIO.locations) +
-        fact('Building software', BIO.yearsBuilding, { unit: 'years' }) +
-        fact('AI since', BIO.aiSince, { from: eventYear }) +
+      '<ul class="wt-facts" data-step="1">' +      // the rule and the labels cut in; the values follow behind blocks
+        fact('People', BIO.people, 0) +
+        fact('Locations', BIO.locations, 1) +
+        fact('Building software', BIO.yearsBuilding, 2, { unit: 'years' }) +
+        fact('AI since', BIO.aiSince, 3) +
       '</ul>' +
       '<div class="wt-standard">' +
         '<p class="kicker" data-step="2">The Waypoint standard</p>' +
@@ -425,7 +426,7 @@
       '(click) I lead Waypoint, our company-wide AI program. It has one rule. A win only counts with the task, the prompt, the output and the time saved.',
       '(click) All four, or it does not count.'
     ],
-      'Three clicks: the facts, the four boxes, the line.',
+      'Three clicks: the facts, the four boxes, the line. The facts arrive whole; nothing counts.',
       '"Here is why I am that strict."',
       'one Waypoint win with all four boxes filled, and one thing you turned down.'
     )
@@ -679,7 +680,7 @@
       'Sounding good and paying back are two different axes. A pitch only tests the first one.'
     ],
       'One click singles out the dull dot.',
-      '"For the next ' + minutes + ' minutes we check the second one."'
+      '"So today we only test the second one. Here is how."'
     )
   });
 
@@ -692,7 +693,10 @@
    * One click brings the footer, in the other voice.
    * ==================================================================== */
 
-  var BEATS = ['Inventory two weeks of real work', 'Pick three', 'Four gates', 'The math picks', 'Build the winner'];
+  /* Beat five is "Watch one get built": the room builds nothing itself (lead decision D4).
+   * Each beat is given as its lines, so the row breaks where it is meant to: the first and
+   * the last beats take two lines, the three between take one. */
+  var BEATS = [['Inventory two weeks', 'of real work'], ['Pick three'], ['Four gates'], ['The math picks'], ['Watch one', 'get built']];
   var PR = { headline: 0.5, path: 1, pathDur: 2.5, drop: 0.375, end: 0 };
   PR.end = PR.path + PR.pathDur + 0.25;
 
@@ -706,18 +710,20 @@
     html:
       '<h2 class="headline pr-head">In the next ' + minutes + ' minutes</h2>' +
       '<ol class="beats pr-beats">' +
-        BEATS.map(function (b, i) { return '<li' + (i === BEATS.length - 1 ? ' class="is-point"' : '') + '>' + esc(b) + '</li>'; }).join('') +
+        BEATS.map(function (b, i) {
+          return '<li' + (i === BEATS.length - 1 ? ' class="is-point"' : '') + '>' +
+            b.map(function (l) { return '<span class="pr-l">' + esc(l) + '</span>'; }).join(' ') + '</li>';
+        }).join('') +
       '</ol>' +
-      '<p class="sub pr-foot" data-step="1" data-anim="wipe">You leave with one use case worth doing, and two you can stop thinking about.</p>',
+      '<p class="sub pr-foot" data-step="1" data-anim="wipe">You leave with one use case worth doing,<br>and two you can stop thinking about.</p>',
     notes: notes([
-      'Here is the deal for the next ' + minutes + ' minutes.',
-      'You inventory two weeks of real work. Not ideas. Work. You pick three. Each one goes through four gates.',
-      'The math picks, not the loudest voice in the room. Then we build the winner: a real one, from my own shop.',
-      '(click) You leave with one use case worth doing, and two you can stop thinking about.',
-      'The two you drop are worth as much as the one you keep.'
+      'The next ' + minutes + ' minutes, in five steps.',
+      'You inventory two weeks of real work. Not ideas. Work. You pick three. Each one goes through four gates, and the math picks, not the loudest voice in the room.',
+      'Then I show you one from my own shop being built: the real numbers, and the method running on made-up data, because I can’t show you our building.',
+      '(click) You leave with one use case worth doing, and two you can stop thinking about. The two you drop are worth as much as the one you keep.'
     ],
       'Hold up the worksheet. Check everyone has one and a pen. One click for the last line.',
-      '"Four gates. Any one of them can say no."'
+      '"Before you write anything, here is the screen."'
     ),
     enter: function (ctx) {
       if (!FX || !FX.shouldPlay(ctx)) { return; }

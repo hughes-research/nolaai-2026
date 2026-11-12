@@ -40,7 +40,7 @@ After a gate says NO, every later gate is NOT YET (frame only), never PASS. Verd
 Replace the 13×40px spine tracker and the sideways running title. The spine carries the slide number, the **act name** (large enough to read), and a tick ruler with one tick per slide in the running order (the current one filled). When a slide belongs to a gate, a gate strip with the four words at 30px or more, with shape-coded state, sits in a fixed place the back row can see.
 
 ### 7. Make it his
-One catalogue line in a fixed slot on the title and walk-in slides, record-sleeve style: `WAYPOINT · NOAI 2026 · 29°57.7′N 090°03.5′W` (the venue's position; Waypoint is the name of his AI program). Acts may be numbered like sides or tracks. No instruments, no nautical drawing: the nod is typographic only.
+One catalogue line in a fixed slot on the title and walk-in slides, record-sleeve style: `WAYPOINT · NOAI 2026 · NEW ORLEANS` (Waypoint is the name of his AI program). Acts may be numbered like sides or tracks. No instruments, no nautical drawing: the nod is typographic only.
 
 ### 8. The deadpan line
 One true, dry sentence per data slide in the Fraunces voice, in a consistent slot: "Drawn to scale.", "No bar to draw.", "the whole bar." (with an 8px arrow pointing at the $45 sliver). It is the deck's sense of humour. Never more than one per slide, and never a claim.

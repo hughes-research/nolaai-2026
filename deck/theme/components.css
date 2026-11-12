@@ -362,7 +362,7 @@
    <p class="sub">Screening AI use cases<br>for real return.</p>
    <p class="credit"><b>Dustin T Hughes</b><span>VP of Technology, Laborde Products</span></p>
    <div class="slab">
-     <p class="catalogue">WAYPOINT · NOAI 2026 · 29°57.7′N 090°03.5′W</p>
+     <p class="catalogue">WAYPOINT · NOAI 2026 · NEW ORLEANS</p>
      <div class="mega">No</div>
      <dl class="slab-fine"><div><dt>When</dt><dd>Friday<br>Nov 13, 2026</dd></div> ... </dl>
    </div>
@@ -953,7 +953,7 @@ ol.list > li::before {
   z-index: 1;
   display: flex;
   align-items: center;
-  font-size: var(--t-small);
+  font-size: var(--t-label);           /* a verdict's reason carries meaning: the 32px label floor */
   font-weight: 700;
   font-stretch: var(--wdth-text);
   line-height: 1.1;
@@ -1082,7 +1082,7 @@ ol.list > li::before {
 .verdict.is-notyet {
   border: calc(var(--vh) * 0.07) solid var(--c-line);
   font-family: var(--f-mono);
-  font-size: max(var(--t-small), calc(var(--vh) * 0.4));
+  font-size: max(var(--t-label), calc(var(--vh) * 0.4));   /* a verdict carries meaning: 32px floor */
   font-weight: var(--wght-label);
   font-stretch: var(--wdth-label-tight);
   line-height: 1;
@@ -1231,7 +1231,7 @@ ol.list > li::before {
   border-right: 4px solid var(--c-ink);
   background: repeating-linear-gradient(135deg, var(--c-ink) 0 4px, transparent 4px 11px);
 }
-.tag.is-s { height: 48px; padding: 0 16px; font-size: var(--t-small); }
+.tag.is-s { height: 48px; padding: 0 16px; font-size: var(--t-label); }
 .tag.is-s.is-estimated { padding-left: 44px; }
 .tag.is-s.is-estimated::before { width: 28px; }
 
@@ -2245,13 +2245,47 @@ html.deck-on .deck-notes-head {
   letter-spacing: var(--track-label);
 }
 /* "YOUR STORY:" paragraphs: a Flare bar beside Card text (Flare is never small type) */
-html.deck-on .deck-notes-story {
+html.deck-on .deck-notes-story,
+html.deck-on .deck-notes-unfilled {
   padding-left: 0.7em;
   border-left: 0.35em solid var(--c-accent);
   color: var(--card);
   font-weight: 700;
 }
+/* "NOT FILLED IN:" paragraphs: the same bar, dashed, like an empty slot */
+html.deck-on .deck-notes-unfilled { border-left-style: dashed; }
 html.deck-on .deck-notes-empty { color: var(--c-muted); }
+/* labels at the start of a notes line (deck.js notesHtml): wide caps chips.
+   SAY is a solid Card block; DO, NEXT and TIME are Card frames (TIME dashed);
+   YOUR STORY and NOT FILLED IN are Lampblack on a Flare block, a size up. */
+html.deck-on .deck-notes-label {
+  border: 0.09em solid var(--card);
+  border-radius: 0;
+  background: transparent;
+  color: var(--card);
+  font-family: var(--f-body);
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-label);
+  letter-spacing: var(--track-label);
+}
+html.deck-on .deck-notes-label-say { background: var(--card); color: var(--lampblack); }
+html.deck-on .deck-notes-label-time,
+html.deck-on .deck-notes-label-if-short-of-time { border-style: dashed; }
+html.deck-on .deck-notes-label-your-story,
+html.deck-on .deck-notes-label-not-filled-in {
+  border-color: var(--c-accent);
+  background: var(--c-accent);
+  color: var(--c-accent-ink);
+}
+html.deck-on .deck-notes-more {
+  border-top: 2px solid var(--card);
+  background: var(--lampblack);
+  color: var(--card);
+  font-family: var(--f-body);
+  font-weight: var(--wght-label);
+  font-stretch: var(--wdth-label);
+  letter-spacing: var(--track-label);
+}
 html.deck-on .deck-jump {
   border-radius: 0;
   background: var(--lampblack);

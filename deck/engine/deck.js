@@ -143,15 +143,91 @@
     return (seconds < -0.5 ? '-' : '') + Math.floor(s / 60) + ':' + pad2(s % 60);
   }
 
-  /** Speaker notes are plain text. Blank line = paragraph. "YOUR STORY:" paragraphs get a class. */
+  /**
+   * Speaker notes are plain text. Blank line = paragraph; leading whitespace
+   * on a line is ignored. A label in capitals at the start of a line
+   * ("SAY:", "DO:", "NEXT:", "TIME:", "IF SHORT OF TIME:", "YOUR STORY:",
+   * "NOT FILLED IN:") becomes a chip the eye can find mid-sentence:
+   *
+   *   <p class="deck-notes-p deck-notes-story">            (paragraph class from its first line)
+   *     <span class="deck-notes-line" data-label="your-story">
+   *       <span class="deck-notes-label deck-notes-label-your-story">YOUR STORY</span> what to tell
+   *     </span>
+   *     <span class="deck-notes-line">an unlabelled line</span>
+   *   </p>
+   *
+   * A paragraph that opens with YOUR STORY gets .deck-notes-story ("only you
+   * know this"); one that opens with NOT FILLED IN gets .deck-notes-unfilled
+   * ("you left this empty"). Both are meant to stand out more than the rest.
+   */
+  var NOTE_LABEL = /^(IF SHORT OF TIME|NOT FILLED IN|YOUR STORY|SAY|DO|NEXT|TIME)\s*:\s*/;
+
+  function noteLabelKey(label) { return label.toLowerCase().replace(/\s+/g, '-'); }
+
   function notesHtml(text) {
     var clean = String(text || '').replace(/\r/g, '').split('\n')
       .map(function (line) { return line.trim(); }).join('\n').trim();
     if (!clean) { return '<p class="deck-notes-empty">No notes for this slide.</p>'; }
     return clean.split(/\n{2,}/).map(function (para) {
-      var cls = /^YOUR STORY:/i.test(para) ? ' class="deck-notes-story"' : '';
-      return '<p' + cls + '>' + escapeHtml(para).replace(/\n/g, '<br>') + '</p>';
+      var first = null;
+      var lines = para.split('\n').map(function (line, i) {
+        var m = NOTE_LABEL.exec(line);
+        if (i === 0) { first = m ? noteLabelKey(m[1]) : null; }
+        if (!m) { return '<span class="deck-notes-line">' + escapeHtml(line) + '</span>'; }
+        var key = noteLabelKey(m[1]);
+        return '<span class="deck-notes-line" data-label="' + key + '">' +
+          '<span class="deck-notes-label deck-notes-label-' + key + '">' + m[1] + '</span> ' +
+          escapeHtml(line.slice(m[0].length)) + '</span>';
+      });
+      var cls = 'deck-notes-p';
+      if (first === 'your-story' || /^YOUR STORY:/i.test(para)) { cls += ' deck-notes-story'; }
+      if (first === 'not-filled-in') { cls += ' deck-notes-unfilled'; }
+      return '<p class="' + cls + '"' + (first ? ' data-label="' + first + '"' : '') + '>' + lines.join('') + '</p>';
     }).join('');
+  }
+
+  /**
+   * The scroll cue under a notes pane: shown while text is still hidden below
+   * the fold, gone once the last line is fully in view. It overlays the pane
+   * (it takes no layout space), so showing it never changes what overflows.
+   */
+  function updateNotesCue(scroller, cue) {
+    if (!scroller || !cue) { return; }
+    var last = scroller.lastElementChild;
+    var more = false;
+    if (last && scroller.scrollHeight > scroller.clientHeight + 1) {
+      var paneBottom = scroller.getBoundingClientRect().top + scroller.clientTop + scroller.clientHeight;
+      more = last.getBoundingClientRect().bottom > paneBottom + 1;
+    }
+    cue.hidden = !more;
+    scroller.classList.toggle('has-more', more);
+    cue.style.boxShadow = '';
+    if (!more || !doc.createRange) { return; }
+    // A row of text cut in half by the cue's top edge is hard to read and looks
+    // broken: cover it with a hard-edged block in the cue's own colour, so the
+    // pane shows whole rows only and the cue's rule stays where it is.
+    var cueTop = cue.getBoundingClientRect().top;
+    var cut = Infinity;
+    var range = doc.createRange();
+    Array.prototype.forEach.call(scroller.querySelectorAll('.deck-notes-line'), function (line) {
+      var box = line.getBoundingClientRect();
+      if (box.bottom <= cueTop || box.top >= cueTop) { return; }
+      range.selectNodeContents(line);
+      Array.prototype.forEach.call(range.getClientRects(), function (r) {
+        if (r.height > 0 && r.top < cueTop && r.bottom > cueTop + 1) { cut = Math.min(cut, r.top); }
+      });
+    });
+    if (cut < cueTop) {
+      var cover = Math.ceil(cueTop - cut) + 2;
+      cue.style.boxShadow = '0 -' + cover + 'px 0 0 ' + window.getComputedStyle(cue).backgroundColor;
+    }
+  }
+
+  function makeNotesCue() {
+    var cue = h('div', 'deck-notes-more', 'More below ↓  scroll');
+    cue.hidden = true;
+    cue.setAttribute('aria-hidden', 'true');
+    return cue;
   }
 
   /* Text the engine shows uses \u escapes for anything outside ASCII, so this
@@ -1182,6 +1258,9 @@
       if (!resizeQueued) { return; }
       resizeQueued = false;
       layoutStage();
+      if (state.notes && ui.notes) {
+        updateNotesCue(ui.notes.querySelector('.deck-notes-body'), ui.notes.querySelector('.deck-notes-more'));
+      }
       if (live) { eachScene(live, 'resize'); }
       if (leaving) { eachScene(leaving, 'resize'); }
     };
@@ -1280,7 +1359,16 @@
     if (!state.notes) { return; }
     var s = slides[state.index];
     ui.notes.innerHTML = '<div class="deck-notes-head">' + escapeHtml(s ? (state.index + 1) + ' \u00b7 ' + s.title : '') +
-      '<span>N to close</span></div>' + notesHtml(s ? s.notes : '');
+      '<span>N to close</span></div>';
+    // the head stays put; the body scrolls, with a cue while text is hidden below
+    var body = h('div', 'deck-notes-body');
+    body.innerHTML = notesHtml(s ? s.notes : '');
+    var cue = makeNotesCue();
+    ui.notes.appendChild(body);
+    ui.notes.appendChild(cue);
+    body.addEventListener('scroll', function () { updateNotesCue(body, cue); });
+    updateNotesCue(body, cue);
+    if (doc.fonts && doc.fonts.ready) { doc.fonts.ready.then(function () { updateNotesCue(body, cue); }, function () {}); }
   }
 
   /* ----------------------------------------------------------- overview */
@@ -1602,9 +1690,11 @@
 
   function presenterNotesSize(delta) {
     notesSize = clamp(notesSize + delta, 20, 96);
-    if (ui.pvNotes) { ui.pvNotes.style.fontSize = notesSize + 'px'; }
+    if (ui.pvNotes) { ui.pvNotes.style.fontSize = notesSize + 'px'; pvNotesCue(); }
     try { window.localStorage.setItem(NOTES_SIZE_KEY, String(notesSize)); } catch (e) { /* private mode, file:// quirks */ }
   }
+
+  function pvNotesCue() { updateNotesCue(ui.pvNotes, ui.pvNotesCue); }
 
   var presenterView = {
     showSlide: function (index, step, dir, opts) { presenterMoved(dir, opts, true); },
@@ -1653,9 +1743,16 @@
     top.appendChild(ui.pvClock);
 
     // --- left: notes
+    // The notes scroll inside a column that also holds the scroll cue, so the
+    // cue stays at the bottom of the pane while the text moves under it.
+    var notesCol = h('div', 'deck-pv-notescol');
     ui.pvNotes = h('section', 'deck-pv-notes');
     ui.pvNotes.style.fontSize = notesSize + 'px';
     ui.pvNotes.setAttribute('aria-label', 'Speaker notes');
+    ui.pvNotesCue = makeNotesCue();
+    notesCol.appendChild(ui.pvNotes);
+    notesCol.appendChild(ui.pvNotesCue);
+    ui.pvNotes.addEventListener('scroll', pvNotesCue);
 
     // --- right: timer, pacing, the next slide, this slide.
     // The order is the order of importance. The timer and the pacing lines keep
@@ -1726,7 +1823,7 @@
     side.appendChild(nowCard);
 
     var main = h('main', 'deck-pv-main');
-    main.appendChild(ui.pvNotes);
+    main.appendChild(notesCol);
     main.appendChild(side);
 
     // --- bottom bar: buttons
@@ -1770,13 +1867,15 @@
     window.addEventListener('hashchange', onHashChange);
     window.addEventListener('message', onMessage);
     window.addEventListener('resize', fitPresenterThumbs);
+    window.addEventListener('resize', pvNotesCue);
     // The free height changes when a title wraps or the pacing line changes size.
     if (window.ResizeObserver) {
       var watcher = new window.ResizeObserver(fitPresenterThumbs);
       watcher.observe(nextSlot.slot);
       watcher.observe(nowSlot.slot);
+      new window.ResizeObserver(pvNotesCue).observe(ui.pvNotes);
     }
-    if (doc.fonts && doc.fonts.ready) { doc.fonts.ready.then(fitPresenterThumbs, function () {}); }
+    if (doc.fonts && doc.fonts.ready) { doc.fonts.ready.then(function () { fitPresenterThumbs(); pvNotesCue(); }, function () {}); }
     post({ type: 'hello' });
     setInterval(function () { post({ type: 'hello' }); }, 2000);
     setInterval(renderPresenterClock, 250);
@@ -1848,6 +1947,7 @@
       ui.pvNotesFor = s.id;
       ui.pvNotes.innerHTML = notesHtml(s.notes);
       ui.pvNotes.scrollTop = 0;
+      pvNotesCue();
     }
 
     ui.pvNowLabel.textContent = 'On screen' + (s.steps ? ' \u00b7 build ' + state.step + ' of ' + s.steps : '');
@@ -2005,6 +2105,7 @@
     },
     settle: settle,
     // extras used by tools/
+    notesHtml: notesHtml,                            // how a notes text is rendered (overlay and presenter view)
     errors: function () { return errors.slice(); },
     mode: function () { return { fast: mode.fast, print: mode.print, presenter: mode.presenter, debug: mode.debug }; },
     scale: function () { return stageScale; },

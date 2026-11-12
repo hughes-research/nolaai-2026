@@ -306,13 +306,19 @@ test('walkthrough: every beat shows what Gates.evaluate says; a candidate stops 
           band: s.querySelector('.scr-walk').getAttribute('data-band'),
           figures: Array.from(s.querySelectorAll('.scr-fig')).map((f) => f.textContent),
           source: s.querySelector('.scr-src').textContent,
-          negative: s.classList.contains('is-negative')
+          negative: s.classList.contains('is-negative'),
+          // every bay stands on one floor line: same bottom edge, and nothing cut into a floor
+          floors: Array.from(s.querySelectorAll('.scr-dock .gate')).map((g) => Math.round(g.getBoundingClientRect().bottom)),
+          cutFloors: s.querySelectorAll('.scr-dock .scr-scar, .scr-dock .gate.has-tell').length,
+          smallLabels: Array.from(s.querySelectorAll('.scr-dock .gate-why, .scr-dock .verdict')).filter((n) => n.textContent.trim() && getComputedStyle(n).visibility !== 'hidden' && n.getClientRects().length && parseFloat(getComputedStyle(n).fontSize) < 32).map((n) => n.textContent)
         };
       });
       const at = 'beat ' + k + ' (' + b.type + (b.c != null ? ' ' + b.c : '') + (b.g != null ? ' gate ' + b.g : '') + ')';
       eq(seen.negative, false, at + ': the slide is back in positive');
       eq(seen.cut, [], at + ': no name and no source line is cut off');
       assert(/^Example candidates/.test(seen.source), at + ': labelled as examples: ' + seen.source);
+      eq([new Set(seen.floors).size, seen.cutFloors], [1, 0], at + ': the four floors are level and unbroken (' + seen.floors + ')');
+      eq(seen.smallLabels, [], at + ': the fine print and the verdict marks are at least 32px');
 
       // the dock shows the candidate at the gates
       const cur = b.type === 'overview' ? null : b.c;
@@ -459,7 +465,13 @@ test('ex-screen: the four prompts and the clock, then the screener on the next s
         // nothing in the scorecard is off the stage or under the spine
         out: Array.from(s.querySelectorAll('.scr-live .scr-board > *, .scr-live .scr-editor, .scr-live .scr-assume, .scr-live .scr-tools')).filter(vis).map(box)
           .filter((b) => b[0] < 88 || b[1] < 0 || b[2] > 1920 || b[3] > 1080),
-        small: Array.from(s.querySelectorAll('.scr-live *')).filter((n) => vis(n) && n.children.length === 0 && n.textContent.trim() && parseFloat(getComputedStyle(n).fontSize) < 28).map((n) => n.outerHTML.slice(0, 80))
+        small: Array.from(s.querySelectorAll('.scr-live *')).filter((n) => vis(n) && n.children.length === 0 && n.textContent.trim() && parseFloat(getComputedStyle(n).fontSize) < 28).map((n) => n.outerHTML.slice(0, 80)),
+        // labels that carry meaning (verdict marks, the price of a run, control labels) are 32px or more; only the source line may be 28
+        labels: Array.from(s.querySelectorAll('.scr-live .verdict, .scr-live .scr-ctl-note, .scr-live .scr-ctl-label, .scr-live .scr-tools .btn')).filter((n) => vis(n) && n.textContent.trim() && parseFloat(getComputedStyle(n).fontSize) < 32).map((n) => n.outerHTML.slice(0, 80)),
+        headline: parseFloat(getComputedStyle(s.querySelector('.yt-head')).fontSize),
+        overlap: (() => { const h = s.querySelector('.yt-head').getBoundingClientRect(); const c = s.querySelector('.yt-side .timer-digits').getBoundingClientRect(); return h.right > c.left || h.bottom > s.querySelector('.scr-live').getBoundingClientRect().top + 1; })(),
+        assume: s.querySelector('.scr-live .scr-assume').textContent,
+        rules: (() => { const r = window.__deck.scene('screener').results()[0]; return window.Gates.ORDER.map((id) => r.gates[id].rule); })()
       };
     });
     eq([second.live, second.promptsShown, second.timer, second.timerShown], [true, false, 'running', true], 'second state: the screener is up and the clock is still running');
@@ -468,6 +480,11 @@ test('ex-screen: the four prompts and the clock, then the screener on the next s
     eq(second.out, [], 'the scorecard is on the stage');
     eq(second.cut, [], 'no candidate name is cut off (long names are set narrower, not clipped)');
     eq(second.small, [], 'nothing under 28px');
+    eq(second.labels, [], 'labels that carry meaning are at least 32px');
+    assert(second.headline >= 96, 'the headline stays at headline size with the screener up: ' + second.headline + 'px');
+    eq(second.overlap, false, 'the headline, the clock and the board do not collide');
+    second.rules.forEach((rule) => assert(second.assume.indexOf(rule) !== -1, 'the house rules on the slide are Gates\' own sentences; missing "' + rule + '" in "' + second.assume + '"'));
+    assert(!/or on the cash path/i.test(second.assume), 'no house rule of its own: ' + second.assume);
     eq(await t.hookErrors(), [], 'slide and scene hooks');
     eq(t.problems, [], 'console errors');
   } finally { await t.close(); }
@@ -549,6 +566,23 @@ test('live scorecard: after every control the screen equals Gates.rank on the sa
     await check('service lens, half the time sold at $200', (r) => eq(r.snap.candidates[0].capacityConversion, '50%', 'a share box hands Gates a percentage'));
     await page.click(field('lens') + ' button[data-value="product"]');
     await check('product lens again');
+
+    // The return rule (Gates): under the floor, on the cash path but no days off the cash cycle, is a NO.
+    // The days box is asked for once the task is on the cash path, and never hides days that count.
+    const daysShown = () => page.evaluate(() => !document.querySelector('.scr-editor [data-ctl="daysOffCashCycle"]').hidden);
+    await page.evaluate(() => { const s = window.__deck.scene('screener'); s.set(0, 'tier', 'code'); s.set(0, 'toolsPerMonth', '0'); s.set(0, 'minutesPerRun', '1'); s.set(0, 'runsPerWeek', '10'); s.set(0, 'daysOffCashCycle', '0'); s.set(0, 'touchesCashPath', true); });
+    eq(await daysShown(), true, 'on the cash path, the days box is shown');
+    await check('on the cash path, no days, a small return', (r) => eq(r.verdicts[0], 'NO:return', 'touching the cash path alone does not exempt a small return'));
+    const returnCell = await page.evaluate(() => [document.querySelector('.scr-cell[data-cand="0"][data-gate="return"]').getAttribute('data-state'), window.__deck.scene('screener').results()[0].gates['return'].reason]);
+    eq(returnCell[0], 'no', 'RETURN shows NO: ' + returnCell[1]);
+    await press('daysOffCashCycle', 1, 1);
+    await check('one day off the cash cycle', (r) => assert(r.verdicts[0] !== 'NO:return', 'a day off the cash cycle keeps it in: ' + r.verdicts[0]));
+    await page.click(field('touchesCashPath') + ' button[data-value="false"]');
+    eq(await daysShown(), true, 'days that count are never hidden');
+    await type('daysOffCashCycle', '0');
+    await page.click(field('touchesCashPath') + ' button[data-value="false"]');
+    eq(await daysShown(), false, 'off the cash path with no days, the box is put away');
+    await check('off the cash path again');
 
     // an entry Gates cannot use never passes a gate, and says so
     await type('toolsPerMonth', '240/mo');
@@ -640,11 +674,21 @@ test('standalone page: no sideways scroll at 360, 768 and 1440; results match Ga
         gates: Array.from(document.querySelectorAll('#pg-gates li')).map((li) => [li.querySelector('h3').textContent, li.querySelector('.pg-q').textContent, li.querySelector('.pg-rule').textContent]),
         want: window.Gates.GATES.map((g) => { const res = window.screenerApp.results()[0]; return [g.label, g.question, res.gates[g.id].rule]; }),
         thumb: document.getElementById('pg-thumb-h').textContent, rule: window.CostMath.money(window.Gates.minuteRule()),
-        saved: document.getElementById('pg-saved').textContent
+        saved: document.getElementById('pg-saved').textContent,
+        cash: document.getElementById('pg-cash').textContent,
+        perDay: window.CostMath.aboutMoney(window.Gates.cashPerDay(window.Gates.defaultAssumptions().company.annualRevenue)),
+        company: window.Gates.companyLabel(),
+        assume: document.querySelector('.scr-assume').textContent,
+        rules: window.Gates.ORDER.map((id) => window.screenerApp.results()[0].gates[id].rule)
       }));
       eq(words.gates, words.want, at + ': the four gates are explained in Gates\' own words');
       assert(words.thumb.indexOf(words.rule) !== -1, at + ': the minute rule shows ' + words.rule + ': ' + words.thumb);
       assert(/saved in this browser/.test(words.saved), at + ': says where things are kept');
+      assert(words.cash.indexOf(words.perDay) !== -1, at + ': the cash rule of thumb shows ' + words.perDay + ': ' + words.cash);
+      assert(/\bexample\b/i.test(words.cash), at + ': a figure worked out from made-up sales says it is an example: ' + words.cash);
+      const sales = (/\$[\d.,]+\s?[KMB]?\b/.exec(words.company) || [''])[0];
+      assert(sales && words.cash.indexOf(sales) !== -1, at + ': the sentence is built from the company label (' + words.company + '): ' + words.cash);
+      words.rules.forEach((rule) => assert(words.assume.indexOf(rule) !== -1, at + ': the house rules under the screener are Gates\' sentences; missing "' + rule + '"'));
 
       // work it like a person: pick B, rename it, change numbers, change a rate
       await page.click('.scr-pick[data-pick="1"]');

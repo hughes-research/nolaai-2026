@@ -71,7 +71,22 @@
    * building (120 ft x 78 ft) comes out at 9.2; a bigger one is drawn smaller. */
   function fitScale(L) { return Math.min(MAP_MAX_W / L.width, MAP_MAX_H / L.length); }
   var SIDE_LEFT = 1280, SIDE_RIGHT = 1864;
+  /* The wall is drawn just outside the building's inner face, so the racks
+   * that stand against it keep their own outline and read as whole racks. */
+  var WALL_OUT = 6;
   var ELEV = { top: 274, rowH: 46, postL: SIDE_LEFT + 190, postR: SIDE_LEFT + 478, post: 8 };
+
+  /* Dot radii in stage px (for the default building; a bigger building is
+   * drawn smaller and its dots with it). Velocity is size first, ink second:
+   * a fast mover is a 15px Flare dot ringed in Lampblack, a steady part a
+   * 8px Lampblack dot, and a slow part a 3px speck in the palest screen, so
+   * the slow majority reads as the texture of the racks and not as noise.
+   * 15px is the dot pitch on a shelf: fast movers side by side just touch. */
+  var DOT = { fast: 7.5, steady: 4, slow: 1.5, ring: 3 };
+  /* The two walks. As-is: dashed, 6 to 10px with the traffic. Optimized:
+   * solid, 14 to 22px (or as wide as the aisle allows). The heaviest as-is line is lighter than the lightest
+   * optimized one, so the two never read alike, at any size. */
+  var ROUTE = { before: [6, 10], after: [14, 22], dash: [24, 14] };
 
   /* ======================================================================
    * Small helpers
@@ -133,12 +148,14 @@
     };
 
     /* thresholds for the dot tiers */
-    var aMin = Infinity, maxPicks = 1, p;
+    var aMin = Infinity, bMin = Infinity, maxPicks = 1, p;
     for (p = 0; p < F.nParts; p++) {
       if (F.cls[p] === 0 && F.picks[p] < aMin) { aMin = F.picks[p]; }
+      if (F.cls[p] === 1 && F.picks[p] < bMin) { bMin = F.picks[p]; }
       if (F.picks[p] > maxPicks) { maxPicks = F.picks[p]; }
     }
     m.aMin = aMin === Infinity ? 1 : aMin;
+    m.bMin = bMin === Infinity ? m.aMin : Math.max(1, bMin);
     m.maxPicks = maxPicks;
 
     /* the day the pickers walk: the busiest day of the synthetic year */
@@ -249,10 +266,10 @@
     '.wh-t{position:absolute;white-space:nowrap;}',
     /* wide caps label, 32px: the floor for a label that carries meaning */
     '.wh-label{font-family:var(--f-mono);font-size:var(--t-label,32px);font-weight:var(--wght-label,700);font-stretch:var(--wdth-label-tight,112%);letter-spacing:.09em;line-height:1;text-transform:uppercase;font-variant-numeric:tabular-nums;}',
-    '.wh-label.is-s{font-size:var(--t-small,28px);}',
+    /* aisle numbers: they carry meaning, so they keep the 32px floor, with tighter tracking */
+    '.wh-label.is-s{font-size:var(--t-label,32px);letter-spacing:.02em;}',
     /* numerals in the display face */
     '.wh-num{font-family:var(--f-display);font-weight:var(--wght-display,900);font-stretch:var(--wdth-display,62%);font-variant-numeric:tabular-nums;line-height:var(--lh-cap,.708);letter-spacing:0;text-transform:uppercase;}',
-    '.wh-hollow{color:transparent;-webkit-text-stroke:3px var(--c-ink);}',
     '.wh-body{font-family:var(--f-body);font-size:36px;font-weight:600;line-height:1.1;}',
     '.wh-voice{font-family:var(--f-voice,Georgia,serif);font-style:italic;font-weight:var(--wght-voice,600);font-variation-settings:var(--voice-settings,"WONK" 0);font-optical-sizing:none;font-size:var(--t-voice,54px);line-height:1;}',
     '.wh-plate{background:var(--c-ink);color:var(--c-bg);height:56px;padding:0 20px;display:flex;align-items:center;}',
@@ -262,9 +279,11 @@
     '.wh-legend{display:flex;gap:44px;}',
     '.wh-key{display:flex;align-items:center;gap:14px;height:56px;}',
     '.wh-key i{display:block;flex:none;border-radius:50%;background:var(--c-ink);}',
-    '.wh-key i.is-c{width:6px;height:6px;margin:0 4px;}',
-    '.wh-key i.is-b{width:14px;height:14px;}',
-    '.wh-key i.is-a{width:24px;height:24px;background:var(--c-accent);border:4px solid var(--c-ink);}',
+    /* the keys are the map's own dots, at the map's own sizes */
+    /* slow: three specks in a row, the texture they make on the racks */
+    '.wh-key i.is-c{width:' + (2 * DOT.slow) + 'px;height:' + (2 * DOT.slow) + 'px;margin-right:' + (2 * 9) + 'px;box-shadow:9px 0 0 var(--wh-slow),18px 0 0 var(--wh-slow);}',
+    '.wh-key i.is-b{width:' + (2 * DOT.steady) + 'px;height:' + (2 * DOT.steady) + 'px;}',
+    '.wh-key i.is-a{width:' + (2 * DOT.fast) + 'px;height:' + (2 * DOT.fast) + 'px;background:var(--c-accent);border:' + DOT.ring + 'px solid var(--c-ink);}',
     /* figures: a label, big numerals, a quiet line */
     '.wh-fig{position:absolute;display:flex;flex-direction:column;align-items:flex-start;}',
     '.wh-fig .wh-label{display:flex;align-items:center;gap:14px;height:32px;}',
@@ -273,26 +292,27 @@
     '.wh-fig .wh-sub{margin-top:18px;display:flex;align-items:center;gap:14px;height:32px;}',
     /* chips: the line or mark a number refers to */
     '.wh-chip{display:block;flex:none;width:54px;height:24px;}',
-    '.wh-chip.is-solid{background:var(--c-ink);height:14px;}',
-    '.wh-chip.is-dashed{height:6px;background:repeating-linear-gradient(90deg,var(--c-ink) 0 12px,transparent 12px 21px);}',
+    /* the two walks, exactly as the map draws them: as-is dashed and thin, optimized solid and heavy */
+    '.wh-chip.is-solid{width:64px;background:var(--c-ink);height:' + ROUTE.after[0] + 'px;}',
+    '.wh-chip.is-dashed{width:64px;height:' + ROUTE.before[0] + 'px;background:repeating-linear-gradient(90deg,var(--c-ink) 0 ' + ROUTE.dash[0] + 'px,transparent ' + ROUTE.dash[0] + 'px ' + (ROUTE.dash[0] + ROUTE.dash[1]) + 'px);}',
     '.wh-chip.is-ladder{width:28px;height:28px;border:4px solid var(--c-ink);background:repeating-linear-gradient(135deg,var(--c-ink) 0 3px,transparent 3px 8px);}',
     /* before / after table */
     '.wh-table{position:absolute;display:flex;flex-direction:column;}',
     '.wh-th{display:grid;grid-template-columns:262px 60px 1fr;align-items:start;height:56px;}',
     /* the head of each column is underlined in the line style its walk has on the map */
     '.wh-th .wh-label{padding-bottom:16px;}',
-    '.wh-th .is-before{background:repeating-linear-gradient(90deg,var(--c-ink) 0 14px,transparent 14px 24px) left bottom / 100% 6px no-repeat;}',
-    '.wh-th .is-after{border-bottom:10px solid var(--c-ink);padding-bottom:12px;}',
+    '.wh-th .is-before{background:repeating-linear-gradient(90deg,var(--c-ink) 0 ' + ROUTE.dash[0] + 'px,transparent ' + ROUTE.dash[0] + 'px ' + (ROUTE.dash[0] + ROUTE.dash[1]) + 'px) left bottom / 100% ' + ROUTE.before[0] + 'px no-repeat;}',
+    '.wh-th .is-after{border-bottom:' + ROUTE.after[0] + 'px solid var(--c-ink);padding-bottom:' + (16 - ROUTE.after[0] + 6) + 'px;}',
     '.wh-row{display:grid;grid-template-columns:262px 60px 1fr;align-items:end;row-gap:12px;padding:14px 0 18px;border-top:var(--w-hair,3px) solid var(--c-line);}',
     '.wh-row.is-first{border-top:0;margin-top:0;}',
     '.wh-row .wh-body{grid-column:1 / -1;}',
     '.wh-v{font-size:84px;display:flex;align-items:baseline;gap:6px;}',
     '.wh-v small{font-size:38px;font-weight:inherit;text-transform:none;}',
-    '.wh-v.is-before b{color:transparent;-webkit-text-stroke:3px var(--c-ink);font-weight:inherit;}',
-    '.wh-v.is-after b{font-weight:inherit;}',
+    /* both figures solid, at the same size: the comparison is in the numbers, the columns say which is which */
+    '.wh-v b{font-weight:inherit;}',
     '.wh-arrow{width:52px;height:58px;background:var(--c-ink);clip-path:polygon(0 calc(50% - 4px),calc(100% - 26px) calc(50% - 4px),calc(100% - 26px) calc(50% - 16px),100% 50%,calc(100% - 26px) calc(50% + 16px),calc(100% - 26px) calc(50% + 4px),0 calc(50% + 4px));}',
-    /* the point of the last step: Lampblack type on a Flare block */
-    '.wh-punch{position:absolute;background:var(--c-accent);color:var(--c-accent-ink);display:flex;flex-direction:column;justify-content:center;padding:0 56px 0 40px;}',
+    /* the last word: a Lampblack slab with Card type. The map's fast movers keep the slide's one Flare */
+    '.wh-punch{position:absolute;background:var(--c-ink);color:var(--c-bg);display:flex;flex-direction:column;justify-content:center;padding:0 56px 0 40px;}',
     '.wh-punch .wh-num{font-size:104px;line-height:.78;}'
   ].join('\n');
 
@@ -312,7 +332,7 @@
       return '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + rw.toFixed(1) + '" height="' + rh.toFixed(1) + '" stroke-width="' + sw + '"/>';
     }
     var out = '<svg class="wh-preview" viewBox="0 0 1920 1080" aria-hidden="true"><g fill="none" stroke="currentColor">';
-    out += r(x0, y0, w, h, 6);
+    out += r(x0 - WALL_OUT, y0 - WALL_OUT, w + 2 * WALL_OUT, h + 2 * WALL_OUT, 6);
     L.racks.forEach(function (k) {
       out += r(x0 + k.x0 * K + 1.5, y0 + (L.length - k.y1) * K + 1.5, (k.x1 - k.x0) * K - 3, (k.y1 - k.y0) * K - 3, 3);
     });
@@ -326,7 +346,7 @@
       out += '<rect x="' + ELEV.postL + '" y="' + (ELEV.top + row * ELEV.rowH - 1.5) + '" width="' + (ELEV.postR - ELEV.postL) + '" height="3"/>';
     }
     // the pack station plate
-    out += '<rect x="' + (x0 - 3) + '" y="' + (y0 + h + 2) + '" width="340" height="56"/>';
+    out += '<rect x="' + (x0 - WALL_OUT - 3) + '" y="' + (y0 + h + WALL_OUT + 2) + '" width="340" height="56"/>';
     return out + '</g></svg>';
   }
 
@@ -413,16 +433,15 @@
     var dark = opts.ground === 'dark';
     var slideEl = host.closest ? host.closest('.slide') : null;
     if (dark && slideEl) { slideEl.classList.add('on-ink'); }
-    var INK, BG, FLARE, WARN;
-    var HEAT = [];                                 // ink second: four screens of the base ink, cold to hot
-    var HEAT_AT = [0.55, 0.7, 0.85, 1];
+    var INK, BG, FLARE, WARN, SLOW_INK;
     function readTokens() {
       INK = api.token('--c-ink', '#050505');
       BG = api.token('--c-bg', '#F4EDDE');
       FLARE = api.token('--c-accent', '#FF6842');
       WARN = api.token('--c-warn', INK);
-      // the theme's heat ramp is a screen of Lampblack on Card; on a dark ground every dot takes the full ink
-      HEAT = HEAT_AT.map(function (v) { return (!dark && THEME && typeof THEME.heat === 'function') ? THEME.heat(v) : INK; });
+      // ink second: the slow specks take the coldest step of the theme's heat ramp
+      // (a light screen of the base ink), so they recede; steady and fast take full ink
+      SLOW_INK = (THEME && typeof THEME.heat === 'function') ? THEME.heat(0, dark ? 'ink' : undefined) : api.token('--c-heat-0', INK);
     }
     readTokens();
 
@@ -470,20 +489,19 @@
     /* aisle numbers along the back wall */
     dom.aisles = [];
     L.aisleX.forEach(function (xFt, a) {
-      var n = text('wh-label is-s', (a < 9 ? '0' : '') + (a + 1), 0, MAP_Y - 44);
+      var n = text('wh-label is-s', (a < 9 ? '0' : '') + (a + 1), 0, MAP_Y - WALL_OUT - 44);
       n.style.left = (CV.x + fx(xFt)) + 'px';
       n.style.transform = 'translateX(-50%)';
-      n.style.letterSpacing = '.04em';
-      dom.aisles.push(n);
+        dom.aisles.push(n);
     });
 
     /* pack station: a plate hanging off the front wall, under its door */
     var packX = CV.x + fx(L.pack.x);               // the door, in scene px
-    var plateLeft = Math.max(MAP_X - WALL / 2, Math.min(packX - 60, MAP_X + MAP_W - 336));
-    dom.pack = text('wh-plate wh-label', 'Pack station', plateLeft, MAP_Y + MAP_H + WALL / 2 - 1);
-    dom.dock = text('wh-label', 'Dock side', 0, MAP_Y + MAP_H + 16);
+    var plateLeft = Math.max(MAP_X - WALL_OUT - WALL / 2, Math.min(packX - 60, MAP_X + MAP_W - 336));
+    dom.pack = text('wh-plate wh-label', 'Pack station', plateLeft, MAP_Y + MAP_H + WALL_OUT + WALL / 2 - 1);
+    dom.dock = text('wh-label', 'Dock side', 0, MAP_Y + MAP_H + WALL_OUT + 16);
     dom.dock.style.left = 'auto';
-    dom.dock.style.right = (DESIGN_W - (MAP_X + MAP_W)) + 'px';
+    dom.dock.style.right = (DESIGN_W - (MAP_X + MAP_W + WALL_OUT + WALL / 2)) + 'px';
 
     /* the anatomy labels of step 0 */
     function plateAt(str, xFt, yFt, cls) {
@@ -501,7 +519,7 @@
     var PLATE_W = 336;
     var roomLeft = plateLeft - MAP_X - 30, roomRight = MAP_X + MAP_W - (plateLeft + PLATE_W) - 30;
     var legendRoom = Math.max(roomLeft, roomRight);
-    var keys3 = [['is-c', 'Slow', HEAT[1], 150], ['is-b', 'Steady', HEAT[3], 195], ['is-a', 'Fast mover', null, 300]];
+    var keys3 = [['is-c', 'Slow', SLOW_INK, 130], ['is-b', 'Steady', INK, 190], ['is-a', 'Fast mover', null, 300]];
     var used = 0;
     for (var ki = keys3.length - 1; ki >= 0; ki--) {             // the fast mover's key matters most
       used += keys3[ki][3] + (ki < keys3.length - 1 ? 44 : 0);
@@ -509,12 +527,12 @@
     }
     dom.legend = el('div', 'wh-t wh-legend');
     dom.legend.style.left = (roomRight >= roomLeft ? plateLeft + PLATE_W + 39 : MAP_X) + 'px';
-    dom.legend.style.top = (MAP_Y + MAP_H + 4) + 'px';
+    dom.legend.style.top = (MAP_Y + MAP_H + WALL_OUT + 4) + 'px';
     keys3.forEach(function (k) {
       if (!k.fits) { return; }
       var item = el('div', 'wh-key wh-label');
       var dot = el('i', k[0]);
-      if (k[2]) { dot.style.background = k[2]; }
+      if (k[2]) { dot.style.background = k[2]; dot.style.setProperty('--wh-slow', k[2]); }
       item.appendChild(dot);
       item.appendChild(document.createTextNode(k[1]));
       dom.legend.appendChild(item);
@@ -593,7 +611,7 @@
     dom.chAsIsLabel = text('wh-label', 'As-is', 0, 0);
     dom.chAsIsLabel.style.left = 'auto';
     dom.chAsIsLabel.style.right = (DESIGN_W - SIDE_R) + 'px';
-    dom.chAsIs = text('wh-num wh-hollow', '', 0, 0);
+    dom.chAsIs = text('wh-num', '', 0, 0);
     dom.chAsIs.style.fontSize = '64px';
     dom.chHead = text('wh-num', '', 0, 0);
     dom.chHead.style.fontSize = '64px';
@@ -665,23 +683,24 @@
     var counts = new Int32Array(nParts);           // picks counted so far (the rain); F.picks when full
     var countsN = -1;                              // how many orders are in `counts`
     var px = new Float32Array(nParts), py = new Float32Array(nParts), pr = new Float32Array(nParts);
-    var pink = new Uint8Array(nParts);             // 0 hidden, 1-4 a screen of the base ink (cold to hot), 5 Flare (a fast mover)
-    var FLARE_INK = 5;
-    function heatInk(count) { return count <= 0 ? 1 : (count === 1 ? 2 : (count < 4 ? 3 : 4)); }
+    var pink = new Uint8Array(nParts);             // 0 hidden, 1 slow (a pale speck), 2 steady (Lampblack), 5 fast (Flare, ringed)
+    var SLOW = 1, STEADY = 2, FLARE_INK = 5;
+    /* the tier a part shows with `count` picks counted so far: when every
+     * order is in, exactly its class (A fast, B steady, C slow) */
+    function tierOf(p, count) {
+      var c = F.cls[p];
+      if (c === 0 && count >= M.aMin) { return FLARE_INK; }
+      if (c <= 1 && count >= M.bMin) { return STEADY; }
+      return SLOW;
+    }
     var cur = S.copyAssignment(M.seed);            // the placement during the search playback
     var curK = 0;                                  // kept swaps already applied to `cur`
     var curFor = 'seed';
 
-    /* dot size first: radius from the pick count, in tiers that survive a projector */
-    var RS = K / 9.2;                               // dots shrink with the map
-    var R0 = 1.5 * RS, R1 = 2.4 * RS, RB = 4.1 * RS, RA0 = 5.6 * RS, RA1 = 7.3 * RS;
-    var sqA = Math.sqrt(M.aMin), sqMax = Math.sqrt(M.maxPicks);
-    function radius(count, isA) {
-      if (count <= 0) { return R0; }
-      var q = Math.sqrt(count);
-      if (isA && count >= M.aMin) { return RA0 + (RA1 - RA0) * (sqMax > sqA ? (q - sqA) / (sqMax - sqA) : 1); }
-      return R1 + (RB - R1) * Math.min(1, sqA > 1 ? (q - 1) / (sqA - 1) : 1);
-    }
+    /* dot size first: three sizes that survive a projector and a washed-out room */
+    var RS = Math.min(1, K / 9.2);                  // dots shrink with the map, never grow
+    var RAD = [0, DOT.slow * RS, DOT.steady * RS, 0, 0, DOT.fast * RS];
+    var RING = Math.max(2, DOT.ring * RS);
 
     function setCounts(nOrders) {
       nOrders = Math.max(0, Math.min(F.nOrders, nOrders));
@@ -696,26 +715,26 @@
     function partsFromAssignment(partSlot) {
       for (var p = 0; p < nParts; p++) {
         var s = partSlot[p];
-        var isA = F.cls[p] === 0;
         px[p] = slotX[s]; py[p] = slotY[s];
-        pr[p] = radius(counts[p], isA);
-        pink[p] = (isA && counts[p] >= M.aMin) ? FLARE_INK : heatInk(counts[p]);
+        pink[p] = tierOf(p, counts[p]);
+        pr[p] = RAD[pink[p]];
       }
     }
 
     function paintParts(g) {
       var p;
       g.clearRect(0, 0, CV.w, CV.h);
-      for (var ink = 1; ink <= 4; ink++) {
-        g.fillStyle = HEAT[ink - 1];
+      // slow first (the texture), then steady on top of it
+      [[SLOW, SLOW_INK], [STEADY, INK]].forEach(function (k) {
+        g.fillStyle = k[1];
         g.beginPath();
         for (p = 0; p < nParts; p++) {
-          if (pink[p] !== ink) { continue; }
+          if (pink[p] !== k[0]) { continue; }
           g.moveTo(px[p] + pr[p], py[p]);
           g.arc(px[p], py[p], pr[p], 0, 6.2832);
         }
         g.fill();
-      }
+      });
       // fast movers: Flare, ringed in the base ink (Flare alone is too faint on Card)
       g.beginPath();
       for (p = 0; p < nParts; p++) {
@@ -728,7 +747,7 @@
       g.beginPath();
       for (p = 0; p < nParts; p++) {
         if (pink[p] !== FLARE_INK) { continue; }
-        var ri = Math.max(0.5, pr[p] - 1.9);
+        var ri = Math.max(0.5, pr[p] - RING);
         g.moveTo(px[p] + ri, py[p]);
         g.arc(px[p], py[p], ri, 0, 6.2832);
       }
@@ -760,7 +779,7 @@
       g.lineJoin = 'miter';
 
       // the wall, with a door at the pack station: drawn clockwise from the door at one speed
-      var x0 = fx(0), y0 = fy(L.length), x1 = fx(L.width), y1 = fy(0);
+      var x0 = fx(0) - WALL_OUT, y0 = fy(L.length) - WALL_OUT, x1 = fx(L.width) + WALL_OUT, y1 = fy(0) + WALL_OUT;
       var dL = fx(L.pack.x - half - 0.6), dR = fx(L.pack.x + half + 0.6);
       var pts = [[dL, y1], [x0, y1], [x0, y0], [x1, y0], [x1, y1], [dR, y1]];
       var total = 0, i;
@@ -919,7 +938,10 @@
     var fullBefore = trafficAt(dayBefore, Infinity);
     var fullAfter = null;
     var TRAFFIC_MAX = trafficMax(fullBefore);
-    var BAND_MIN = Math.max(4, 6 * K / 9.2), BAND_MAX = Math.max(BAND_MIN + 2, Math.min(15, L.aisleWidth * K - 6));
+    // optimized: solid and heavy; as-is: dashed and never as heavy as the lightest optimized line
+    var BAND_MIN = Math.max(8, ROUTE.after[0] * RS), BAND_MAX = Math.max(BAND_MIN + 2, Math.min(ROUTE.after[1] * RS, L.aisleWidth * K - 6));
+    var DASH_MIN = Math.max(4, ROUTE.before[0] * RS), DASH_MAX = Math.min(BAND_MIN - 3, Math.max(DASH_MIN, ROUTE.before[1] * RS));
+    var DASH = ROUTE.dash, DASH_PERIOD = DASH[0] + DASH[1];
 
     function needOptimized() {
       if (!M.ready) { M.finishNow(); }
@@ -931,11 +953,13 @@
       fillCaptions();
     }
 
-    function bandWidth(n) {
+    function widthFor(n, lo, hi) {
       if (n <= 0) { return 0; }
-      if (TRAFFIC_MAX <= 1) { return BAND_MIN; }
-      return BAND_MIN + (BAND_MAX - BAND_MIN) * Math.sqrt((n - 1) / (TRAFFIC_MAX - 1));
+      if (TRAFFIC_MAX <= 1) { return lo; }
+      return lo + (hi - lo) * Math.sqrt(Math.min(1, (n - 1) / (TRAFFIC_MAX - 1)));
     }
+    function bandWidth(n) { return widthFor(n, BAND_MIN, BAND_MAX); }
+    function dashWidth(n) { return widthFor(n, DASH_MIN, DASH_MAX); }
 
     /* solid bands, as wide as the traffic */
     function drawBands(g, tr) {
@@ -965,36 +989,45 @@
       }
     }
 
-    /* the footprint of a walk: a dashed line wherever anyone walked */
-    function drawFootprint(g, tr) {
+    /* The as-is walk: a dashed line on the aisle centre lines, a little wider
+     * where more people walked. Every stretch is stroked with the dash phase
+     * of its own distance along the aisle, so the dashes stay in step where
+     * the width changes. */
+    function drawDashed(g, tr) {
       g.strokeStyle = INK;
-      g.lineWidth = 6;
       g.lineCap = 'butt';
-      g.setLineDash([12, 10]);
-      g.beginPath();
-      var a, c, i, start;
+      g.setLineDash(DASH);
+      var a, c, i, n, start;
+      function stroke(x0, y0, x1, y1, w, along) {
+        g.lineWidth = w;
+        g.lineDashOffset = along % DASH_PERIOD;
+        g.beginPath();
+        g.moveTo(x0, y0);
+        g.lineTo(x1, y1);
+        g.stroke();
+      }
       for (a = 0; a < tr.v.length; a++) {
         var arr = tr.v[a], x = fx(L.aisleX[a]);
         for (i = 0; i < arr.length;) {
-          if (!arr[i]) { i++; continue; }
+          n = arr[i];
+          if (!n) { i++; continue; }
           start = i;
-          while (i < arr.length && arr[i]) { i++; }
-          g.moveTo(x, fy(start / 2));
-          g.lineTo(x, fy(i / 2));
+          while (i < arr.length && arr[i] === n) { i++; }
+          stroke(x, fy(start / 2), x, fy(i / 2), dashWidth(n), start / 2 * K);
         }
       }
       for (c = 0; c < tr.h.length; c++) {
         var row = tr.h[c], y = fy(L.crossY[c]);
         for (i = 0; i < row.length;) {
-          if (!row[i]) { i++; continue; }
+          n = row[i];
+          if (!n) { i++; continue; }
           start = i;
-          while (i < row.length && row[i]) { i++; }
-          g.moveTo(fx(start / 2), y);
-          g.lineTo(fx(i / 2), y);
+          while (i < row.length && row[i] === n) { i++; }
+          stroke(fx(start / 2), y, fx(i / 2), y, dashWidth(n), start / 2 * K);
         }
       }
-      g.stroke();
       g.setLineDash([]);
+      g.lineDashOffset = 0;
     }
 
     /* The caution hatch (ladder levels). The theme's own drawing kit draws it
@@ -1018,13 +1051,16 @@
       g.restore();
     }
 
-    /* pickers, ladder set-ups and the pick blips of a day at time t */
-    function drawDayLive(g, day, t, withPickers) {
+    /* pickers, ladder set-ups and the pick blips of a day at time t. A ghost
+     * day (the as-is walk, replayed beside the optimized one) shows its
+     * pickers only, as hollow frames. */
+    function drawDayLive(g, day, t, withPickers, ghost) {
       var feet = 0, setups = 0;
       day.runs.forEach(function (run) {
         if (t <= run.start) { return; }
         var d = t >= run.end ? run.feet : distanceAt(run, t);
         feet += d;
+        if (ghost) { return; }
         run.dwells.forEach(function (dw) {
           if (t < dw.at) { return; }
           var age = t - dw.at;
@@ -1058,9 +1094,14 @@
           var pt = pointAt(run, distanceAt(run, t));
           var x = fx(pt[0]), y = fy(pt[1]);
           g.fillStyle = BG;
-          g.fillRect(x - 10, y - 10, 20, 20);
+          g.fillRect(x - 11, y - 11, 22, 22);
           g.fillStyle = INK;
-          g.fillRect(x - 7, y - 7, 14, 14);
+          if (ghost) {
+            g.fillRect(x - 8, y - 8, 16, 4); g.fillRect(x - 8, y + 4, 16, 4);
+            g.fillRect(x - 8, y - 8, 4, 16); g.fillRect(x + 4, y - 8, 4, 16);
+          } else {
+            g.fillRect(x - 8, y - 8, 16, 16);
+          }
         });
       }
       return { feet: feet, setups: setups };
@@ -1138,19 +1179,11 @@
       g.stroke();
       var head = o.points[o.points.length - 1];
       var hx = x0 + head.x * CH.w, hy = sy(hoursY(head.hours, top));
-      // the head of the curve is the thing to watch: the theme's "point" mark
-      if (kit && typeof kit.dot === 'function') {
-        kit.dot(g, hx, hy, 8, { kind: 'point', ring: 4, ground: GROUND });
-      } else {
-        g.fillStyle = INK;
-        g.beginPath();
-        g.arc(hx, hy, 12, 0, 6.2832);
-        g.fill();
-        g.fillStyle = FLARE;
-        g.beginPath();
-        g.arc(hx, hy, 7.5, 0, 6.2832);
-        g.fill();
-      }
+      // the head of the curve: a solid Lampblack dot (the fast movers on the map keep the step's one Flare)
+      g.fillStyle = INK;
+      g.beginPath();
+      g.arc(hx, hy, 12, 0, 6.2832);
+      g.fill();
     }
 
     /* ------------------------------------------------------------------
@@ -1168,7 +1201,8 @@
       if (step === 1) { return D1; }
       if (step === 2) { return dayBefore.duration + 0.4; }
       if (step === 3) { return D3; }
-      if (step === 4) { return (dayAfter ? dayAfter.duration : 6) + 0.4; }
+      // the optimized walk races a replay of the as-is one, at the same speed: the step lasts as long as the slower walk
+      if (step === 4) { return Math.max(dayBefore.duration, dayAfter ? dayAfter.duration : 0) + 0.4; }
       if (step === 5) { return D5; }
       return D6;
     }
@@ -1296,14 +1330,14 @@
           var e = arrive(u);
           px[p] = lerp(slotX[a], slotX[b], e);
           py[p] = lerp(slotY[a], slotY[b], e);
-          pr[p] = radius(F.picks[p], isA);
-          pink[p] = isA ? FLARE_INK : heatInk(F.picks[p]);
+          pink[p] = tierOf(p, F.picks[p]);
+          pr[p] = RAD[pink[p]];
           if (u <= 0) { by[F.slotLevel[a]] += F.picks[p]; }
           else if (u >= 1) { by[F.slotLevel[b]] += F.picks[p]; }
           // a ring where a fast mover used to live
           if (isA && u > 0 && a !== b) {
-            gLive.moveTo(slotX[a] + 5.5, slotY[a]);
-            gLive.arc(slotX[a], slotY[a], 5.5, 0, 6.2832);
+            gLive.moveTo(slotX[a] + RAD[FLARE_INK] - 1.5, slotY[a]);
+            gLive.arc(slotX[a], slotY[a], RAD[FLARE_INK] - 1.5, 0, 6.2832);
           }
         }
         gLive.stroke();
@@ -1334,13 +1368,15 @@
       /* ---- the day's walk ---- */
       var live = null;
       if (step === 2) {
-        drawBands(gLive, end ? fullBefore : trafficAt(dayBefore, t));
+        drawDashed(gLive, end ? fullBefore : trafficAt(dayBefore, t));
         live = drawDayLive(gLive, dayBefore, end ? Infinity : t, !end);
       } else if (step >= 4) {
+        // both walks at the same speed: the old one (dashed) visibly takes longer
         var tDay = step === 4 && !end ? t : Infinity;
-        drawFootprint(gLive, fullBefore);
+        drawDashed(gLive, tDay === Infinity ? fullBefore : trafficAt(dayBefore, tDay));
         drawBands(gLive, tDay === Infinity ? fullAfter : trafficAt(dayAfter, tDay));
         live = drawDayLive(gLive, dayAfter, tDay, tDay !== Infinity);
+        if (tDay !== Infinity) { drawDayLive(gLive, dayBefore, tDay, true, true); }
       }
 
       /* ---- the search: swaps flicker ---- */
@@ -1408,7 +1444,7 @@
         figB = { label: 'Ladder picks', chip: 'ladder', value: allNow && (end || t > 0.6) ? pct(ladderNow / allNow) : '' };
       } else if (step === 2) {
         var lv2 = end ? live : drawDayQuiet(dayBefore, q);
-        figA = { label: 'Feet walked', chip: 'solid', value: commas(lv2.feet), unit: 'ft', sub: 'Busiest day · ' + M.dayOrders.length + ' orders' };
+        figA = { label: 'Feet walked', chip: 'dashed', value: commas(lv2.feet), unit: 'ft', sub: 'Busiest day · ' + M.dayOrders.length + ' orders' };
         figB = { label: 'Ladder set-ups', chip: 'ladder', value: commas(lv2.setups) };
       } else if (step === 3) {
         var an3 = M.result.anneal;
@@ -1416,8 +1452,9 @@
         figA = { label: 'Swaps tried', value: commas(shownTried), sub: !searching && t >= T_FLY ? commas(an3.accepted) + ' kept' : (t < T_FLY ? 'Rule of thumb first' : 'Replaying ' + commas(an3.sampleOrders) + ' orders') };
       } else if (step === 4) {
         var lv4 = end ? live : drawDayQuiet(dayAfter, q);
-        figA = { label: 'Feet walked', chip: 'solid', value: commas(lv4.feet), unit: 'ft', sub: 'As-is ' + commas(dayBefore.feet) + ' ft', subChip: 'dashed' };
-        figB = { label: 'Ladder set-ups', chip: 'ladder', value: commas(lv4.setups), sub: 'As-is ' + commas(dayBefore.setups) };
+        var old4 = end ? { feet: dayBefore.feet, setups: dayBefore.setups } : drawDayQuiet(dayBefore, q);
+        figA = { label: 'Feet walked', chip: 'solid', value: commas(lv4.feet), unit: 'ft', sub: 'As-is ' + commas(old4.feet) + ' ft', subChip: 'dashed' };
+        figB = { label: 'Ladder set-ups', chip: 'ladder', value: commas(lv4.setups), sub: 'As-is ' + commas(old4.setups) };
       }
       setFigure(dom.figA, figA);
       setFigure(dom.figB, figB);

@@ -144,7 +144,7 @@ window.DECK_DEMO = false;
       '<p class="sub">Screening AI use cases<br>for real return.</p>' +
       '<p class="credit"><b>' + esc(speaker.name) + '</b><span>' + esc(speaker.role) + ', ' + esc(speaker.company) + '</span></p>' +
       '<div class="slab">' +
-        '<p class="catalogue">WAYPOINT · ' + esc(event.name) + ' · 29°57.7′N 090°03.5′W</p>' +
+        '<p class="catalogue">WAYPOINT · ' + esc(event.name) + ' · NEW ORLEANS</p>' +
         '<div class="mega">No</div>' +
         '<dl class="slab-fine">' +
           '<div><dt>When</dt><dd>' + esc(when[0]) + '<br>' + esc(when.slice(1).join(', ')) + '</dd></div>' +

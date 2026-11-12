@@ -2,12 +2,12 @@
  * slides/a2c-gates.js: Act 2, The Four Gates, after the three cost slides.
  *
  *   tool-ladder           1 min     six rungs; use the expensive model once
- *   gate-return-cash      2 min     the cash conversion cycle as a timeline of days
+ *   gate-return-cash      1.5 min   the cash conversion cycle as a timeline of days
  *   gate-return-capacity  1.5 min   freed hours, and the slider that decides what they become
  *   cash-path             1 min     the same 20 minutes, counted twice or once
  *   gate-effort           1 min     build, roll out, and the part that never ends
  *   gate-potential        1 min     one site to three, one team to every team
- *   the-math              0.5 min   the scorecard, the $25 rule, the house rules
+ *   the-math              1 min     the scorecard, the $25 rule, the house rules
  *
  * EVERY NUMBER ON THESE SLIDES IS COMPUTED when the deck loads:
  *   - the example day counts, hours and margin come from window.YOUR.examples
@@ -104,7 +104,7 @@
     '.cc-bar > b > small { font-size: 48px; text-transform: none; }',
     /* the day that comes off: uncovered when the two bars draw back */
     '.cc-off { position: absolute; left: calc(var(--cc-day) * (var(--cc-dio) + var(--cc-dso) - 1)); top: 12px; width: var(--cc-day); height: 220px;',
-    '  background: var(--c-accent); border: 4px solid var(--c-ink); border-left: 0; }',
+    '  background: none; border: var(--w-rule) solid var(--c-ink); border-left: 0; }',
     '.cc-callout { position: absolute; right: calc(14px + var(--cc-day) / 2 - 4px); top: 244px; height: 84px; padding: 22px 30px 0 0; margin: 0;',
     '  border-right: var(--w-bold) solid var(--c-ink); border-bottom: var(--w-bold) solid var(--c-ink); line-height: 1; white-space: nowrap; }',
     '.cc-callout::before { content: ""; position: absolute; right: -16px; top: -4px; border: 12px solid transparent; border-bottom: 20px solid var(--c-ink); border-top: 0; }',
@@ -128,7 +128,7 @@
     '.cap-left { position: absolute; left: 0; top: 14px; width: 900px; }',
     '.cap-hours { display: flex; gap: 12px; margin: 26px 0 26px; }',
     '.cap-hour { position: relative; flex: none; width: calc(min(132px, (876px - (var(--cap-n) - 1) * 12px) / var(--cap-n)) * var(--w, 1)); height: 132px; border: var(--w-rule) solid var(--c-ink); }',
-    '.cap-hour > b { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c-accent); }',
+    '.cap-hour > b { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c-ink); }',
     '.cap-split { display: flex; align-items: baseline; gap: 20px; margin: 0; font-size: var(--t-body-l); font-weight: 600; line-height: 1; white-space: nowrap; }',
     '.cap-split > b { font-family: var(--f-display); font-size: 96px; font-weight: var(--wght-display); font-stretch: var(--wdth-display);',
     '  line-height: var(--lh-cap); font-variant-numeric: tabular-nums; }',
@@ -151,7 +151,9 @@
     '.cap-slider > input[type="range"]::-webkit-slider-thumb { width: 40px; height: 96px; }',
     '.cap-slider > input[type="range"]::-moz-range-thumb { width: 40px; height: 96px; }',
     '.cap-slider > output { min-width: 2.9em; text-align: right; font-size: 120px; }',
-    '.cap-zero { position: absolute; right: 0; bottom: 4px; margin: 0; }',
+    '.cap-zero { position: absolute; right: 0; bottom: 9px; margin: 0; }',   // on the kit's deadpan slot: bottom edge at y 968, like gate-effort
+    /* the quiet headline: one line of Archivo at normal width */
+    '.slide > .say.cap-say { margin: 18px 0 36px; white-space: nowrap; }',
 
     /* ---------------- cash-path ---------------- */
     '.cp-tag { position: absolute; left: 1290px; top: 146px; }',
@@ -184,18 +186,18 @@
     '.ef-tag { position: absolute; right: var(--m-right); top: 250px; }',
     '.ef-rule { position: absolute; left: var(--m-x); right: 0; top: 750px; height: var(--w-rule); background: var(--c-line); }',
     '.ef-block { position: absolute; top: 450px; height: 300px; display: flex; align-items: flex-start; padding: 26px 0 0 26px; background: var(--c-ink); color: var(--c-bg); overflow: hidden; }',
-    '.ef-block > b { font-family: var(--f-display); font-size: 116px; font-weight: var(--wght-display); font-stretch: var(--wdth-display); line-height: var(--lh-cap); text-transform: uppercase; white-space: nowrap; }',
+    '.ef-block > b { font-family: var(--f-display); font-size: 96px; font-weight: var(--wght-display); font-stretch: var(--wdth-display); line-height: var(--lh-cap); text-transform: uppercase; white-space: nowrap; }',
     '.ef-demo { left: 128px; width: 40px; padding: 0; }',
     '.ef-build { left: 180px; width: 420px; }',
     '.ef-roll { left: 612px; width: 440px; }',
-    '.ef-keep { left: 1064px; right: 0; background: var(--c-accent); color: var(--c-accent-ink); }',
+    /* the part that never ends: an open band in Lampblack outline that runs off the stage (no Flare: a quiet slide) */
+    '.ef-keep { left: 1064px; right: 0; padding: 18px 0 0 18px; background: var(--c-bg); color: var(--c-ink); border: var(--w-bold) solid var(--c-ink); border-right: 0; }',
     /* month marks on the band; the scene walks them to the right for ever */
     '.ef-marks { position: absolute; left: -240px; right: 0; bottom: 0; height: 72px; transition-property: none !important;',
-    '  background: repeating-linear-gradient(90deg, var(--c-accent-ink) 0 var(--w-rule), transparent var(--w-rule) 120px); }',
+    '  background: repeating-linear-gradient(90deg, var(--c-ink) 0 var(--w-rule), transparent var(--w-rule) 120px); }',
     '.ef-demo-note { position: absolute; left: 144px; top: 322px; height: 116px; margin: 0; padding: 0 0 0 30px; border-left: var(--w-bold) solid var(--c-ink); line-height: 1; white-space: nowrap; }',
     '.ef-demo-note::before { content: ""; position: absolute; left: -16px; bottom: -4px; border: 12px solid transparent; border-top: 20px solid var(--c-ink); border-bottom: 0; }',
     '.ef-cap { position: absolute; top: 784px; margin: 0; font-size: var(--t-body-l); font-weight: 700; line-height: 1; white-space: nowrap; }',
-    '.ef-never { position: absolute; right: var(--m-right); top: 876px; margin: 0; }',
 
     /* ---------------- gate-potential ---------------- */
     '.po-stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }',
@@ -203,8 +205,9 @@
     '.po-tag { position: absolute; right: var(--m-right); top: 250px; }',
     '.po-block { position: absolute; width: 392px; height: 128px; display: flex; align-items: center; padding: 0 26px; font-family: var(--f-display); font-size: 84px;',
     '  font-weight: var(--wght-display); font-stretch: var(--wdth-display); line-height: var(--lh-cap); text-transform: uppercase; white-space: nowrap; }',
-    '.po-block.is-build { left: 128px; top: 312px; background: var(--c-ink); color: var(--c-bg); }',
-    '.po-block.is-ret { left: calc(620px + var(--c) * 416px); top: calc(312px + var(--r) * 144px); background: var(--c-accent); color: var(--c-accent-ink); }',
+    /* the one Flare: the build, which growth does not multiply */
+    '.po-block.is-build { left: 128px; top: 312px; background: var(--c-accent); color: var(--c-accent-ink); }',
+    '.po-block.is-ret { left: calc(620px + var(--c) * 416px); top: calc(312px + var(--r) * 144px); background: var(--c-ink); color: var(--c-bg); }',
     '.po-line { position: absolute; left: 128px; top: 476px; width: 440px; margin: 0; line-height: 1.08; }',
     '.po-check { position: absolute; left: 128px; top: 760px; width: 452px; margin: 0; display: grid; grid-template-columns: 64px 1fr; column-gap: 24px; align-items: start;',
     '  font-family: var(--f-display); font-size: 64px; font-weight: var(--wght-strong); font-stretch: var(--wdth-text); line-height: 1.02; letter-spacing: -0.012em; }',
@@ -277,16 +280,16 @@
     enter: arrive,
     step: moved,
     notes: [
-      'SAY: This is the ladder of tools. Climb only as far as the task makes you.',
-      'Bottom rung: do not automate it at all. Then a spreadsheet formula. Then plain code. A model only when the task needs judgment. An agent last.',
+      'SAY: Climb only as far as the task makes you.',
+      'Bottom rung: do not automate it. Then a spreadsheet formula, then plain code. A model only when the task needs judgment. An agent last.',
       'Every rung up costs more to run and more to keep alive.',
       '',
       'DO: Click. Frontier model and plain code light up.',
       '',
       'SAY: Use the expensive model once, to write the tool. Then the tool runs for free.',
-      'That is the cheapest right tool. You will see exactly that in the project at the end.',
+      'You will see it in my own project.',
       '',
-      'NEXT: Gate two. What comes back?',
+      'NEXT: Cost is one side. Gate two asks what comes back, starting with a business that sells parts.',
       '',
       'TIME: 1 minute.'
     ].join('\n')
@@ -311,9 +314,8 @@
   var perDay = G ? G.cashPerDay(revenue) : NaN;                    // one day of sales
   var perDayText = CM ? CM.aboutMoney(perDay) : '';                 // a round figure, said with the approximately sign
   var companyLabel = G ? G.companyLabel() : (A.company.label || '');
-  /* count up only when the counter would land on exactly the text CostMath writes */
-  var perDayRounded = CM ? CM.roundTo(perDay, -2) : NaN;
-  var perDayCounts = !!(window.Motion && CM && window.Motion.formatNumber(perDayRounded, '$,d') === perDayText);
+  /* the figure arrives with its block, whole: a counter would tick through
+     false-precision values ("$51,749") beside an approximately sign */
   /* the figure is set as large as its length allows: "$54,800" is seven characters */
   var perDaySize = perDayText.length <= 7 ? 196 : (perDayText.length === 8 ? 164 : (perDayText.length === 9 ? 146 : 120));
 
@@ -348,7 +350,7 @@
     id: 'gate-return-cash',
     act: 2,
     title: 'Gate 2: Return, product side',
-    minutes: 2,
+    minutes: 1.5,
     layout: 'chart',
     steps: 2,
     html:
@@ -356,37 +358,37 @@
       '<h2 class="headline is-s a2-under-strip">Does cash come in sooner?</h2>' +
       cycleChart +
       '<p class="voice is-l cc-line" data-step="1" data-anim="wipe">One day off the cycle frees about one day of sales.</p>' +
-      '<div class="cc-cash" data-step="2" data-anim="stamp">' +
+      // the figure cuts in whole, block and all: no drop past the equation, no ticking digits
+      '<div class="cc-cash" data-step="2">' +
         tag('example', companyLabel) +
         '<p class="cc-cash-v" style="font-size: ' + perDaySize + 'px"><i>≈</i>' +
-          (perDayCounts
-            ? '<b data-count-to="' + perDayRounded + '" data-count-format="$,d" data-count-steps="12">' + esc(perDayText) + '</b>'
-            : '<b>' + esc(perDayText) + '</b>') +
+          '<b>' + esc(perDayText) + '</b>' +
           '<small>per day</small></p>' +
       '</div>' +
       '<p class="source-line">Example figures, not Laborde’s' +
-        (cycleOk ? ' · ' + esc(num(dio)) + ' days of inventory + ' + esc(num(dso)) + ' to collect − ' + esc(num(dpo)) + ' to pay' : '') +
+        // the day counts in the source line follow the bars: 38 to collect becomes 37 with the step
+        (cycleOk ? ' · ' + esc(num(dio)) + ' days of inventory + ' + swap(num(dso), num(dso - 1), 1) + ' to collect − ' + esc(num(dpo)) + ' to pay' : '') +
         ' · one day of sales = annual revenue ÷ 365</p>',
     enter: arrive,
     step: moved,
     notes: [
-      'SAY: Gate two, on the product side. This is the language your CFO speaks.',
+      'SAY: This is the language your CFO speaks.',
       'Parts sit on the shelf: days of inventory. The customer takes a while to pay: days to collect. You take a while to pay your supplier: days to pay.',
-      'Add the first two, take off the third. That is how long your cash is out. ' + (cycleOk ? 'In this example, ' + num(ccc) + ' days.' : ''),
+      'Add the first two, take off the third. That is how long your cash is out.' + (cycleOk ? ' Here, ' + num(ccc) + ' days.' : ''),
       '',
       'DO: Click. One day comes off days to collect.',
       '',
-      'SAY: One day off the cycle frees about one day of sales. The invoice goes out a day sooner, the money is in a day sooner.',
+      'SAY: One day off the cycle frees about one day of sales.',
       '',
       'DO: Click. The example figure lands.',
       '',
-      'SAY: For this example company that is about ' + perDayText + '. It is an example, not our number.',
-      'It comes once, not every year. And it is cash, not profit. But it was sitting in somebody else’s account.',
+      'SAY: For this example company, about ' + perDayText + '.',
+      'It comes once, not every year, and it is cash, not profit. But it was sitting in somebody else’s account.',
       'Where to look: inventory, invoicing, collections.',
       '',
-      'NEXT: That was the product side. Now the service side.',
+      'NEXT: That is a business that sells parts. A business that sells hours gets paid differently.',
       '',
-      'TIME: 2 minutes.'
+      'TIME: 1.5 minutes.'
     ].join('\n')
   });
 
@@ -408,7 +410,7 @@
     steps: capShares.length - 1,
     html:
       '<p class="kicker">Gate 2 · Return · service side</p>' + strip(2) +
-      '<h2 class="headline a2-under-strip">Time is money. Literally.</h2>' +
+      '<h2 class="say is-s cap-say">Time is money. Literally.</h2>' +
       '<div class="cap-stage a2-live" data-scene="capacity">' +
         // one still view per step; the scene swaps them for a live one
         (cap ? capShares.map(function (share, n) {
@@ -421,9 +423,8 @@
     enter: arrive,
     step: moved,
     notes: [
-      'SAY: The service side. Time is money. Literally.',
-      (capFull.ok ? 'Say a tool gives a service crew ' + capFull.hoursPerWeekText + ' hours a week back. ' : '') + 'Same crew. Same payroll.',
-      'There is one question on this slide: how much of the freed time becomes paid work? Right now the answer is nothing.',
+      'SAY: ' + (capFull.ok ? 'Say a tool gives a service crew ' + capFull.hoursPerWeekText + ' hours a week back. ' : 'Say a tool gives a service crew hours back every week. ') + 'Same crew. Same payroll.',
+      'One question on this slide: how much of the freed time becomes paid work? Right now, none.',
       '',
       'DO: Click. The slider runs up to 100 percent. (You can also drag it with the mouse.)',
       '',
@@ -431,11 +432,10 @@
       '',
       'DO: Click. The slider runs back to zero.',
       '',
-      'SAY: And at zero percent it is zero dollars. The tool worked. The hours came back. Nothing happened with them.',
-      'Zero is also a decision. Somebody made it, or nobody did, which comes to the same thing.',
-      'Hold on to that. It comes back at the end.',
+      'SAY: At zero percent it is zero dollars. The tool worked, the hours came back, and nothing happened with them.',
+      'Zero is also a decision. Hold on to that. It comes back at the end.',
       '',
-      'NEXT: One question sorts ideas faster than any other.',
+      'NEXT: Both sides come down to one question you can ask in a hallway.',
       '',
       'TIME: 1.5 minutes.'
     ].join('\n')
@@ -488,23 +488,25 @@
     enter: arrive,
     step: moved,
     notes: [
-      'SAY: One question to ask of every idea. Does it touch the cash path?',
-      'Quote, order, pick, ship, invoice, collect. That is how cash gets into the building.',
-      'Two ideas. Each one saves the same 20 minutes.',
+      'SAY: Does it touch the cash path? Quote to collect: how cash gets in.',
+      'Two ideas, the same 20 minutes saved.',
       '',
       'DO: Click. Invoicing.',
       '',
-      'SAY: Invoicing sits on the path. It counts twice: the labor, and the cash that comes in sooner.',
+      'SAY: Invoicing is on the path. It counts twice: labor, and cash in sooner.',
       '',
       'DO: Click. Internal memos.',
       '',
-      'SAY: Internal memos. Counts once. Maybe. If those 20 minutes turn into anything at all.',
+      'SAY: Internal memos count once. Maybe.',
       '',
       'DO: Click for the line.',
       '',
       'SAY: The boring idea on the cash path beats the exciting one off it.',
+      'Touching the path is the first question, not the test. The test is whether cash arrives sooner.',
       '',
-      'NEXT: Gate three. What it takes.',
+      'DO: If asked: the house rule waves a small return through only when it takes days off the cash cycle. On the path with zero days, it counts once, like the memo.',
+      '',
+      'NEXT: That is what comes back. Now what it costs you to keep it coming.',
       '',
       'TIME: 1 minute.'
     ].join('\n')
@@ -525,7 +527,7 @@
     steps: 2,
     html:
       '<p class="kicker">Gate 3 · Effort</p>' + strip(3) +
-      '<h2 class="headline a2-under-strip">The demo is the cheap part.</h2>' +
+      '<h2 class="headline is-s a2-under-strip">The demo is the cheap part.</h2>' +
       '<div class="ef-stage">' +
         '<span class="ef-tag">' + tag('illustration') + '</span>' +
         '<i class="ef-rule"></i>' +
@@ -538,26 +540,28 @@
         '<div class="ef-block ef-keep a2-grow a2-live" data-step="2" data-scene="effort-march" data-opts=\'{"step": 2, "pitch": 120, "speed": 60}\' style="--grow: ' + growSeconds(856) + '">' +
           '<b>Keep alive</b><i class="ef-marks"></i></div>' +
         '<p class="ef-cap" data-step="2" style="left: 1064px; --delay: ' + growSeconds(856) + '">Every month.</p>' +
-        '<p class="deadpan ef-never" data-step="2" data-anim="wipe" style="--delay: ' + growSeconds(856 + 450) + '">the part that never ends.</p>' +
-      '</div>',
+      '</div>' +
+      // the deadpan line, in the kit's one slot (bottom right)
+      '<p class="deadpan ef-never" data-step="2" data-anim="wipe" style="--delay: ' + growSeconds(856 + 450) + '">the part that never ends.</p>',
     enter: arrive,
     step: moved,
     notes: [
-      'SAY: Gate three. The demo is the cheap part. It is that sliver on the left.',
+      'SAY: The demo is the cheap part. It is that sliver on the left.',
       '',
       'DO: Click. Build and roll out.',
       '',
-      'SAY: Then you build the real thing. Then you roll it out: training, switching people over. Each of those happens once.',
+      'SAY: Then you build the real thing, and roll it out: training, switching people over. Each happens once.',
       '',
       'DO: Click. Keep alive.',
       '',
-      'SAY: And then you keep it alive. Every month. Things change underneath it. The person who built it leaves.',
-      'This is the part that never ends, and it is the part nobody puts in the pitch.',
-      'In the math: build hours and rollout hours once, upkeep hours every month.',
+      'SAY: Then you keep it alive. Every month. Things change underneath it. The person who built it leaves.',
+      'Nobody puts this part in the pitch.',
+      '',
+      'DO: In the math: build and rollout hours once, upkeep hours every month.',
       '',
       'YOUR STORY: one tool that was quick to demo and then needed looking after every month. What the upkeep turned out to be.',
       '',
-      'NEXT: Last gate.',
+      'NEXT: Last gate. This one looks forward.',
       '',
       'TIME: 1 minute.'
     ].join('\n')
@@ -568,11 +572,11 @@
    * ==================================================================== */
 
   var SITES = 3;        // the brief's picture: one site to three sites
-  var TEAM_ROWS = 6;    // "every team": the rows run off the bottom of the stage
+  var TEAM_ROWS = 4;    // "every team": a whole number of rows that ends well above the floor
   function returnBlock(c, r) {
     var step = r > 0 ? 2 : (c > 0 ? 1 : 0);
     var delay = r > 0 ? swungMs(r - 1) : (c > 0 ? swungMs(c - 1) : 0);
-    return '<div class="po-block is-ret"' + (step ? ' data-step="' + step + '" data-anim="stamp"' : '') +
+    return '<div class="po-block is-ret"' + (step ? ' data-step="' + step + '" data-anim="rise"' : '') +
       ' style="--c: ' + c + '; --r: ' + r + (step ? '; --delay: ' + delay + 'ms' : '') + '">Return</div>';
   }
   var returnGrid = '';
@@ -589,7 +593,7 @@
     steps: 3,
     html:
       '<p class="kicker">Gate 4 · Potential</p>' + strip(4) +
-      '<h2 class="headline a2-under-strip">If it works, how far does it grow?</h2>' +
+      '<h2 class="headline is-s a2-under-strip">If it works, how far does it grow?</h2>' +
       '<div class="po-stage">' +
         '<p class="label is-tight po-head" style="left: 128px">Build effort</p>' +
         '<p class="label is-tight po-head a2-swap" style="left: 620px">' +
@@ -606,24 +610,21 @@
     enter: arrive,
     step: moved,
     notes: [
-      'SAY: Gate four. If it works, how far does it grow?',
-      'Today: one site, one team. You built it once, it pays back once.',
+      'SAY: How far does it grow? Today: one site, one team. Built once, pays back once.',
       '',
       'DO: Click. Three sites.',
       '',
-      'SAY: Three sites. The return comes back three times. You still built it once.',
+      'SAY: Three sites. The return comes back three times. Still built once.',
       '',
       'DO: Click. Every team.',
       '',
-      'SAY: One team, then every team. Growth multiplies the return. It does not multiply the build.',
-      'This is a projection, so be honest with the number you write down.',
+      'SAY: Every team. Growth multiplies the return, not the build. It is a projection, so write down a number you would defend.',
       '',
       'DO: Click. The check line.',
       '',
-      'SAY: And one check before this gate opens. Who owns the freed time? I want a name.',
-      'No owner, no growth. The minutes come back and nobody is there to catch them.',
+      'SAY: One check before this gate opens: who owns the freed time? I want a name. No owner, no growth.',
       '',
-      'NEXT: Four gates. Now the math.',
+      'NEXT: That is all four gates. Here is how they add up.',
       '',
       'TIME: 1 minute.'
     ].join('\n')
@@ -665,7 +666,7 @@
     id: 'the-math',
     act: 2,
     title: 'Let the math pick',
-    minutes: 0.5,
+    minutes: 1,
     layout: 'math',
     steps: 2,
     html:
@@ -685,21 +686,20 @@
     step: moved,
     notes: [
       'SAY: Let the math pick. Return, minus cost, minus effort. Then grown by potential.',
-      'Any no and the idea is out. Among the ones left standing, the biggest number wins.',
+      'Any no and it is out. Of the survivors, the biggest number wins.',
       '',
       'DO: Click. The rule for the worksheet.',
       '',
-      'SAY: One number to carry in your head. A minute a week is ' + money(minuteRule) + ' a year. That is at ' + money(hourly) + ' an hour.' +
-        (usable(minuteRuleDouble) ? ' At ' + money(tidy(hourly * 2)) + ' an hour it is ' + money(minuteRuleDouble) + '.' : ''),
+      'SAY: One number to carry: a minute a week is ' + money(minuteRule) + ' a year, at ' + money(hourly) + ' an hour.' +
+        (usable(minuteRuleDouble) ? ' At ' + money(tidy(hourly * 2)) + ' it is ' + money(minuteRuleDouble) + '.' : ''),
       '',
-      'DO: Click. The house rules.',
+      'DO: Click. The house rules. (The worksheet does this arithmetic for them.)',
       '',
-      'SAY: And this is where each gate says no. These are my defaults. Change them. Just change them before you score your favorite, not after.',
-      'The worksheet does the arithmetic for you.',
+      'SAY: This is where each gate says no. My defaults. Change them, but before you score your favorite, not after.',
       '',
-      'NEXT: Your turn. Pens out.',
+      'NEXT: That is the whole method. Now your own work goes on the table.',
       '',
-      'TIME: 30 seconds.'
+      'TIME: 1 minute.'
     ].join('\n')
   });
 }());

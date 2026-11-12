@@ -250,9 +250,11 @@
 .scr-walk .gate-q .verdict { --vh: 56px; display: inline-flex; border-color: currentColor; color: inherit; }
 .scr-walk .gate-why { padding-right: 16px; }
 .scr-walk[data-band="1"] .gate-why { visibility: hidden; }
-/* the tell-tale: where an earlier NO hit, the floor stays cut and dropped */
-.scr-walk .scr-scar { display: none; position: absolute; left: 16px; right: 16px; top: 504px; height: 16px; background: linear-gradient(var(--c-bg) 50%, var(--c-line) 50%); }
-.scr-walk .gate[data-scar="1"] .scr-scar { display: block; }
+/* Every bay keeps one floor line at one height. (A NO's tell-tale belongs to its own candidate; a bay
+   that a candidate already gone said NO in is not cut and dropped, so the four floors stay level.) */
+/* the fine print under a bay carries meaning, so it is a label: 32px, not the kit's 28 */
+.scr-walk .gate-why { font-size: 32px; line-height: 34px; }
+.scr-walk .gate-q .verdict.is-notyet { font-size: 32px; }
 
 /* ---- the reason, under the dock, in the gate's own words ---- */
 .scr-walk .scr-cap { position: absolute; left: 128px; top: 902px; width: 1736px; font-size: 40px; line-height: 46px; font-weight: 500; text-wrap: balance; }
@@ -325,9 +327,12 @@
       1736 x 920 box; the slide puts it at (128, 120).
    ========================================================================== */
 .scr-live.scr--stage { position: absolute; inset: 0; --scr-line: 6px; }
-.scr--stage .scr-tools { position: absolute; right: 0; top: -84px; display: flex; gap: 16px; }
+.scr--stage .scr-tools { position: absolute; left: 0; top: 0; width: 248px; height: 128px; display: flex; flex-direction: column; z-index: 4; }
+/* the two buttons stand in the board's empty corner, so the headline above can be full size */
+.scr--stage .scr-tools .btn { width: 100%; height: 67px; padding: 0; }
+.scr--stage .scr-tools .btn + .btn { margin-top: -6px; }
 
-.scr--stage .scr-board { position: absolute; left: 0; top: 0; width: 1736px; grid-template-columns: 248px repeat(3, 496px); grid-template-rows: 128px repeat(4, 68px) 102px; }
+.scr--stage .scr-board { position: absolute; left: 0; top: 0; width: 1736px; grid-template-columns: 248px repeat(3, 496px); grid-template-rows: 128px repeat(4, 64px) 94px; }
 .scr--stage .scr-head { display: flex; flex-direction: column; padding: 0; }
 .scr--stage .scr-pick { display: flex; align-items: center; gap: 18px; width: 100%; height: 64px; padding: 0 22px; border-width: 0 0 3px; text-align: left; }
 .scr--stage .scr-pick b { font-family: var(--f-display); font-size: 52px; font-weight: 900; font-stretch: 62%; line-height: 1; }
@@ -341,8 +346,8 @@
 .scr--stage .scr-row-last { border-bottom-width: 6px; }
 .scr--stage .scr-chipslot { width: 172px; }
 .scr--stage .scr-cell .verdict { --vh: 56px; }
-.scr--stage .scr-cell .verdict.is-notyet { padding: 0 10px; }
-.scr--stage .scr-metric { min-width: 0; max-height: 64px; overflow: hidden; font-size: 32px; line-height: 32px; font-weight: 600; font-stretch: 87.5%; text-wrap: balance; }
+.scr--stage .scr-cell .verdict.is-notyet { padding: 0 10px; font-size: 32px; }
+.scr--stage .scr-metric { min-width: 0; max-height: 60px; overflow: hidden; font-size: 32px; line-height: 30px; font-weight: 600; font-stretch: 87.5%; text-wrap: balance; }
 .scr--stage .scr-rlabel { align-self: center; line-height: 36px; }
 .scr--stage .scr-result { display: flex; flex-direction: column; justify-content: center; padding: 0 16px; margin: 6px 6px 0; }
 .scr--stage .scr-result-main { display: flex; align-items: baseline; gap: 12px; white-space: nowrap; }
@@ -352,17 +357,17 @@
 .scr--stage .scr-result[data-outcome="no"] .scr-result-main span { font-size: 36px; }
 
 /* the candidate being edited: two posts and a lintel that run into the editor's frame */
-.scr--stage .scr-sel { position: absolute; top: 0; width: 496px; height: 508px; border: 6px solid var(--c-ink); border-bottom: 0; pointer-events: none; z-index: 3; }
+.scr--stage .scr-sel { position: absolute; top: 0; width: 496px; height: 484px; border: 6px solid var(--c-ink); border-bottom: 0; pointer-events: none; z-index: 3; }
 .scr--stage .scr-sel::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 6px; background: var(--c-bg); }
 
 .scr--stage .scr-editor, .scr--stage .scr-rules {
-  position: absolute; left: 0; top: 502px; width: 1736px; height: 356px; border: 6px solid var(--c-ink); background: var(--c-bg);
-  padding: 4px 20px 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: 112px; column-gap: 28px; align-content: start;
+  position: absolute; left: 0; top: 478px; width: 1736px; height: 344px; border: 6px solid var(--c-ink); background: var(--c-bg);
+  padding: 4px 20px 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: 108px; column-gap: 28px; align-content: start;
 }
 .scr--stage .scr-rules { z-index: 4; }
 .scr--stage .scr-ctl { justify-content: center; gap: 2px; }
 .scr--stage .scr-ctl-label { font-size: 32px; line-height: 34px; }
-.scr--stage .scr-ctl-note { font-size: 28px; line-height: 34px; }
+.scr--stage .scr-ctl-note { font-size: 32px; line-height: 34px; font-stretch: 87.5%; }
 .scr--stage .scr-mid { height: 72px; font-size: 56px; padding: 0 8px; }
 .scr--stage .scr-mid[data-long="1"] { font-size: 44px; }
 .scr--stage .scr-mid[data-long="2"] { font-size: 34px; }
@@ -371,7 +376,7 @@
 .scr--stage .scr-unit { font-size: 44px; }
 .scr--stage .scr-ctl-name, .scr--stage .scr-detail, .scr--stage .scr-bar, .scr--stage .scr-rules-head { display: none; }
 .scr--stage .scr-rules-note { grid-column: 1 / -1; align-self: center; font-size: 36px; line-height: 42px; font-weight: 500; }
-.scr--stage .scr-assume { position: absolute; left: 0; top: 864px; width: 1736px; max-width: none; line-height: 30px; font-stretch: 90%; text-wrap: pretty; }
+.scr--stage .scr-assume { position: absolute; left: 0; top: 830px; width: 1736px; max-width: none; line-height: 30px; font-stretch: 90%; text-wrap: pretty; }
 
 /* =============================================================================
    4. LIVE SCORECARD as a page: a phone first (360px), then wider. The theme's
@@ -546,7 +551,11 @@
     if (c.lens === 'service') {
       out['return'].push(n(CM.tidy(c.capacityConversion * 100)) + '% of the freed time becomes paid work');
     }
-    out['return'].push(c.touchesCashPath ? 'On the cash path' : 'Off the cash path');
+    // The return gate's exemption is days off the cash cycle, not the cash path itself (Gates' rule), so
+    // the bay prints the days whenever there are any.
+    var days = c.lens === 'service' ? 0 : Number(c.daysOffCashCycle) || 0;
+    if (days > 0) { out['return'].push('Gets cash in ' + n(days) + ' ' + plural(days, 'day') + ' sooner'); }
+    else if (c.lens !== 'service') { out['return'].push(c.touchesCashPath ? 'On the cash path, no sooner' : 'Off the cash path'); }
 
     out.effort.push(n(c.buildHours) + ' ' + plural(c.buildHours, 'hour') + ' to build');
     if (c.rolloutHours > 0) { out.effort.push(n(c.rolloutHours) + ' ' + plural(c.rolloutHours, 'hour') + ' to roll out'); }
@@ -603,7 +612,6 @@
         '<h3 class="gate-name">' + esc(gate.label) + '</h3>' +
         '<div class="gate-q"></div>' +
         '<p class="gate-why"></p>' +
-        '<i class="scr-scar"></i>' +
       '</article>';
     }).join('');
 
@@ -735,11 +743,6 @@
         }
         setGate(g, state, false);
         fillGate(g, cur, state);
-        // the tell-tale of a NO that hit this bay, left by a candidate already gone
-        var scar = beats.some(function (bb, kk) {
-          return bb.type === 'gate' && bb.verdict === 'no' && bb.g === g && kk <= k && (cur == null || bb.c !== cur);
-        });
-        gate.setAttribute('data-scar', scar ? '1' : '0');
       });
 
       // the reason, in the gate's own words
@@ -886,8 +889,8 @@
     { key: 'growth',                label: 'Growth over a year',       step: 0.1, post: TIMES },
     { key: 'ownerNamed',            label: 'Owner for the freed time', type: 'yesno' },
     { key: 'lens',                  label: 'Product or service',       type: 'lens' },
-    { key: 'touchesCashPath',       label: 'On the cash path',         type: 'yesno' },
-    { key: 'daysOffCashCycle',      label: 'Days off the cash cycle',  step: 1, lens: 'product' },
+    { key: 'touchesCashPath',       label: 'On the cash path',         type: 'yesno', lens: 'product' },
+    { key: 'daysOffCashCycle',      label: 'Days off the cash cycle',  step: 1, lens: 'product', cash: true },
     { key: 'capacityConversion',    label: 'Becomes paid work',        step: 10, post: '%', share: true, lens: 'service' },
     { key: 'billableMarginPerHour', label: 'Margin per billable hour', step: 5, pre: '$', lens: 'service' }
   ];
@@ -1036,7 +1039,7 @@
       } else {
         body = stepperHtml('id="' + id + '" data-field="' + spec.key + '"', spec);
       }
-      return '<div class="scr-ctl" data-ctl="' + spec.key + '"' + (spec.lens ? ' data-lens="' + spec.lens + '"' : '') + '>' +
+      return '<div class="scr-ctl" data-ctl="' + spec.key + '"' + (spec.lens ? ' data-lens="' + spec.lens + '"' : '') + (spec.cash ? ' data-cash="1"' : '') + '>' +
         '<div class="scr-ctl-top"><label class="scr-ctl-label" id="' + id + '-l"' + (spec.type ? '' : ' for="' + id + '"') + '>' + esc(spec.label) + '</label>' +
         (spec.type === 'cycle' ? '<span class="scr-ctl-note"></span>' : '') + '</div>' + body + '</div>';
     }
@@ -1181,7 +1184,12 @@
         input.value = key === 'name' ? (cand.name || '') : shownField(cand, fieldSpec(key));
         sizeInput(input);
       });
-      qa('.scr-editor .scr-ctl[data-lens]').forEach(function (ctl) { ctl.hidden = ctl.getAttribute('data-lens') !== lens; });
+      // Days off the cash cycle is asked once the task is on the cash path (or already has days in it, so a
+      // number that counts is never hidden). Being on the path is the question; the days are the test.
+      var askDays = cand.touchesCashPath === true || cand.touchesCashPath === 'true' || looseNumber(cand.daysOffCashCycle) > 0;
+      qa('.scr-editor .scr-ctl[data-lens]').forEach(function (ctl) {
+        ctl.hidden = ctl.getAttribute('data-lens') !== lens || (ctl.hasAttribute('data-cash') && !askDays);
+      });
       qa('.scr-editor .seg').forEach(function (seg) {
         var key = seg.parentNode.getAttribute('data-ctl');
         var value = key === 'lens' ? lens : String(cand[key] === true || cand[key] === 'true');
@@ -1205,34 +1213,33 @@
       if (layout === 'stage') { editor.hidden = state.rulesOpen; }
       var btn = q('[data-act="rules"]');
       btn.setAttribute('aria-expanded', state.rulesOpen ? 'true' : 'false');
-      btn.textContent = state.rulesOpen ? 'Close rules' : 'House rules';
+      // On the stage the button stands in the board's corner, which has room for one short word.
+      btn.textContent = layout === 'stage' ? (state.rulesOpen ? 'Close' : 'Rules') : (state.rulesOpen ? 'Close rules' : 'House rules');
     }
 
     /*
-     * The assumptions behind every figure, in one place on screen. The page has
-     * room for the rules in Gates' own sentences; the stage gets the short form.
-     * The limits are printed as they are set; nothing is worked out here.
+     * The assumptions behind every figure, in one place on screen. The house
+     * rules are printed in Gates' own sentences (result.gates[id].rule), on the
+     * stage and on the page alike, so the screener can never state a rule the
+     * math does not apply. Nothing is worked out here.
      */
+    function rulesText(r) {
+      return 'House rules, yours to change. ' + G.ORDER.map(function (id) { return r.gates[id].rule; }).join(' ');
+    }
+
     function assumptionsLine(r) {
       var a = r.assumptions;
-      var h = a.houseRules;
       var meta = (window.BENCHLM && window.BENCHLM.meta) || {};
-      var prices = (meta.source || 'the benchmark file') + (meta.retrieved ? ', ' + meta.retrieved : '');
       if (layout === 'page') {
-        return 'House rules, yours to change. ' + G.ORDER.map(function (id) { return r.gates[id].rule; }).join(' ') +
+        var prices = (meta.source || 'the benchmark file') + (meta.retrieved ? ', ' + meta.retrieved : '');
+        return rulesText(r) +
           ' Time is valued at ' + CM.money(a.rates.loadedHourly) + ' an hour and building at ' + CM.money(a.rates.builderHourly) +
           ' an hour, over ' + CM.number(a.rates.workWeeks) + ' working weeks a year. A run is priced at ' + CM.number(a.tokens.in) +
           ' tokens in and ' + CM.number(a.tokens.out) + ' out, from the ' + prices + '.';
       }
-      return ['House rules, yours to change: cost up to ' + CM.number(CM.tidy(h.costMaxShareOfReturn * 100)) + '% of return',
-        'return from ' + CM.money(h.minReturnPerYear) + ' a year or on the cash path',
-        'payback within ' + CM.number(h.maxPaybackWeeks) + ' ' + plural(h.maxPaybackWeeks, 'week'),
-        'growth from ' + CM.number(h.minGrowth) + TIMES + ' with an owner',
-        'time at ' + CM.money(a.rates.loadedHourly) + ' an hour',
-        'building at ' + CM.money(a.rates.builderHourly),
-        CM.number(a.rates.workWeeks) + ' weeks a year',
-        'a run is ' + CM.number(a.tokens.in) + ' tokens in, ' + CM.number(a.tokens.out) + ' out, at ' + (meta.source ? String(meta.source).split(' ')[0] : 'benchmark') + ' prices'
-      ].join(DOT);
+      return rulesText(r) + ' Time at ' + CM.money(a.rates.loadedHourly) + ' an hour, building at ' + CM.money(a.rates.builderHourly) +
+        ', ' + CM.number(a.rates.workWeeks) + ' weeks a year. A run is ' + CM.number(a.tokens.in) + ' tokens in, ' +
+        CM.number(a.tokens.out) + ' out, at ' + (meta.source ? String(meta.source).split(' ')[0] : 'benchmark') + ' prices.';
     }
 
     var lastResults = [];

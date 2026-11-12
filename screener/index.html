@@ -162,6 +162,19 @@
     ? 'What you type is saved in this browser, on this device, and nowhere else. This page sends nothing and asks the network for nothing. Reset puts the examples back and forgets the rest.'
     : 'This browser is not letting the page save, so what you type lasts until you close or reload it. This page sends nothing and asks the network for nothing.';
 
+  /*
+   * "For an example $20M distributor": built from YOUR.company.label (through
+   * Gates.companyLabel, so it agrees with the sales figure in force), because a
+   * dollar figure worked out from made-up sales must say it is an example.
+   */
+  function exampleCompany(company) {
+    var label = G.companyLabel({ annualRevenue: company.annualRevenue, label: (Y.company && Y.company.label) || company.label });
+    var rest = String(label || '').replace(/^\s*example\s*[:\u00b7-]?\s*/i, '').trim();
+    if (/^an?\s+/i.test(rest)) { return 'For an example ' + rest.replace(/^an?\s+/i, ''); }
+    if (!rest) { return 'For an example company with ' + CM.shortMoney(company.annualRevenue) + ' of sales a year'; }
+    return 'For the example company (' + rest + '),';
+  }
+
   /* The words around the screener follow the rules and rates in force, so they never disagree with it. */
   function explain(results, a) {
     var first = results[0];
@@ -175,8 +188,8 @@
     document.getElementById('pg-minute').textContent = 'One minute saved every week, over ' + CM.number(a.rates.workWeeks) +
       ' working weeks, at ' + CM.money(a.rates.loadedHourly) + ' an hour, is ' + CM.money(perMinute) +
       ' a year. Count the minutes, multiply, and you have the return gate. Change the hourly rate under House rules and this line changes with it.';
-    document.getElementById('pg-cash').textContent = 'One day off the cash cycle frees about one day of sales, one time. At ' +
-      CM.shortMoney(a.company.annualRevenue) + ' of sales a year that is about ' + CM.aboutMoney(G.cashPerDay(a.company.annualRevenue)) + '.';
+    document.getElementById('pg-cash').textContent = 'One day off the cash cycle frees about one day of sales, one time. ' +
+      exampleCompany(a.company) + ' that is about ' + CM.aboutMoney(G.cashPerDay(a.company.annualRevenue)) + '.';
   }
 
   window.screenerApp = window.Screener.mount(host, { mode: 'live', layout: 'page', persist: 'local', onChange: explain });

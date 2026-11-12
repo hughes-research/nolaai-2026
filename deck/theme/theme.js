@@ -1310,8 +1310,8 @@
     var word = st === 'no' ? 'NO' : (st === 'pass' ? 'PASS' : 'NOT YET');
     var fs = Math.round(h * 0.78);
     ctx.save();
-    setFont(ctx, st === 'notyet' ? 'label' : 'display', st === 'notyet' ? Math.max(28, Math.round(h * 0.44)) : fs);
-    var tw = ctx.measureText(word).width - (st === 'notyet' ? 0.1 * Math.max(28, Math.round(h * 0.44)) : 0);
+    setFont(ctx, st === 'notyet' ? 'label' : 'display', st === 'notyet' ? Math.max(32, Math.round(h * 0.44)) : fs);
+    var tw = ctx.measureText(word).width - (st === 'notyet' ? 0.1 * Math.max(32, Math.round(h * 0.44)) : 0);
     ctx.restore();
     var padX = Math.round(h * 0.28);
     var w = o.word === false ? Math.round(h * 0.62) : Math.round(tw + padX * 2);
@@ -1338,7 +1338,7 @@
         var ps = Math.round(h * 0.56);
         draw.label(ctx, word, left + w / 2, y + h * 0.26 + (h * 0.74 - lw) / 2, { kind: 'display', size: Math.max(28, ps), align: 'center', baseline: 'middle', ground: o.ground });
       } else {
-        draw.label(ctx, word, left + w / 2, y + h / 2, { kind: 'label', size: Math.max(28, Math.round(h * 0.44)), align: 'center', baseline: 'middle', ground: o.ground });
+        draw.label(ctx, word, left + w / 2, y + h / 2, { kind: 'label', size: Math.max(32, Math.round(h * 0.44)), align: 'center', baseline: 'middle', ground: o.ground });
       }
     }
     return { w: w, h: h, x: left, y: y };

@@ -45,9 +45,10 @@ Six short scenes, cut on the beat at 120 beats a minute:
 6. The title card. Three gates open. The fourth tries three times and
    cannot. A second of nothing, and the slab drops: NO.
 
-Every word comes from `docs/BRIEF.md`. The Shannon sentence is quoted
-exactly, attributed, and our swap is drawn as an edit on top of his words
-(they stay on screen, struck through). The pitch phrases in scene 2 are
+Every word except the generic pitch phrases in scene 2 comes from
+`docs/BRIEF.md`. The Shannon sentence is quoted exactly, attributed, and
+our swap is drawn as an edit on top of his words (they stay on screen,
+struck through). The pitch phrases in scene 2 are
 generic on purpose: no brands, no products, no numbers. The only figures in
 the film are dates and the session time. The name, role, date, time and room
 on the title card are read from `deck/content/your-numbers.js`.

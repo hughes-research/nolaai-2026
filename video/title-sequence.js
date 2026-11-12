@@ -197,7 +197,7 @@
   var PREMISE_2 = ['The boring one', 'you didn’t pitch', 'is probably'];              // abstract, line 2 ...
   var PREMISE_2_PUNCH = ['worth', 'thousands.'];                                           // ... and its end
   var GATES = THEME.gates || ['Cost', 'Return', 'Effort', 'Potential'];
-  var VENUE_POSITION = '29°57.7′N 090°03.5′W';   // docs/DIRECTION.md, Part 1, section 7
+  var VENUE_CITY = 'New Orleans';   // docs/DIRECTION.md, Part 1, section 7 (coordinates could not be sourced)
 
   function esc(text) {
     return String(text == null ? '' : text).replace(/[&<>"]/g, function (c) {
@@ -240,7 +240,7 @@
       subtitle: String(ev.subtitle || 'Screening AI use cases for real return.'),
       name: sp.name || 'Dustin T Hughes',
       role: [sp.role || 'VP of Technology', sp.company || 'Laborde Products'].join(', '),
-      catalogue: ['Waypoint', ev.name || 'NOAI 2026', VENUE_POSITION].join(' · '),
+      catalogue: ['Waypoint', ev.name || 'NOAI 2026', VENUE_CITY].join(' · '),
       when: comma > 0 ? [date.slice(0, comma).trim(), date.slice(comma + 1).trim()] : [date],
       time: [String(ev.time || '2:30–4:00 PM'), minutes + ' minutes'],
       room: halve(String(ev.venue || 'Education Center').split(',')[0].trim())

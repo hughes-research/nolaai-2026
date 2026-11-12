@@ -216,14 +216,29 @@
     var c = f.counts;
     var dearest = f.spread.dearest;
     var estimatedPriced = f.priced.filter(function (m) { return m.estimated; }).length;
+    // the dearest and the cheapest price can each be shared by several models: say so, from the data
+    // (names keep their spaces and hyphens unbreakable, so a wrapped line never splits one)
+    var names = function (list) {
+      return list.map(function (m) { return String(m.name).replace(/ /g, '\u00a0').replace(/-/g, '\u2060-\u2060'); });
+    };
+    var tiedDear = names(f.spread.tiedDearest || []);
+    var tiedCheap = names(f.spread.tiedCheapest || []);
+    var ties = [];   // each clause holds together on the line, so a wrap falls between clauses
+    var NB = '\u00a0';
+    if (tiedDear.length > 1) { ties.push(tiedDear.join(NB + 'and' + NB) + NB + 'tie' + NB + 'at' + NB + C.money(f.spread.dearestPrice)); }
+    if (tiedCheap.length > 1) { ties.push(tiedCheap.join(NB + 'and' + NB) + NB + 'tie' + NB + 'at' + NB + C.money(f.spread.cheapestPrice)); }
+    var dearName = dearest ? names([dearest])[0] : '';
+    var dearTiedWith = tiedDear.filter(function (n) { return n !== dearName; });
     return {
       volume: DEFAULT_VOLUME,
       volumeText: C.number(DEFAULT_VOLUME),
       frontierSentence: f.summary.sentence,
       ladderAxis: c.priced + ' models · price per task · ' + f.tokensText + ' · log scale',
-      ladderSource: 'Source: ' + f.source + ' · ' + c.priced + ' of ' + c.rows + ' models have a usable price · ' +
-        c.blank + ' blank and ' + c.zeroListed + ' listed at ' + C.money(0).replace(/^about /, '') + ' are left out',
-      breakevenSource: 'Source: ' + f.source + (dearest ? ' · ' + dearest.name + ' at ' + C.money(dearest.pricePerRun) + ' a task' : '') +
+      ladderSource: 'Source: ' + f.source + ' · ' + c.priced + ' of ' + c.rows + ' models priced (' +
+        c.blank + ' blank and ' + c.zeroListed + ' at ' + C.money(0).replace(/^about /, '') + ' left out)' +
+        (ties.length ? ' · ' + ties.join(' · ') : ''),
+      breakevenSource: 'Source: ' + f.source + (dearest ? ' · ' + [dearName].concat(dearTiedWith).join(' and ') +
+        (dearTiedWith.length ? ' tie at ' : ' at ') + C.money(dearest.pricePerRun) + (dearTiedWith.length ? '' : ' a task') : '') +
         ' · one task = ' + f.tokensText,
       barsSource: 'Source: ' + f.source + ' · one record = one task = ' + f.tokensText,
       scatterSource: 'Source: ' + f.source + ' · the file marks ' + estimatedPriced + ' of these ' + f.summary.priced +
