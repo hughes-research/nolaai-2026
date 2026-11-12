@@ -27,7 +27,13 @@
   var partsBig = P.numDisplay(R.parts);       // display type: the comma gets air
   var slotsBig = P.numDisplay(R.slots);
   var ladder = num(R.ladderPctAsIs) + '%';
-  var label = esc(R.label || (T && T.tags.laborde) || '');
+  var label = esc(R.label || (T && T.tags.laborde) || '');      // on the Oct 27–28 run figure (the 23%)
+
+  /* On minutes alone slotting does not pass the screen (slotting-scorecard),
+     so it is only called the winner once the speaker has supplied the bigger
+     return in your-numbers.js. Until then it is the one we built. */
+  var won = P.supplied ? P.supplied().filled : false;
+  var winnerHead = won ? 'The winner:' : 'The one we built:';
 
   /* ====================================================================
    * the-winner
@@ -36,12 +42,12 @@
   Deck.slide({
     id: 'the-winner',
     act: 4,
-    title: 'The winner: where the parts live',
+    title: winnerHead + ' where the parts live',
     minutes: 1,
     layout: 'px-winner',
     html: `
-      <h2 class="say is-l px-winner-say">The winner:<br>where the parts live.</h2>
-      <span class="tag is-laborde px-tag-tr">${label}</span>
+      <h2 class="say is-l px-winner-say">${winnerHead}<br>where the parts live.</h2>
+      <span class="tag is-laborde px-tag-tr">Laborde project records</span>
       <p class="sub px-winner-sub" data-px>Warehouse slotting. Nobody pitches this.</p>
       <div class="px-fact" data-step="1">
         <p class="num px-fact-n"><b>${partsBig}</b></p>
@@ -53,9 +59,9 @@
       ${P.driver('winner')}
     `,
     notes: `
-      SAY: Here is the one that won at my place. Warehouse slotting.
-      Slotting is deciding which shelf each part lives on.
-      Nobody pitches this. It is not exciting. It is where the parts live.
+      SAY: Here is the one we built at my place: warehouse slotting.
+      Slotting is deciding which shelf each part lives on. Nobody pitches this.
+      I'll run it through my own gates at the end, and it doesn't pass the way you'd expect.
 
       YOUR STORY: how slotting came up, and who brought it up.
 

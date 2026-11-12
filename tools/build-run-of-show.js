@@ -30,8 +30,8 @@ const ACTS = [
   { name: 'The Bandwagon', budget: 10 },
   { name: 'The Four Gates', budget: 15 },
   { name: 'Your Turn', budget: 35 },
-  { name: 'Build the Winner', budget: 20 },
-  { name: 'Who Owns the Minutes?', budget: 10 },
+  { name: 'Build the Winner', budget: 19 },
+  { name: 'Who Owns the Minutes?', budget: 11 },
 ];
 
 function clock(minutesFromStart) {
@@ -114,6 +114,7 @@ function mins(x) {
     md += `| ${r.n} | ${r.act === 0 ? 'before' : clock(r.start)} | ${r.title || r.id} | ${mins(Number(r.minutes) || 0)} | ${r.steps || 0} |\n`;
   });
   md += `\nSession ends at ${clock(total)}.\n`;
+  md += `\n## If you are running late\n\nThe exercises are the session, so protect them. Cut from the talking, in this order, and never cut the scorecard or the close.\n\n| Behind by | Do this | Saves |\n|---|---|---|\n| 2 min | Skip **tool-ladder** (say its one line on the cost slide instead) and take **gate-potential** in one sentence | about 2 min |\n| 4 min | Also skip **seven-attempts**' rigor lines (one click fewer) and **slotting-cost** (its point is already made in Act 2) | about 2 more |\n| 6 min | Also stop **slotting-live** after the before-and-after table (skip the last click) and skip **waypoint-standard** | about 2 more |\n| more | Shorten the share-out to two hands, not three. Do not shorten the exercises' writing time below 8, 4 and 8 minutes |  |\n\nTo skip a slide on the day, type the number of the slide you want next and press Enter.\n`;
   if (yours.unfilled.length) {
     md += `\n## Still to fill in (\`deck/content/your-numbers.js\`)\n\n${yours.unfilled.map(u => `- \`${u}\``).join('\n')}\n`;
   }
@@ -128,7 +129,7 @@ function mins(x) {
     notes += `\n## ${r.n}. ${r.title || r.id}\n\n`;
     notes += `*${r.act === 0 ? 'before the start' : clock(r.start)} · ${mins(Number(r.minutes) || 0) || 'no fixed time'} · ${r.steps || 0} click${r.steps === 1 ? '' : 's'} · id \`${r.id}\`*\n\n`;
     const body = String(r.notes || '').trim();
-    notes += body ? body.split('\n').map(l => l.replace(/^(SAY|DO|NEXT|YOUR STORY):/, '**$1:**')).join('  \n') + '\n' : '_No notes._\n';
+    notes += body ? body.split('\n').map(l => l.replace(/^\s+/, '').replace(/^(SAY|DO|NEXT|TIME|YOUR STORY|NOT FILLED IN|IF SHORT OF TIME):/, '**$1:**')).join('  \n') + '\n' : '_No notes._\n';
   });
   fs.writeFileSync(path.join(ROOT, 'docs', 'SPEAKER-NOTES.md'), notes);
 

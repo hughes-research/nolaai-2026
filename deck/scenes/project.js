@@ -103,6 +103,11 @@
     return s.charAt(0).toLowerCase() + s.slice(1);
   }
 
+  function upperFirst(s) {
+    s = String(s || '');
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
   function isFilled(v) {
     return !(v == null || (typeof v === 'string' && v.trim() === '') || (typeof v === 'number' && !isFinite(v)));
   }
@@ -120,10 +125,19 @@
    * every other candidate (Gates.evaluate), so the verdict follows the live
    * rate and the live house rules. Hours saved a year come from the two pick
    * time figures; nothing else goes in.
+   *
+   * Picking IS on the cash path (the cash-path slide draws it), so the
+   * candidate says so. It takes no days off the cash cycle: fewer walking
+   * hours do not bring cash in sooner. The house rule (brief, section 4):
+   * RETURN says NO when yearly return is under the floor AND the task takes no
+   * days off the cash cycle; touching the path is not enough on its own.
+   * The same rule is applied here as well as in Gates, so the slide can never
+   * wave the minutes through on the cash-path tick alone (an older Gates did).
    */
+  var DAYS_OFF_CASH_CYCLE = 0;
   function minutesAlone() {
     var hours = tidy(Number(R.pickHoursAsIs) - Number(R.pickHoursOptimized));
-    var out = { hours: hours, rate: null, value: null, pass: null, limit: null, costPass: null, costPerYear: null, ok: false };
+    var out = { hours: hours, rate: null, value: null, pass: null, limit: null, daysOff: DAYS_OFF_CASH_CYCLE, costPass: null, costPerYear: null, ok: false };
     var G = window.Gates;
     if (!G || !isFinite(hours)) { return out; }
     try {
@@ -134,17 +148,43 @@
         minutesPerRun: tidy(hours * 60 / weeks), runsPerWeek: 1,      // = hours a year, written the way the math takes it
         tier: 'code', toolsPerMonth: 0,                               // no model runs when the tool runs
         buildHours: 0, rolloutHours: 0, upkeepHoursPerMonth: 0, growth: 1,
-        touchesCashPath: false, daysOffCashCycle: 0, ownerNamed: true
+        touchesCashPath: true, daysOffCashCycle: DAYS_OFF_CASH_CYCLE, ownerNamed: true
       }, A);
+      var ret = ev.gates['return'];
+      var value = Number(ret.metric);
+      var limit = Number(ret.limit);
+      // under the floor (exactly on it is not under), with no cash days: NO
+      var under = value < limit && Math.abs(value - limit) > 1e-9 * Math.max(1, Math.abs(limit));
       out.rate = A.rates.loadedHourly;
       out.value = ev.laborValue;
-      out.pass = !!ev.gates['return'].pass;
-      out.limit = ev.gates['return'].limit;
+      out.pass = !!ret.pass && !(under && !(DAYS_OFF_CASH_CYCLE > 0));
+      out.limit = ret.limit;
       out.costPass = !!ev.gates.cost.pass;
       out.costPerYear = ev.costPerYear;
       out.ok = true;
     } catch (e) { /* the slide shows what it can */ }
     return out;
+  }
+
+  /**
+   * What the speaker has supplied for the bigger return, the effort and the
+   * potential. An entry of the bigger return counts only once it has a value:
+   * nothing the speaker has left empty is ever drawn for the audience.
+   */
+  function supplied() {
+    var list = (Array.isArray(SL.biggerReturn) ? SL.biggerReturn : []).filter(function (b) {
+      return b && isFilled(b.value);
+    });
+    var effort = SL.effort || {};
+    var potential = SL.potential || {};
+    return {
+      bigger: list,
+      filled: list.length > 0,
+      buildHours: isFilled(effort.buildHours) ? effort.buildHours : null,
+      upkeepHoursPerMonth: isFilled(effort.upkeepHoursPerMonth) ? effort.upkeepHoursPerMonth : null,
+      growth: isFilled(potential.growth) ? potential.growth : null,
+      potentialNote: isFilled(potential.note) ? potential.note : null
+    };
   }
 
   /**
@@ -184,10 +224,12 @@
     decimalsOf: decimalsOf,
     signedPct: signedPct,
     lowerFirst: lowerFirst,
+    upperFirst: upperFirst,
     isFilled: isFilled,
     money: money,
     tidy: tidy,
     minutesAlone: minutesAlone,
+    supplied: supplied,
     modelCalls: modelCalls,
     driver: function (kind, extra) {
       var opts = { kind: kind };
@@ -345,6 +387,13 @@
     '.px-sc-dock .gate-name { top: calc(var(--gl) * 2 + var(--graised) + 36px); }',
     '.px-sc-dock .gate-why { font-size: var(--t-label); font-stretch: var(--wdth-tight); letter-spacing: 0.03em; white-space: nowrap; }',
     '.px-sc-dock .gate.is-no > .gate-shutter::after { font-size: calc(var(--gw) * 0.47); bottom: calc(var(--gl) + var(--gthrough) + var(--gw) * 0.04); }',
+    /* the NO's reason runs to two lines: the floor, and no days off the cash cycle */
+    '.px-sc-dock .px-g-return > .gate-why { white-space: normal; line-height: 1.08; }',
+    /* after the NO, the gates that never get asked say so: NOT YET, frame only */
+    '.px-notyet { position: absolute; left: calc(var(--gl) * 2 + var(--gpad)); top: var(--gh); height: var(--gcap); z-index: 1; display: flex; align-items: center; }',
+    '.px-notyet > .verdict { --vh: 56px; }',
+    /* static copies at step 3: the closing line has taken the re-slot line's place */
+    '.slide.is-static .px-sc-reslot:has(~ .px-sc-close.is-visible) { visibility: hidden; }',
     /* static copies (overview, presenter preview) follow the step: a gate whose
        finding is not printed yet is a vacant bay, and RETURN only shows its NO
        while the minutes are on screen */
@@ -381,8 +430,6 @@
     '.px-brx[data-step]:not(.is-visible) { display: none; }',
     '.px-brx > .label { flex: none; font-stretch: var(--wdth-text); letter-spacing: 0.02em; white-space: nowrap; }',
     '.px-brx.is-point { background: var(--c-accent); color: var(--c-accent-ink); }',
-    '.px-brx.is-empty { padding-bottom: 14px; }',
-    '.px-brx.is-empty > .slot-yours { flex: 1 1 0; min-width: 0; min-height: 0; margin-top: 16px; padding: 0; font-stretch: var(--wdth-label-tight); letter-spacing: 0.08em; }',
     '.px-br { display: flex; flex-direction: column; gap: 18px; margin-top: 20px; min-height: 0; }',
     '.px-br-item { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }',
     '.px-br-item + .px-br-item { padding-top: 16px; border-top: var(--w-rule) solid var(--c-accent-ink); }',
@@ -397,8 +444,6 @@
     '.px-br.is-many .px-br-l { font-size: 32px; }',
     '.px-br.is-three .px-br-item { flex-direction: row; flex-wrap: wrap; align-items: baseline; column-gap: 14px; row-gap: 4px; }',
     '.px-br.is-three .px-br-item > .px-br-v { font-size: min(var(--brv), 56px); }',
-    '.px-br .slot-yours { min-width: 0; min-height: 64px; padding: 0 18px; font-size: 32px; font-stretch: var(--wdth-label-tight); letter-spacing: 0.08em; }',
-    '.px-find .slot-yours { min-width: 0; align-self: stretch; margin-top: 12px; padding: 0; font-stretch: var(--wdth-label-tight); letter-spacing: 0.08em; }',
     '.px-kv { align-self: stretch; display: flex; flex-direction: column; align-items: flex-start; }',
     '.px-kv + .px-kv { margin-top: 26px; padding-top: 22px; border-top: var(--w-hair) solid var(--c-line); }',
     /* a long figure pushes its unit onto the next line instead of through the gate wall */
@@ -408,8 +453,7 @@
     '.px-kv-note { margin-top: 14px; font-size: 36px; font-weight: 600; line-height: 1.14; }',
 
     /* ---- how-we-built-it ---- */
-    '.px-how.is-many > li { min-height: 104px; font-size: var(--t-body); }',
-    '.px-how .slot-yours { min-width: 0; }'
+    '.px-how.is-many > li { min-height: 104px; font-size: var(--t-body); }'
   ].join('\n');
 
   (function inject() {
@@ -908,12 +952,18 @@
     var verdictAt = b + Math.max(0, lines.length - 1) * BEAT * 1.5 + BEAT;
     seq.at(verdictAt, function () { setGate(gRet, [retPass ? 'is-pass' : 'is-no'], seq.animated); },
       function () { setGate(gRet, [], false); });
+    var settled = verdictAt + (retPass ? D_LIFT : HOLD_BEFORE + D_DROP + HOLD_AFTER);
     if (!retPass) {
       seq.at(verdictAt + HOLD_BEFORE + D_DROP, function () {
         if (seq.animated) { jolt([q('.px-sc-head'), gCost, gEff, gPot]); }
       });
+      // any NO ends it: the two gates after it say NOT YET, with the NO's reason
+      seq.cut(settled, qa('.px-notyet'));
     }
-    seq.end(verdictAt + (retPass ? D_LIFT : HOLD_BEFORE + D_DROP + HOLD_AFTER) + EPS);
+    var reslot = q('.px-sc-reslot');
+    if (reslot) { seq.wipe(settled + BEAT * 2, reslot, BEAT); settled += BEAT * 3; }
+    seq.end(settled + EPS);
+    if (!c.opts.filled) { return; }                // nothing supplied: the slide stops at the NO
 
     // step 3: the bigger return, then effort and potential as the speaker gives them
     b = seq.base() + SIXTEENTH;
@@ -944,8 +994,12 @@
     }
     seq.cut(t + BEAT * 5 + SWING, qa('.px-g-effort .px-find [data-px]'));
     seq.cut(t + BEAT * 7, qa('.px-g-potential .px-find [data-px]'));
-    var close = q('.px-sc-close');
-    if (close) { seq.wipe(t + BEAT * 10, close, BEAT); }
+    var close = q('.px-sc-close:not(.px-sc-reslot)');
+    if (close) {
+      // the closing line takes the re-slot line's place
+      if (reslot) { seq.hide(t + BEAT * 10, reslot); }
+      seq.wipe(t + BEAT * 10, close, BEAT);
+    }
     seq.end(t + BEAT * (close ? 11 : 7) + EPS);
   };
 

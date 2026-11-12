@@ -21,7 +21,10 @@
  *
  * House rules (defaults; editable in window.YOUR.houseRules):
  *   COST      says NO when yearly cost is more than 30% of yearly return.
- *   RETURN    says NO when yearly return is under $5,000 and the task does not touch the cash path.
+ *   RETURN    says NO when yearly return is under $5,000 and the task takes no days off the cash cycle.
+ *             Touching the cash path is not enough on its own: cash has to arrive sooner
+ *             (daysOffCashCycle above zero, product lens; a service candidate has no cash days).
+ *             touchesCashPath is still read and passed through, but it exempts nothing.
  *   EFFORT    says NO when payback is longer than 26 weeks.
  *   POTENTIAL says NO when growth is below 1x or nobody owns the freed time.
  * Any NO and the candidate is out. Among the survivors, highest twoYearValue wins.
@@ -766,23 +769,33 @@
     }
 
     // --- Gate 2: RETURN --------------------------------------------------------
-    // NO when yearly return is UNDER the floor and the task does not touch the cash path.
+    // NO when yearly return is UNDER the floor and the task takes no days off
+    // the cash cycle. Being on the cash path is not enough: cash has to arrive
+    // sooner. Only a product candidate has cash days (cashFreed is 0 for service).
     var floorText = exactMoney(CM, rules.minReturnPerYear);
     var returnStands = compare(returnPerYear, rules.minReturnPerYear);
     var underFloor = returnStands === 'under';
-    var returnPass = !(underFloor && !c.touchesCashPath);
+    var cashDays = isService ? 0 : c.daysOffCashCycle;
+    var cashSooner = cashDays > 0;
+    var returnPass = !(underFloor && !cashSooner);
     var returnText = returnVersus(CM, returnStands, returnPerYear, rules.minReturnPerYear, floorText);
+    var cashDaysText = CM.number(cashDays) + (cashDays === 1 ? ' day' : ' days');
     var returnReason;
+    var returnMetricText = returnText + ' a year';
     if (returnStands === 'same') {
       returnReason = 'It returns ' + returnText + ' a year, which just meets the ' + floorText + ' floor.';
     } else if (!underFloor) {
       returnReason = 'It returns ' + returnText + ' a year. The floor is ' + floorText + '.';
-    } else if (c.touchesCashPath) {
+    } else if (cashSooner) {
       returnReason = 'It returns ' + returnText + ' a year, under the ' + floorText +
-        ' floor, but it touches the cash path, so it stays in.';
+        ' floor, but it gets cash in ' + cashDaysText + ' sooner, so it stays in.';
+      returnMetricText = returnText + ' a year, cash ' + cashDaysText + ' sooner';
+    } else if (c.touchesCashPath && !isService) {
+      returnReason = 'It returns ' + returnText + ' a year, under the ' + floorText +
+        ' floor. It is on the cash path, but it does not get cash in any sooner.';
     } else {
       returnReason = 'It returns ' + returnText + ' a year, under the ' + floorText +
-        ' floor, and it does not touch the cash path.';
+        ' floor, and it does not get cash in any sooner.';
     }
 
     // --- Gate 3: EFFORT --------------------------------------------------------
@@ -841,8 +854,8 @@
         pass: returnPass,
         metric: returnPerYear,
         limit: rules.minReturnPerYear,
-        metricText: returnText + ' a year',
-        rule: 'NO when yearly return is under ' + floorText + ' and the task does not touch the cash path.',
+        metricText: returnMetricText,
+        rule: 'NO when yearly return is under ' + floorText + ' and it takes no days off the cash cycle.',
         reason: returnReason
       },
       effort: {

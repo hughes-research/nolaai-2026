@@ -582,12 +582,40 @@ function testGates(G, C) {
   is(G.evaluate(Object.assign({}, service, { lens: 'product', capacityConversion: 1 }), BRIEF).capacityValue, 0, 'the product lens has no capacity value');
 
   section('3. Gate boundaries');
-  // RETURN: under the floor is NO unless it touches the cash path.
-  var small = baseCandidate({ minutesPerRun: 2, runsPerWeek: 10, touchesCashPath: false, buildHours: 1, rolloutHours: 0, upkeepHoursPerMonth: 0 });
+  // RETURN: under the floor is NO unless it takes days off the cash cycle.
+  // Being on the cash path is not enough on its own: cash has to arrive sooner.
+  var small = baseCandidate({ minutesPerRun: 2, runsPerWeek: 10, touchesCashPath: false, daysOffCashCycle: 0, buildHours: 1, rolloutHours: 0, upkeepHoursPerMonth: 0 });
   var smallOff = G.evaluate(small, BRIEF);
   is(smallOff.returnPerYear, 500, 'a $500-a-year task');
   ok(!smallOff.gates['return'].pass && smallOff.firstNo === 'return', 'is NO at Return when it is off the cash path');
-  ok(G.evaluate(Object.assign({}, small, { touchesCashPath: true }), BRIEF).gates['return'].pass, 'and passes Return when it touches the cash path');
+  var smallOnNoDays = G.evaluate(Object.assign({}, small, { touchesCashPath: true, daysOffCashCycle: 0 }), BRIEF);
+  ok(!smallOnNoDays.gates['return'].pass && smallOnNoDays.firstNo === 'return',
+    'on the cash path with 0 days off the cash cycle, a small return is still NO at Return', smallOnNoDays.gates['return'].reason);
+  is(smallOnNoDays.gates['return'].reason,
+    'It returns $500 a year, under the $5,000 floor. It is on the cash path, but it does not get cash in any sooner.',
+    'and the reason says so in plain words');
+  var smallOnMissing = G.evaluate(Object.assign({}, small, { touchesCashPath: true, daysOffCashCycle: undefined }), BRIEF);
+  ok(!smallOnMissing.gates['return'].pass, 'on the cash path with the days left blank, a small return is NO at Return');
+  var smallOneDay = G.evaluate(Object.assign({}, small, { touchesCashPath: true, daysOffCashCycle: 1 }), BRIEF);
+  ok(smallOneDay.gates['return'].pass, 'one day off the cash cycle and a small return passes Return', smallOneDay.gates['return'].reason);
+  is(smallOneDay.gates['return'].reason,
+    'It returns $500 a year, under the $5,000 floor, but it gets cash in 1 day sooner, so it stays in.',
+    'and the reason names the day');
+  is(smallOneDay.gates['return'].metricText, '$500 a year, cash 1 day sooner', 'and the metric text shows the day');
+  ok(G.evaluate(Object.assign({}, small, { touchesCashPath: false, daysOffCashCycle: 2 }), BRIEF).gates['return'].pass,
+    'cash days count even when the cash-path box was left unticked (the rule is the days)');
+  var serviceDays = G.evaluate(Object.assign({}, small, { lens: 'service', capacityConversion: 0, billableMarginPerHour: 0, touchesCashPath: true, daysOffCashCycle: 3 }), BRIEF);
+  ok(!serviceDays.gates['return'].pass, 'a service candidate has no cash days, so a small return is NO at Return whatever the days field says');
+  is(smallOff.gates['return'].rule, 'NO when yearly return is under $5,000 and it takes no days off the cash cycle.', 'the Return rule sentence names cash days, not the cash path');
+  // The real project, on minutes alone: 15.4 hours a year at the loaded rate,
+  // on the cash path but no days off the cash cycle (the slotting scorecard).
+  var slotLike = G.evaluate({ id: 'slotting', name: 'Slotting', lens: 'product', tier: 'code', minutesPerRun: 15.4 * 60 / BRIEF.rates.workWeeks,
+    runsPerWeek: 1, touchesCashPath: true, daysOffCashCycle: 0, growth: 1, ownerNamed: true }, BRIEF);
+  ok(slotLike.hoursFreedPerYear === 15.4 && slotLike.returnPerYear === 462, 'a slotting-like candidate: 15.4 hours a year at $30 an hour is $462 a year',
+    slotLike.hoursFreedPerYear + ' h, ' + slotLike.returnPerYear);
+  ok(slotLike.gates.cost.pass && !slotLike.gates['return'].pass && slotLike.firstNo === 'return' && slotLike.verdict === 'NO',
+    'and it is NO at Return: on the cash path, but no days off the cash cycle', slotLike.summary);
+  is(slotLike.gates['return'].metricText, '$462 a year', 'and the Return figure reads $462 a year');
   // COST: exactly 30% passes, a dollar more fails.
   var atLimit = G.evaluate(baseCandidate({ minutesPerRun: 10, runsPerWeek: 20, tier: 'code', toolsPerMonth: 125 }), BRIEF);
   ok(atLimit.costPerYear === 1500 && atLimit.returnPerYear === 5000 && atLimit.gates.cost.pass, 'cost at exactly 30% of return passes ("more than 30%" is the rule)');
@@ -1002,7 +1030,7 @@ async function testBrowser(nodeSnapshot) {
 
 /* A candidate on plain code that passes everything, to bend toward one limit. */
 function plain(overrides) {
-  var c = { lens: 'product', tier: 'code', growth: 1, touchesCashPath: true, ownerNamed: true };
+  var c = { lens: 'product', tier: 'code', growth: 1, touchesCashPath: true, daysOffCashCycle: 1, ownerNamed: true };
   Object.keys(overrides || {}).forEach(function (k) { c[k] = overrides[k]; });
   return c;
 }
@@ -1075,11 +1103,14 @@ function wordingProblems(r) {
     var forms = [
       [/^It returns (.+) a year, which just meets the (.+) floor\.$/, 'meets', true],
       [/^It returns (.+) a year\. The floor is (.+)\.$/, 'over', true],
-      [/^It returns (.+) a year, under the (.+) floor, but it touches the cash path, so it stays in\.$/, 'under', true],
-      [/^It returns (.+) a year, under the (.+) floor, and it does not touch the cash path\.$/, 'under', false]
+      [/^It returns (.+) a year, under the (.+) floor, but it gets cash in (.+) sooner, so it stays in\.$/, 'under', true],
+      [/^It returns (.+) a year, under the (.+) floor\. It is on the cash path, but it does not get cash in any sooner\.$/, 'under', false],
+      [/^It returns (.+) a year, under the (.+) floor, and it does not get cash in any sooner\.$/, 'under', false]
     ];
     var hit = null;
     forms.forEach(function (f) { var m = f[0].exec(t); if (m && !hit) hit = { m: m, claims: f[1], pass: f[2] }; });
+    // The exemption is cash days, never the cash-path tick on its own.
+    var cashDays = r.candidate.lens === 'service' ? 0 : r.candidate.daysOffCashCycle;
     if (!hit) { bad('return', 'sentence not understood', t); return; }
     var figure = hit.m[1];
     var floorText = hit.m[2];
@@ -1089,7 +1120,18 @@ function wordingProblems(r) {
     var says = j ? side(j[1], 0, 0) : side('', dollars(figure), dollars(floorText));
     if (hit.claims === 'meets' ? figure !== floorText : says !== hit.claims) bad('return', 'the figure shown (' + figure + ') does not sit ' + hit.claims + ' the floor', t);
     if (g.pass !== hit.pass) bad('return', 'the sentence and the verdict disagree', t);
-    if (g.metricText !== figure + ' a year') bad('return', 'metricText shows a different figure: ' + g.metricText, t);
+    var daysText = hit.m[3];
+    if (daysText !== undefined) {
+      if (!(cashDays > 0)) bad('return', 'stays in on cash days, but the candidate takes none off', t);
+      var dm = /^([\d,.]+) (day|days)$/.exec(daysText);
+      if (!dm || !closeTo(plainNumber(dm[1]), cashDays) || (dm[2] === 'day') !== (cashDays === 1)) bad('return', 'the cash days shown are not the days entered (' + cashDays + ')', t);
+      if (g.metricText !== figure + ' a year, cash ' + daysText + ' sooner') bad('return', 'metricText shows a different figure: ' + g.metricText, t);
+    } else {
+      if (hit.claims === 'under' && cashDays > 0) bad('return', 'NO under the floor although it takes ' + cashDays + ' days off the cash cycle', t);
+      if (hit.claims === 'under' && /on the cash path/.test(t) !== (r.candidate.touchesCashPath === true && r.candidate.lens !== 'service')) bad('return', 'says on the cash path or not, against the input', t);
+      if (g.metricText !== figure + ' a year') bad('return', 'metricText shows a different figure: ' + g.metricText, t);
+    }
+    if (g.rule.indexOf('takes no days off the cash cycle') === -1) bad('return', 'the rule does not name the cash-days exemption: ' + g.rule, t);
     if (g.rule.indexOf('under ' + floorText + ' and') === -1) bad('return', 'the rule names a different floor: ' + g.rule, t);
   })();
 
@@ -1287,7 +1329,7 @@ function testTies(G) {
   // (k of 10 or more) is still the limit.
   var onPayback = plain({ minutesPerRun: 6, runsPerWeek: 23, buildHours: 23 });             // payback exactly 26 weeks
   var onCost = plain({ minutesPerRun: 10, runsPerWeek: 20, toolsPerMonth: 125 });           // cost exactly 30% of return
-  var onFloor = plain({ minutesPerRun: 10, runsPerWeek: 20, touchesCashPath: false });      // return exactly $5,000
+  var onFloor = plain({ minutesPerRun: 10, runsPerWeek: 20, touchesCashPath: false, daysOffCashCycle: 0 });      // return exactly $5,000
   var onGrowth = plain({ minutesPerRun: 10, runsPerWeek: 20, growth: 1 });                  // growth exactly 1x
   var hairProblems = [];
   [1, 2, 3, 4, 6, 8, 10, 12].forEach(function (k) {
@@ -1334,10 +1376,10 @@ function testCloseCalls(G) {
   var c = G.evaluate(plain({ minutesPerRun: 10, runsPerWeek: 20, toolsPerMonth: 125.008 }), BRIEF);
   ok(!c.gates.cost.pass && /which is just over 30% of/.test(c.gates.cost.reason), 'cost at 30.002% is a NO that reads "just over 30%" (not "30.00% ... the limit is 30%")', c.gates.cost.reason);
 
-  var d = G.evaluate(plain({ minutesPerRun: 10, runsPerWeek: 20, touchesCashPath: false }), briefWith({ rates: { loadedHourly: 29.99998 } }));
+  var d = G.evaluate(plain({ minutesPerRun: 10, runsPerWeek: 20, touchesCashPath: false, daysOffCashCycle: 0 }), briefWith({ rates: { loadedHourly: 29.99998 } }));
   ok(!d.gates['return'].pass && /^It returns just under \$5,000 a year, under the \$5,000 floor/.test(d.gates['return'].reason),
     'a return of $4,999.997 is a NO that reads "just under $5,000" (not "$5,000.00 ... under the $5,000 floor")', d.gates['return'].reason);
-  var d2 = G.evaluate(plain({ minutesPerRun: 10, runsPerWeek: 20, touchesCashPath: false }), briefWith({ rates: { loadedHourly: 29.9976 } }));
+  var d2 = G.evaluate(plain({ minutesPerRun: 10, runsPerWeek: 20, touchesCashPath: false, daysOffCashCycle: 0 }), briefWith({ rates: { loadedHourly: 29.9976 } }));
   ok(/^It returns \$4,999\.60 a year, under the \$5,000 floor/.test(d2.gates['return'].reason), 'a return of $4,999.60 shows its cents', d2.gates['return'].reason);
 
   var e = G.evaluate(plain({ minutesPerRun: 6, runsPerWeek: 60, growth: 0.999 }), BRIEF);
@@ -1353,7 +1395,7 @@ function testCloseCalls(G) {
   var g = G.evaluate(plain({ minutesPerRun: 6, runsPerWeek: 23, buildHours: 23.3 }), briefWith({ houseRules: { maxPaybackWeeks: 26.25 } }));
   ok(!g.gates.effort.pass && /longer than 26\.25 weeks\./.test(g.gates.effort.rule) && /takes 26\.3 weeks to pay back\. The limit is 26\.25 weeks\./.test(g.gates.effort.reason),
     'a payback limit of 26.25 weeks is printed as 26.25, and a 26.34-week payback reads 26.3 against it', g.gates.effort.reason);
-  var h = G.evaluate(plain({ minutesPerRun: 10, runsPerWeek: 20, touchesCashPath: false }), briefWith({ houseRules: { minReturnPerYear: 5000.5, minGrowth: 1.125 } }));
+  var h = G.evaluate(plain({ minutesPerRun: 10, runsPerWeek: 20, touchesCashPath: false, daysOffCashCycle: 0 }), briefWith({ houseRules: { minReturnPerYear: 5000.5, minGrowth: 1.125 } }));
   ok(/under \$5,000\.50 and/.test(h.gates['return'].rule) && h.gates.potential.rule.indexOf('below 1.125' + TIMES) !== -1,
     'a return floor of $5,000.50 and a growth minimum of 1.125x are printed exactly', h.gates['return'].rule + ' | ' + h.gates.potential.rule);
 
@@ -1389,7 +1431,7 @@ function testCloseCalls(G) {
     var candidate = plain({
       minutesPerRun: minutes, runsPerWeek: runs, toolsPerMonth: tools, buildHours: build,
       growth: pick([nudge(rules.minGrowth), rules.minGrowth, 1.5]),
-      touchesCashPath: random() < 0.5, ownerNamed: random() < 0.8
+      touchesCashPath: random() < 0.5, daysOffCashCycle: pick([0, 0, 1, 2]), ownerNamed: random() < 0.8
     });
     var assumptions = briefWith({ houseRules: rules, rates: { loadedHourly: pick([30, 30, nudge(rules.minReturnPerYear / yearly * 30)]) } });
     var result = G.evaluate(candidate, assumptions);
@@ -1418,6 +1460,7 @@ function testCloseCalls(G) {
       upkeepHoursPerMonth: pick([0, 0, 0.5, 1, 1.5, 2, 4, 30]),
       growth: pick([1, 1, 1.5, 2, 0.9, 1.1, 1.25, 0.5, 3]),
       touchesCashPath: random() < 0.5,
+      daysOffCashCycle: pick([0, 0, 0, 0.5, 1, 2, 5]),
       ownerNamed: random() < 0.85
     };
     if (isService) {
@@ -1832,7 +1875,7 @@ function testMathDoc(G, C) {
   says(cents(c.year1Net) + ' + ' + cents(c.year2RunRate) + ' = **' + cents(c.twoYearValue) + '**', 'step 8: two-year value ' + cents(c.twoYearValue));
   says('= **' + cents(c.cashFreed) + '**, once', 'cash freed ' + cents(c.cashFreed));
   rowIs('Cost', [c.gates.cost.metricText, 'NO above 30%', 'PASS'], 'gate table: Cost shows "' + c.gates.cost.metricText + '"');
-  rowIs('Return', [c.gates['return'].metricText, 'NO under $5,000 (unless on the cash path)', 'PASS'], 'gate table: Return shows "' + c.gates['return'].metricText + '"');
+  rowIs('Return', [c.gates['return'].metricText, 'NO under $5,000 (unless it gets cash in sooner)', 'PASS'], 'gate table: Return shows "' + c.gates['return'].metricText + '"');
   rowIs('Effort', [c.gates.effort.metricText, 'NO beyond 26 weeks', 'PASS'], 'gate table: Effort shows "' + c.gates.effort.metricText + '"');
   rowIs('Potential', [c.gates.potential.metricText, 'NO below 1' + TIMES + ' or with no owner', 'PASS'], 'gate table: Potential shows "' + c.gates.potential.metricText + '"');
 
@@ -1974,9 +2017,17 @@ function testMathDoc(G, C) {
 
   // --- House rules, as the page states them ---
   rowIs('1', ['Cost', 'A year of running costs is more than this share of a year of return', C.percent(BRIEF.houseRules.costMaxShareOfReturn)], 'house-rule table: cost limit');
-  rowIs('2', ['Return', 'The yearly return is under this amount *and* the task does not touch the cash path', money(BRIEF.houseRules.minReturnPerYear)], 'house-rule table: return floor');
+  rowIs('2', ['Return', 'The yearly return is under this amount *and* it takes no days off the cash cycle', money(BRIEF.houseRules.minReturnPerYear)], 'house-rule table: return floor');
   rowIs('3', ['Effort', 'Payback takes longer than this', BRIEF.houseRules.maxPaybackWeeks + ' weeks'], 'house-rule table: payback limit');
   rowIs('4', ['Potential', 'Growth is below this, *or* nobody owns the freed time', BRIEF.houseRules.minGrowth + TIMES], 'house-rule table: growth minimum');
+  // The cash-days paragraph: its example is the code's own figure and verdicts.
+  var slotEg = { lens: 'product', tier: 'code', minutesPerRun: 15.4 * 60 / BRIEF.rates.workWeeks, runsPerWeek: 1, growth: 1, ownerNamed: true, touchesCashPath: true };
+  var egNoDays = G.evaluate(Object.assign({}, slotEg, { daysOffCashCycle: 0 }), BRIEF);
+  var egOneDay = G.evaluate(Object.assign({}, slotEg, { daysOffCashCycle: 1 }), BRIEF);
+  ok(!egNoDays.gates['return'].pass && egOneDay.gates['return'].pass, 'the cash-days example: NO with no days off the cash cycle, PASS with one');
+  says('frees ' + C.number(egNoDays.hoursFreedPerYear) + ' hours a year at ' + money(BRIEF.rates.loadedHourly) + ' an hour returns ' + money(egNoDays.returnPerYear) + ' a year',
+    'the cash-days example shows the code\'s own hours, rate and return');
+  says('The same ' + money(egOneDay.returnPerYear) + ' with one day off the cash cycle stays in', 'and the one-day case');
 }
 
 

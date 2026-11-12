@@ -137,7 +137,8 @@ var YOUR = {
     costMaxShareOfReturn: 0.30,   // HOUSE RULE (default)
 
     // RETURN says NO when the yearly return is under this many dollars AND the
-    // task does not touch the cash path.
+    // task takes no days off the cash cycle (daysOffCashCycle is 0 or blank).
+    // Being on the cash path is not enough: the cash has to arrive sooner.
     minReturnPerYear: 5000,       // HOUSE RULE (default)
 
     // EFFORT says NO when it takes more than this many weeks for the savings to
@@ -178,7 +179,9 @@ var YOUR = {
    *   growth               how much bigger it gets over the next year, as a multiple:
    *                        1 = same size, 1.5 = half again, 2 = double (never a percentage)
    *   touchesCashPath      true if it sits on quote > order > pick > ship > invoice > collect
-   *   daysOffCashCycle     days sooner the cash arrives (0 if none)
+   *                        (the first question to ask; on its own it changes no verdict)
+   *   daysOffCashCycle     days sooner the cash arrives (0 if none). Under the return
+   *                        floor, only a number above 0 here keeps a task in.
    *   ownerNamed           true if a named person decides what the freed time becomes
    *
    * For a 'service' candidate you may add two more lines:
@@ -229,7 +232,8 @@ var YOUR = {
       ownerNamed: false                             // EXAMPLE
     },
 
-    // C. The boring one. It passes all four gates and it sits on the cash path.
+    // C. The boring one. A small AI model drafts each reminder (tier 'small').
+    //    It passes all four gates, and it gets cash in 2 days sooner.
     {
       id: 'reminders',                              // EXAMPLE
       name: 'Invoice follow-up reminders',          // EXAMPLE
@@ -366,7 +370,7 @@ var YOUR = {
 
       // Rigor moments from the project's experiment log
       rigor: [
-        'Marked our own number down: 13.1% became 11.0%',
+        'Marked our own number down, from 13.1% to 11.0%',
         'One ruler said 26%. We reported 15%.',
         'A bug said 220%. We called it nonsense and fixed it.'
       ],

@@ -16,10 +16,14 @@
  *   rate and house rules. Nothing here is typed but copy.
  *
  * WHAT THE SPEAKER HAS NOT SUPPLIED
- *   YOUR.slotting.biggerReturn, .effort and .potential start empty. Each
- *   empty value is drawn as the theme's "YOUR NUMBER" slot, and the closing
- *   line of the scorecard is left out. Fill them in and the slide completes
- *   itself. Nothing is ever invented in their place.
+ *   YOUR.slotting.biggerReturn, .effort and .potential start empty. Nothing
+ *   empty is ever drawn for the audience: while the bigger return has no
+ *   value the scorecard stops at the NO on minutes (two steps, and the notes
+ *   open with a NOT FILLED IN line and give the speaker his words). Once it
+ *   has one, a third step adds it, any effort and potential values he has
+ *   given (each simply absent while empty), and the closing line. Nothing is
+ *   ever invented in their place, and no PASS is raised that the deck cannot
+ *   compute.
  *
  * The motion lives in scenes/project.js; the html below is the finished
  * picture of each slide.
@@ -39,10 +43,18 @@
   var lowerFirst = P.lowerFirst;
   var isFilled = P.isFilled;
 
-  var label = esc(R.label || (T && T.tags.laborde) || '');
+  var label = esc(R.label || (T && T.tags.laborde) || '');      // only where an Oct 27–28 run figure is shown
+  var RECORDS = 'Laborde project records';
+  var RECORDS_DATED = 'Laborde project records, Mar–Nov 2026';  // the commit count runs Mar 25 to Nov 4, 2026
   var caveats = (R.caveats || []).map(function (c) { return esc(lowerFirst(c)); });
-  var slot = function (size) { return T ? T.slot(null, size) : '<span class="slot-yours">Your number</span>'; };
-  var storyLines = ((window.YOUR.story || {}).howWeBuiltIt || []).filter(function (line) { return isFilled(line); });
+  /* the speaker's own list for how-we-built-it. A line still marked YOUR
+     STORY is not written yet: it stays off the screen, and the slide is
+     skipped while nothing written remains. */
+  var storyLines = ((window.YOUR.story || {}).howWeBuiltIt || []).filter(function (line) {
+    return isFilled(line) && !/^\s*YOUR STORY\b/i.test(String(line));
+  });
+  /* the hand-off into Act 5, said while clicking (who-owns starts after it) */
+  var BRIDGE = 'Mine was never about the minutes. Yours might be. Look at the one you kept.';
 
   /* a line of copy from the numbers file, closed with a full stop */
   var sentence = P.sentence;
@@ -133,6 +145,7 @@
 
   guard('seven-attempts', function () {
     var attempts = (R.attempts || []).filter(function (a) { return a && isFinite(Number(a.pct)); });
+    var old7 = R.oldBuilding || {};
 
     /* Geometry of the chart, in stage px. Linear, from zero, drawn to scale. */
     var AT = (function () {
@@ -214,7 +227,8 @@
 
         DO: Click once for the climb. Read the four bars as they land.
 
-        SAY: The gains came from measuring real orders, not from fancier solvers.
+        SAY: The gains came from measuring against real orders. Not from fancier math.
+        These are from the March model, on a placeholder floor plan. The October runs, on the real shelving plan with every part, came out at ${num(old7.walkPctLess, 1)}% against the old building: the number on the last slide.
 
         DO: Click once for three lines from our own experiment log.
 
@@ -249,7 +263,7 @@
       steps: refusals.length,
       html: `
         <h2 class="headline is-hero px-no-head">What we said no to.</h2>
-        <span class="tag is-laborde px-tag-tr px-no-tag">${label}</span>
+        <span class="tag is-laborde px-tag-tr px-no-tag">${RECORDS}</span>
         <div class="dock px-no-dock">
           ${refusals.map(function (r, i) {
             // data-step: static copies (overview, presenter preview) follow the builds too
@@ -264,7 +278,7 @@
         ${P.driver('no')}
       `,
       notes: `
-        SAY: This is the title of the talk, inside one project. Four things we said no to.
+        SAY: Four of them, inside one project.
 
         DO: Click once for each. Say the idea as it appears, let the NO land, then give the reason.
 
@@ -274,7 +288,7 @@
 
         SAY: Three. ${refusalLine(2)} Every part was moving anyway. After that, a full re-slot on a schedule is hard to justify.
 
-        SAY: Four. ${refusalLine(3)} We found the figure online with no primary source behind it. We excluded it as unverified.
+        SAY: Four. ${refusalLine(3)} We found it online. Unverified, so it stays out.
 
         YOUR STORY: which of the four was hardest to say no to, and who you had to say it to.
 
@@ -368,27 +382,26 @@
           </div>
           <p class="sub px-cb-line" data-step="2" data-px>The model’s job was to help write the tool. Not to be the tool.</p>
         </div>` : ''}
-        <p class="source-line"><span${mc.ok ? ' class="px-src-more" data-step-out="1"' : ''}>${label}</span>${mc.ok ? `<span class="px-src-more" data-step="1">${label} · Source: ${esc(mc.source)} · tiers: ${pricedAs} · ${tokensLine}</span>` : ''}</p>
+        <p class="source-line"><span${mc.ok ? ' class="px-src-more" data-step-out="1"' : ''}>${RECORDS_DATED}</span>${mc.ok ? `<span class="px-src-more" data-step="1">${RECORDS_DATED} · Source: ${esc(mc.source)} · tiers: ${pricedAs} · ${tokensLine}</span>` : ''}</p>
         ${P.driver('cost')}
       `,
       notes: `
-        SAY: Gate one, on a real project. What does it cost to run? Nothing.
-        ${num(commits.aiCoAuthored)} of our ${num(commits.total)} commits were co-written with an AI coding assistant. AI helped write this tool.
-        When the tool runs, the number of AI models running is ${num(R.aiModelsAtRunTime)}. It is plain math.
-        One run tries ${callsWords} swaps in about ${num(run.minutes)} minutes, on one machine with ${num(run.cores)} cores.
+        SAY: Gate one, on a real project: nothing.
+        ${num(commits.aiCoAuthored)} of our ${num(commits.total)} commits, the saved versions of the code, were co-written with an AI coding assistant.
+        When the tool runs, ${num(R.aiModelsAtRunTime)} AI models run. It is plain math: ${callsWords} swaps in about ${num(run.minutes)} minutes, on one ${num(run.cores)}-core machine.
 
         DO: Click once for the thought experiment.
 
-        SAY: Now pretend every one of those ${callsWords} tries was a call to a model. Same task size I have used all afternoon.
-        ${mc.rows.map(function (r) { return P.curly(r.label) + ': ' + r.text + ' for one run.'; }).join(' ')}
+        SAY: This is a deliberately silly design. Nobody would call a model ${callsWords} times.
+        I show it because that is what "put AI in the loop" means for a problem like this. Tokens are pieces of words; it is the same task size as the cost slides.
+        ${mc.rows.map(function (r) { return P.curly(r.label) + ': ' + r.text + '.'; }).join(' ')} For one run.
         Plain code: the electricity.
-        Nobody would build it this way. That is the point. It is the wrong tool for the job, and the cost gate tells you so before you start.
 
         DO: Click once for the line.
 
         SAY: The model's job was to help write the tool. Not to be the tool.
 
-        NEXT: So it passes cost. Now the other three gates. My own project, my own rules.
+        NEXT: So it passes cost. That is one gate of four.
       `
     });
   });
@@ -399,38 +412,51 @@
 
   guard('slotting-scorecard', function () {
     var ma = P.minutesAlone();
+    var sup = P.supplied();
     var MAX_BIGGER = 3;
-    // an entry counts once the speaker has written anything in it; a missing value stays a YOUR NUMBER slot
-    var biggerAll = (Array.isArray(SL.biggerReturn) ? SL.biggerReturn : []).filter(function (b) {
-      return b && (isFilled(b.value) || isFilled(b.label) || isFilled(b.note));
-    });
-    if (biggerAll.length > MAX_BIGGER && window.console && console.error) {
-      console.error('[slotting-scorecard] "The bigger return" has ' + biggerAll.length + ' entries; the slide shows the first ' + MAX_BIGGER + '. Put the rest in the notes.');
+    if (sup.bigger.length > MAX_BIGGER && window.console && console.error) {
+      console.error('[slotting-scorecard] "The bigger return" has ' + sup.bigger.length + ' entries; the slide shows the first ' + MAX_BIGGER + '. Put the rest in the notes.');
     }
-    var bigger = biggerAll.slice(0, MAX_BIGGER);
-    var biggerDone = bigger.length > 0 && bigger.every(function (b) { return isFilled(b.value); });
-    var effort = SL.effort || {};
-    var potential = SL.potential || {};
+    var bigger = sup.bigger.slice(0, MAX_BIGGER);
+    var filled = sup.filled;
     var returnPass = ma.pass === true;
     var costPass = ma.costPass !== false;
-    var showClose = biggerDone && ma.pass === false;
+    var showClose = filled && ma.pass === false;
     var costText = (ma.ok && M) ? M.formatNumber(ma.costPerYear, '$,d') : money(0);
-    var nextAfterScorecard = storyLines.length ? 'Here is how we actually built it.' : 'We just got the minutes back. So who owns them?';
+    var minutesMoney = ma.ok ? money(ma.value) : '';
+    var floorMoney = ma.ok ? money(ma.limit) : '';
+    var ladderFrom = num(R.ladderPctAsIs) + '%';
+    var ladderTo = num(R.ladderPctOptimized) + '%';
+    var nextAfterScorecard = storyLines.length ? 'Here is how we actually built it.' : BRIDGE;
+    var growthText = sup.growth == null ? null : (typeof sup.growth === 'number' ? num(sup.growth) + '×' : String(sup.growth));
+    var hasEffort = sup.buildHours != null || sup.upkeepHoursPerMonth != null;
+    var hasPotential = growthText != null || sup.potentialNote != null;
+
+    /* what is still empty in your-numbers.js, in words, for the notes */
+    var empty = [];
+    if (!filled) { empty.push('the bigger return'); }
+    if (!hasEffort) { empty.push('the effort'); }
+    else {
+      if (sup.buildHours == null) { empty.push('the build hours'); }
+      if (sup.upkeepHoursPerMonth == null) { empty.push('the upkeep hours'); }
+    }
+    if (growthText == null) { empty.push('the growth'); }
+    function andList(list) {
+      return list.length < 2 ? list.join('') : list.slice(0, -1).join(', ') + ' and ' + list[list.length - 1];
+    }
 
     /* A value is printed as typed when it is words ('6 weeks', '$48,000'); a
        plain number gets its thousands commas and nothing else (no unit is
        guessed). The figure is set as large as its length and the bay allow. */
     function biggerHtml() {
-      if (!bigger.length) { return slot(); }
       var n = bigger.length;
       var cls = n === 1 ? 'is-one' : (n === 2 ? 'is-many' : 'is-many is-three');
       return '<div class="px-br ' + cls + '">' + bigger.map(function (b, i) {
-        var hasV = isFilled(b.value);
-        var text = hasV ? (typeof b.value === 'number' ? num(b.value) : String(b.value)) : '';
+        var text = typeof b.value === 'number' ? num(b.value) : String(b.value);
         var cap = n === 1 ? 104 : (i === 0 && n === 2 ? 72 : 56);
         var size = Math.max(48, Math.min(cap, Math.floor(362 / (0.46 * Math.max(1, text.length)))));
         return '<div class="px-br-item">' +
-          (hasV ? '<b class="num px-br-v" data-brv="' + size + '" style="--brv:' + size + 'px">' + esc(text) + '</b>' : slot('s')) +
+          '<b class="num px-br-v" data-brv="' + size + '" style="--brv:' + size + 'px">' + esc(text) + '</b>' +
           (isFilled(b.label) ? '<span class="px-br-l">' + esc(b.label) + '</span>' : '') +
           // with more than one entry the notes go to the speaker notes, not the bay
           (n === 1 && isFilled(b.note) ? '<span class="px-br-n">' + esc(b.note) + '</span>' : '') +
@@ -438,16 +464,60 @@
       }).join('') + '</div>';
     }
 
+    /* a value the speaker has given; one he has not is simply absent */
     function kv(name, value, unit) {
+      if (!isFilled(value)) { return ''; }
       return '<div class="px-kv" data-px><p class="label">' + esc(name) + '</p>' +
-        (isFilled(value)
-          ? '<p class="px-kv-v"><b class="num">' + esc(typeof value === 'number' ? num(value) : value) + '</b>' + (unit ? '<span>' + esc(unit) + '</span>' : '') + '</p>'
-          : slot('s')) +
+        '<p class="px-kv-v"><b class="num">' + esc(typeof value === 'number' ? num(value) : value) + '</b>' + (unit ? '<span>' + esc(unit) + '</span>' : '') + '</p>' +
         '</div>';
     }
 
     var verdictMark = function (pass) { return T ? T.verdict(pass ? 'pass' : 'no') : (pass ? 'Pass' : 'No'); };
-    var growthText = isFilled(potential.growth) ? (typeof potential.growth === 'number' ? num(potential.growth) + '×' : String(potential.growth)) : null;
+    var notYet = (!returnPass && T) ? '<p class="px-notyet" data-step="2" data-px>' + T.verdict('notyet') + '</p>' : '';
+    // the reason, in the rule's own two parts: under the floor, and cash comes in no sooner
+    var returnWhy = returnPass ? 'carried forward'
+      : esc('under ' + floorMoney + ',') + '<br>and no cash sooner';
+
+    /* the bigger return, in words, for the notes */
+    var biggerSay = sup.bigger.map(function (b) {
+      var v = typeof b.value === 'number' ? num(b.value) : String(b.value);
+      return (isFilled(b.label) ? sentence(b.label + ': ' + v) : sentence(v)) + (isFilled(b.note) ? ' ' + sentence(P.upperFirst(b.note)) : '');
+    }).join(' ');
+    var effortSay = [
+      sup.buildHours != null ? (typeof sup.buildHours === 'number' ? num(sup.buildHours) + ' hours to build' : 'Build: ' + sup.buildHours) : '',
+      sup.upkeepHoursPerMonth != null ? (typeof sup.upkeepHoursPerMonth === 'number' ? num(sup.upkeepHoursPerMonth) + ' hours a month to keep alive' : 'Upkeep: ' + sup.upkeepHoursPerMonth) : ''
+    ].filter(Boolean).join(', ');
+    var potentialSay = [growthText != null ? 'Growth: ' + growthText : '', sup.potentialNote != null ? String(sup.potentialNote) : ''].filter(Boolean).join(', ');
+
+    var notesHead = `
+        ${empty.length ? 'NOT FILLED IN: ' + andList(empty) + (empty.length > 1 ? ' are' : ' is') + ' empty in your-numbers.js' + (filled ? '. Nothing empty is shown.' : ', so this slide stops at the NO.') : ''}
+
+        SAY: Now the uncomfortable part. My own favorite project, through my own four gates.
+
+        DO: Click: Cost.
+        SAY: ${costText} to run. No model runs when it runs. Pass.
+
+        DO: Click: Return. Let the NO land before you speak.
+        SAY: On minutes alone it saves ${num(ma.hours)} pick hours a year. At ${ma.ok ? money(ma.rate) : 'the example rate'} an hour, ${minutesMoney || 'a small number'}.
+        My rule: under ${floorMoney || 'the floor'} a year, and no days off the cash cycle, is a no.
+        Picking is on my cash path. But walking less doesn't bring cash in any sooner. So: no.
+        And any no ends it. Effort and Potential never get asked.`;
+
+    var notesEmpty = `
+        DO: Nothing more to click here. The line top right lands on its own.
+
+        SAY: So on minutes alone my own project fails my own screen. ${minutesMoney} a year.
+        I'm not going to put a number up here that I can't show you all four Waypoint boxes for.
+        What made it worth doing: every part was moving anyway. The choice was never automate or not.
+        It was guess or calculate. And calculating took ladder picks from ${ladderFrom} to ${ladderTo}.`;
+
+    var notesFilled = `
+        DO: Click: the bigger return.
+        SAY: My rule says stop at the first no. I'm overruling it in the open, and here is why.
+        The move was the one free re-slot. Every part was moving anyway, so it was never automate or not. It was guess or calculate.
+        SAY: ${biggerSay}
+        YOUR STORY: the bigger return, in a sentence or two.
+${effortSay ? '        SAY: ' + sentence(effortSay) + '\n' : ''}${potentialSay ? '        SAY: ' + sentence(potentialSay) + '\n' : ''}${showClose ? '        SAY: The minutes said no. The move said yes.\n' : ''}`;
 
     Deck.slide({
       id: 'slotting-scorecard',
@@ -456,9 +526,10 @@
       // how-we-built-it carries half a minute only while it is in the running order
       minutes: storyLines.length ? 2 : 2.5,
       layout: 'px-score-slide',
-      steps: 3,
+      steps: filled ? 3 : 2,
       html: `
         <h2 class="headline is-s px-sc-head">My own project,<br>through my own gates.</h2>
+        <p class="voice is-l px-sc-close px-sc-reslot" data-step="2" data-px>The move was the<br>one free re-slot.</p>
         ${showClose ? '<p class="voice is-l px-sc-close" data-step="3" data-px>The minutes said no.<br>The move said yes.</p>' : ''}
         <div class="dock px-sc-dock">
           <article class="gate px-g-cost is-still ${costPass ? 'is-pass' : 'is-no'}">
@@ -475,51 +546,41 @@
             <div class="px-find px-find-min is-blend" data-step="2">
               <p class="label" data-px>On minutes alone</p>
               <p class="px-find-l" data-px style="margin-top:14px">${num(ma.hours)} hours a year</p>
-              <p class="num px-find-eq" data-px>= ${ma.ok ? money(ma.value) : ''}</p>
+              <p class="num px-find-eq" data-px>= ${minutesMoney}</p>
             </div>
+            ${filled ? `
             <div class="px-find px-find-rec2" data-step="3">
-              <p class="px-find-rec" data-px="rec"><b class="num">${ma.ok ? money(ma.value) : ''}</b><span class="px-per">on minutes alone</span>${verdictMark(returnPass)}</p>
+              <p class="px-find-rec" data-px="rec"><b class="num">${minutesMoney}</b><span class="px-per">on minutes alone</span>${verdictMark(returnPass)}</p>
             </div>
-            <div class="px-brx ${bigger.length ? 'is-point' : 'is-empty'}" data-step="3" data-px>
+            <div class="px-brx is-point" data-step="3" data-px>
               <p class="label">The bigger return</p>
               ${biggerHtml()}
-            </div>
-            <p class="gate-why">${returnPass ? 'carried forward' : 'under the ' + (ma.ok ? money(ma.limit) : '') + ' floor'}</p>
+            </div>` : ''}
+            <p class="gate-why">${returnWhy}</p>
           </article>
           <article class="gate px-g-effort is-still">
             <i class="gate-shutter"></i>
             <h3 class="gate-name">Effort</h3>
-            <div class="px-find" data-step="3">
-              ${kv('Build', effort.buildHours, 'hours')}
-              ${kv('Upkeep', effort.upkeepHoursPerMonth, 'hours a month')}
-            </div>
+            ${filled && hasEffort ? `<div class="px-find" data-step="3">
+              ${kv('Build', sup.buildHours, 'hours')}
+              ${kv('Upkeep', sup.upkeepHoursPerMonth, 'hours a month')}
+            </div>` : ''}
+            ${notYet}
           </article>
           <article class="gate px-g-potential is-still">
             <i class="gate-shutter"></i>
             <h3 class="gate-name">Potential</h3>
-            <div class="px-find" data-step="3">
+            ${filled && hasPotential ? `<div class="px-find" data-step="3">
               ${kv('Growth', growthText, '')}
-              ${isFilled(potential.note) ? '<p class="px-kv-note" data-px>' + esc(potential.note) + '</p>' : ''}
-            </div>
+              ${sup.potentialNote != null ? '<p class="px-kv-note" data-px>' + esc(sup.potentialNote) + '</p>' : ''}
+            </div>` : ''}
+            ${notYet}
           </article>
         </div>
         <p class="source-line">${label} · ${num(ma.hours)} hours = ${num(R.pickHoursAsIs)} − ${num(R.pickHoursOptimized)} pick hours a year${ma.ok ? ' · valued at ' + money(ma.rate) + ' an hour, an example rate' : ''}</p>
-        ${P.driver('scorecard', { costPass: costPass, returnPass: returnPass })}
+        ${P.driver('scorecard', { costPass: costPass, returnPass: returnPass, filled: filled })}
       `,
-      notes: `
-        SAY: Now the uncomfortable part. My own favorite project, through my own four gates.
-
-        DO: Click: Cost. SAY: ${costText} to run. No model runs when it runs. Pass.
-
-        DO: Click: Return. SAY: On minutes alone it saves ${num(ma.hours)} pick hours a year. At ${ma.ok ? money(ma.rate) : 'the example rate'} an hour, ${ma.ok ? money(ma.value) : 'a small number'}.
-        My own rule says under ${ma.ok ? money(ma.limit) : 'the floor'} a year is a no. So on minutes alone: no. I would be telling you so.
-
-        DO: Click: the bigger return.
-
-        YOUR STORY: the bigger return. The move is the one free re-slot: every part moved anyway, so it was never automate or not. It was guess or calculate.
-
-        YOUR STORY: effort, and where it goes next.
-${showClose ? '\n        SAY: The minutes said no. The move said yes.\n' : ''}
+      notes: notesHead + '\n' + (filled ? notesFilled : notesEmpty) + `
         NEXT: ${nextAfterScorecard}
       `
     });
@@ -545,18 +606,13 @@ ${showClose ? '\n        SAY: The minutes said no. The move said yes.\n' : ''}
       html: `
         <h2 class="headline">How we actually built it.</h2>
         <ol class="list px-how${story.length > 4 ? ' is-many' : ''}">
-          ${story.slice(0, 6).map(function (line) {
-            // a line the speaker has not written yet stays visibly unwritten
-            return /^\s*YOUR STORY\b/i.test(line)
-              ? '<li>' + (T ? T.slot('Your story') : '<span class="slot-yours">Your story</span>') + '</li>'
-              : '<li>' + esc(line) + '</li>';
-          }).join('')}
+          ${story.slice(0, 6).map(function (line) { return '<li>' + esc(line) + '</li>'; }).join('')}
         </ol>
       `,
       notes: `
         YOUR STORY: how you actually built it, in the order it happened. One breath per line.
 
-        NEXT: We just got the minutes back. So who owns them?
+        NEXT: ${BRIDGE}
       `
     });
   });

@@ -30,8 +30,8 @@ A "candidate" is one idea for using AI (or plain automation) on a real task.
 | Rollout hours | Hours to train people and switch over, once |
 | Upkeep hours per month | Hours a month to keep it working, for as long as it runs |
 | Growth | How much bigger it gets over the next year. 1 means it stays the same size; 1.5 means half again |
-| Touches the cash path | Yes if it sits on quote → order → pick → ship → invoice → collect, or receive → stock → reorder |
-| Days off the cash cycle | How many days sooner the cash arrives |
+| Touches the cash path | Yes if it sits on quote → order → pick → ship → invoice → collect, or receive → stock → reorder. This is the first question to ask, but on its own it changes no verdict: see the Return rule below |
+| Days off the cash cycle | How many days sooner the cash arrives (product lens only; 0 if none). This is what keeps a small task in at the Return gate |
 | Lens | "Product" (cash comes in sooner) or "service" (freed hours become paid work) |
 | Capacity conversion | Service lens only: the share of freed time that becomes paid work, from 0 to 1 |
 | Billable margin per hour | Service lens only: dollars of margin on one extra billable hour |
@@ -98,11 +98,13 @@ A candidate meets the gates in this order. Any NO and it is out.
 | # | Gate | Says NO when | Default limit |
 |---|---|---|---|
 | 1 | **Cost** | A year of running costs is more than this share of a year of return | 30% |
-| 2 | **Return** | The yearly return is under this amount *and* the task does not touch the cash path | $5,000 |
+| 2 | **Return** | The yearly return is under this amount *and* it takes no days off the cash cycle | $5,000 |
 | 3 | **Effort** | Payback takes longer than this | 26 weeks |
 | 4 | **Potential** | Growth is below this, *or* nobody owns the freed time | 1× |
 
 Among the candidates that pass all four, the highest two-year value wins.
+
+**Why Return asks for days, not a yes or no.** A task can sit on the cash path and still not get a single invoice paid sooner. Being on the path is the first question; the test is whether cash arrives sooner. So a small task stays in only when it takes at least some time off the cash cycle (days off the cash cycle above 0). A service candidate has no cash days, so the floor applies to it as written. For example, a task that frees 15.4 hours a year at $30 an hour returns $462 a year. If it is on the cash path but brings no cash in sooner, Return says NO. The same $462 with one day off the cash cycle stays in.
 
 **A value that lands exactly on a limit passes.** Cost at exactly 30% passes; a return of exactly $5,000 passes; payback of exactly 26 weeks passes; growth of exactly 1× passes.
 
@@ -177,7 +179,7 @@ Figures in this example are written to the cent wherever there are cents, so tha
 | Gate | The number | The rule | Verdict |
 |---|---|---|---|
 | Cost | $1.35 a year (under 1% of return) | NO above 30% | PASS |
-| Return | $9,000 a year | NO under $5,000 (unless on the cash path) | PASS |
+| Return | $9,000 a year | NO under $5,000 (unless it gets cash in sooner) | PASS |
 | Effort | about 15 weeks to pay back | NO beyond 26 weeks | PASS |
 | Potential | 1.5× growth, owner named | NO below 1× or with no owner | PASS |
 
