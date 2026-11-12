@@ -140,7 +140,7 @@ work in both, and T / R / B pressed in the presenter window act on the deck.
 ## test-engine.js
 
 ```
-node tools/test-engine.js                 run everything (38 tests, one to two minutes)
+node tools/test-engine.js                 run everything (38 checks, one to two minutes)
 node tools/test-engine.js timer           only tests whose name contains "timer"
 node tools/test-engine.js --list          list the test names
 node tools/test-engine.js --entry dist/deck.html     test the single-file build

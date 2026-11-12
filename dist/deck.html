@@ -16688,9 +16688,14 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
  *
  * HOW IT WORKS
  *   - The model is built once per page and shared by every mount. The search
- *     (about two seconds of arithmetic) runs in idle slices so the page stays
- *     responsive; in ?fast and ?print it simply runs at once. The run time
- *     shown in step 6 is the measured time of that arithmetic on this machine.
+ *     (about two seconds of arithmetic, twelve on a slow laptop) runs from the
+ *     moment the scene mounts (or the talk reaches Act 4) in time-boxed
+ *     setTimeout slices, so no task holds the page for more than ~50 ms; in
+ *     ?fast and ?print it simply runs at once. If a step needs the result
+ *     before it is ready, the step waits honestly: the rule of thumb stays on
+ *     the map and the counter shows the swaps the real search has tried so
+ *     far; then the step carries on. The run time shown in step 6 is the
+ *     measured time of that arithmetic on this machine.
  *   - The animation is a pure function of (step, seconds into the step):
  *     render(step, t). Time comes from Motion (a Motion.tween drives it), so
  *     ?fast, a frozen clock and frame-by-frame capture all work. Stepping
@@ -16861,44 +16866,80 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
         m.routesAfter = m.dayOrders.map(function (o) { return S.route(world, m.result.optimized, o); });
       }
       while (flyStage < FLY_POINTS) { flyCheckpoint(); }
+      if (timer) { clearTimeout(timer); timer = null; }
+      m.pumping = false;
       m.ready = true;
       var list = m.waiting.slice();
       m.waiting.length = 0;
       list.forEach(function (fn) { try { fn(); } catch (e) { /* one listener must not stop the rest */ } });
     }
 
-    /* Everything at once (blocks for the length of the search). */
+    /* Everything at once. It blocks for the length of the search, so only
+     * ?fast / ?print and frame capture (seek) use it, never a live talk. */
     m.finishNow = finish;
 
-    /* In idle slices. Safe to call many times. */
+    /* The swaps the real search has tried so far, and how many it will try. */
+    m.tried = function () { return job.annealer.tried; };
+    m.iterations = job.annealer.iterations;
+
+    /* The rule of thumb's checkpoints (16 scores, a few ms) come first:
+     * step 3's opening fly-in needs nothing else, so it never waits. */
+    m.ensureFly = function () { while (flyStage < FLY_POINTS) { flyCheckpoint(); } };
+
+    /* In time-boxed slices on setTimeout, whatever the page is doing: idle
+     * callbacks barely run while a scene animates, which is when this has to
+     * get done. A slice works for SLICE_BUSY ms while anything moves (so a
+     * frame still fits in every 16 ms) and SLICE_FREE ms when nothing does;
+     * one unit of work is at most a few ms on a slow laptop. Every slice
+     * tells the listeners how far it got. Safe to call many times; it stops
+     * by itself when the run is finished. The work is deterministic: the
+     * result does not depend on how it is sliced. */
+    var SLICE_BUSY = 10, SLICE_FREE = 40, UNIT = 100;
+    var progress = [];
+    var timer = null, told = 0;
+    function now() { return (window.performance && performance.now) ? performance.now() : Date.now(); }
+    function busy() {
+      var Mo = window.Motion;
+      if (!Mo || typeof Mo.stats !== 'function') { return true; }
+      var st = Mo.stats();
+      return st.tweens + st.loops > 0;
+    }
+    function unit() {
+      if (flyStage < FLY_POINTS) { flyCheckpoint(); }
+      else if (!job.done) { job.step(UNIT); }
+      else if (!m.result) { m.result = job.result(); m.after = m.result.after; }
+      else if (!m.routesAfter) { m.routesAfter = m.dayOrders.map(function (o) { return S.route(world, m.result.optimized, o); }); }
+      else { finish(); }
+    }
+    function slice() {
+      timer = null;
+      if (m.ready) { m.pumping = false; return; }
+      var budget = busy() ? SLICE_BUSY : SLICE_FREE;
+      var t0 = now();
+      do { unit(); } while (!m.ready && now() - t0 < budget);
+      if (m.ready) { m.pumping = false; return; }      // finish() has told whenReady's listeners
+      if (now() - told > 200) {                         // the counter moves five times a second: enough to read, cheap to draw
+        told = now();
+        progress.slice().forEach(function (fn) { try { fn(); } catch (e) { /* one listener must not stop the rest */ } });
+      }
+      timer = setTimeout(slice, 0);   // a fresh task: frames, keys and clicks get in between slices
+    }
     m.pump = function () {
       if (m.ready || m.pumping) { return; }
       m.pumping = true;
-      var idle = window.requestIdleCallback;
-      function work(deadline) {
-        if (m.ready) { m.pumping = false; return; }
-        var guard = 0;
-        do {
-          if (!job.done) { job.step(300); }
-          else if (!m.result) { m.result = job.result(); m.after = m.result.after; }
-          else if (!m.routesAfter) { m.routesAfter = m.dayOrders.map(function (o) { return S.route(world, m.result.optimized, o); }); }
-          else if (flyStage < FLY_POINTS) { flyCheckpoint(); }
-          else { finish(); }
-          guard++;
-        } while (!m.ready && deadline && deadline.timeRemaining && deadline.timeRemaining() > 4 && guard < 400);
-        if (m.ready) { m.pumping = false; return; }
-        next();
-      }
-      function next() {
-        if (idle) { idle(work, { timeout: 250 }); }
-        else { setTimeout(function () { work(null); }, 12); }
-      }
-      next();
+      timer = setTimeout(slice, 0);
     };
 
+    /* listeners; each returns a function that removes it */
+    function off(list, fn) { return function () { var i = list.indexOf(fn); if (i !== -1) { list.splice(i, 1); } }; }
     m.whenReady = function (fn) {
-      if (m.ready) { fn(); return; }
+      if (m.ready) { fn(); return function () {}; }
       m.waiting.push(fn);
+      return off(m.waiting, fn);
+    };
+    m.onProgress = function (fn) {
+      progress.push(fn);
+      return off(progress, fn);
     };
 
     return m;
@@ -17610,14 +17651,17 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
     var DASH_MIN = Math.max(4, ROUTE.before[0] * RS), DASH_MAX = Math.min(BAND_MIN - 3, Math.max(DASH_MIN, ROUTE.before[1] * RS));
     var DASH = ROUTE.dash, DASH_PERIOD = DASH[0] + DASH[1];
 
+    /* The optimized day, once the search is done. Never finishes the search
+     * itself: callers check M.ready (or are ?fast / seek, which finish it). */
     function needOptimized() {
-      if (!M.ready) { M.finishNow(); }
+      if (!M.ready) { return false; }
       if (!dayAfter) {
         dayAfter = buildDay(M.routesAfter);
         fullAfter = trafficAt(dayAfter, Infinity);
         TRAFFIC_MAX = Math.max(TRAFFIC_MAX, trafficMax(fullAfter));
       }
       fillCaptions();
+      return true;
     }
 
     function widthFor(n, lo, hi) {
@@ -17929,9 +17973,12 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
     var view = { step: 0, t: 0 };
 
     function render(step, t) {
+      // without the finished search, step 3 can only draw its fly-in (goTo and play never ask for more)
+      if (step >= 3 && !M.ready) { step = 3; t = Math.min(t, T_FLY - 1e-3); }
       view.step = step; view.t = t;
       var end = t >= duration(step) - 1e-6;
       var q = Math.floor(t / TICK) * TICK;         // the clock counters read: it moves in sixteenths
+      // step 3's fly-in needs only the rule of thumb; everything after it needs the finished search
       if (step >= 3) { needOptimized(); }
 
       /* ---- structure ---- */
@@ -18114,9 +18161,13 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
         figA = { label: 'Feet walked', chip: 'dashed', value: commas(lv2.feet), unit: 'ft', sub: 'Busiest day · ' + M.dayOrders.length + ' orders' };
         figB = { label: 'Ladder set-ups', chip: 'ladder', value: commas(lv2.setups) };
       } else if (step === 3) {
-        var an3 = M.result.anneal;
-        var shownTried = t < T_FLY ? 0 : (end || !searching ? an3.tried : Math.round(an3.tried * clamp01((q - T_FLY) / T_SEARCH)));
-        figA = { label: 'Swaps tried', value: commas(shownTried), sub: !searching && t >= T_FLY ? commas(an3.accepted) + ' kept' : (t < T_FLY ? 'Rule of thumb first' : 'Replaying ' + commas(an3.sampleOrders) + ' orders') };
+        if (t < T_FLY) {
+          figA = { label: 'Swaps tried', value: '0', sub: 'Rule of thumb first' };
+        } else {
+          var an3 = M.result.anneal;
+          var shownTried = end || !searching ? an3.tried : Math.round(an3.tried * clamp01((q - T_FLY) / T_SEARCH));
+          figA = { label: 'Swaps tried', value: commas(shownTried), sub: !searching ? commas(an3.accepted) + ' kept' : 'Replaying ' + commas(an3.sampleOrders) + ' orders' };
+        }
       } else if (step === 4) {
         // The as-is day is a fixed reference from the first frame: its whole
         // total, the figure the room just watched land on step 2. Only the
@@ -18223,20 +18274,35 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
 
     var tween = null;
     var current = { step: 0, playing: false };
+    /* A step that needs the finished search, asked for before the search is
+     * done: { step, animate, from }. While it waits the map holds the rule of
+     * thumb and the counter shows the swaps the real search has tried so far;
+     * when the search lands, the step carries on from `from`. */
+    var pending = null;
 
     function stop() {
       if (tween) { tween.cancel(); tween = null; }
       current.playing = false;
     }
 
-    function play(step) {
+    function play(step, from) {
       stop();
       var len = duration(step);
+      var t0 = Math.max(0, Math.min(len, from || 0));
+      // step 3 without the search: play the fly-in, then wait for the search at its end
+      var to = step === 3 && !M.ready ? Math.min(len, T_FLY) : len;
       current.playing = true;
       tween = Motion.tween({
-        from: 0, to: len, duration: len, ease: 'linear',
+        from: t0, to: to, duration: to - t0, ease: 'linear',
         onUpdate: function (t) { render(step, t); },
-        onDone: function () { tween = null; current.playing = false; render(step, duration(step)); }
+        onDone: function () {
+          tween = null; current.playing = false;
+          if (to < len) {
+            if (M.ready) { play(step, to); } else { wait(step, true, to); }
+            return;
+          }
+          render(step, len);
+        }
       });
     }
 
@@ -18245,17 +18311,49 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
       render(step, duration(step));
     }
 
+    /* the waiting frame: the rule of thumb in place, the real count of swaps tried */
+    function renderWait() {
+      M.ensureFly();
+      render(3, T_FLY - 1e-3);
+      view.step = pending ? pending.step : 3;
+      setFigure(dom.figA, { label: 'Swaps tried', value: commas(M.tried()), sub: 'of ' + commas(M.iterations) });
+    }
+
+    function wait(step, animate, from) {
+      stop();
+      pending = { step: step, animate: animate, from: from };
+      renderWait();
+      M.pump();
+    }
+
+    function onSearchProgress() { if (pending) { setFigure(dom.figA, { label: 'Swaps tried', value: commas(M.tried()), sub: 'of ' + commas(M.iterations) }); } }
+
+    function onSearchDone() {
+      fillCaptions();
+      if (!pending) { return; }
+      var p = pending;
+      pending = null;
+      needOptimized();
+      if (p.animate) { play(p.step, p.step === 3 ? p.from : 0); } else { settle(p.step); }
+    }
+
     function goTo(step, dir) {
       step = Math.max(0, Math.min(STEPS, Math.round(step) || 0));
       current.step = step;
-      if (step >= 3) { needOptimized(); }
+      pending = null;
       var animate = !fast && (dir > 0 || (dir === 0 && step === 0));
+      if (step >= 3 && !M.ready) {
+        if (fast) { M.finishNow(); }
+        else if (step === 3 && animate) { M.ensureFly(); M.pump(); play(3, 0); return; }
+        else { wait(step, animate, 0); return; }
+      }
+      if (step >= 3) { needOptimized(); }
       if (animate) { play(step); } else { settle(step); }
     }
 
     fitAll();
     fillCaptions();
-    M.whenReady(fillCaptions);
+    var unlisten = [M.whenReady(onSearchDone), M.onProgress(onSearchProgress)];
     // fonts arriving late change nothing on the canvases (all text is DOM), so there is no redraw to schedule
 
     return {
@@ -18264,17 +18362,21 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
         fitAll();
         keys.struct = null;
         keys.dots = null;
-        render(view.step, view.t);
+        if (pending) { renderWait(); } else { render(view.step, view.t); }
       },
       destroy: function () {
         stop();
+        pending = null;
+        // the search itself carries on (it is shared, and wanted when the slide comes back); this mount stops listening
+        unlisten.forEach(function (fn) { fn(); });
         if (dark && slideEl) { slideEl.classList.remove('on-ink'); }
         if (root.parentNode) { root.parentNode.removeChild(root); }
       },
       /* for tests and screenshots */
       debug: function () {
         return {
-          step: view.step, t: view.t, playing: current.playing, ready: M.ready,
+          step: view.step, t: view.t, playing: current.playing, ready: M.ready, waiting: !!pending,
+          triedSoFar: M.tried(),
           durations: [0, 1, 2, 3, 4, 5, 6].map(function (s) { if (s >= 3 && !M.ready) { return null; } if (s >= 3) { needOptimized(); } return duration(s); }),
           timings: { fly: T_FLY, search: T_SEARCH, rain: RAIN, structure: T_IN + T_STRUCT },
           totals: world.totals,
@@ -18285,7 +18387,7 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
         };
       },
       /* draw any moment of any step (seconds into the step); used for frame capture */
-      seek: function (step, t) { stop(); current.step = step; if (step >= 3) { needOptimized(); } render(step, Math.max(0, Math.min(duration(step), t))); }
+      seek: function (step, t) { stop(); pending = null; current.step = step; if (step >= 3) { M.finishNow(); needOptimized(); } render(step, Math.max(0, Math.min(duration(step), t))); }
     };
   });
 }());
@@ -18336,10 +18438,11 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
  * Motion is used for the walkthrough's timing when it is there; the live
  * scorecard needs neither Motion nor THEME.
  *
- * What is typed: on the stage it is kept in memory only, so it survives
- * leaving the slide and coming back, and a reload of the deck starts from the
- * examples again (no surprises from a rehearsal). The page passes
- * persist: 'local' and keeps it in the browser's local storage when it can.
+ * What is typed: on the stage it is kept in memory and in this browser tab's
+ * session storage (key STORE_KEY + ':stage'), so it survives leaving the
+ * slide and coming back and a reload of the deck; a new tab or window starts
+ * from the examples, and Reset forgets it. The page passes persist: 'local'
+ * and keeps it in the browser's local storage when it can.
  *
  * For tests (tools/test-screener.js) every instance exposes:
  *   snapshot()            { candidates, assumptions, selected, rulesOpen }: exactly what is handed to Gates
@@ -18650,6 +18753,8 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
 .scr--stage .scr-result-main span { font-size: 32px; font-weight: 600; }
 .scr--stage .scr-result-sub { margin-top: 2px; font-size: 32px; line-height: 34px; font-weight: 600; font-stretch: 87.5%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .scr--stage .scr-result[data-outcome="no"] .scr-result-main span { font-size: 36px; }
+.scr--stage .scr-result[data-fit="tight"] .scr-result-main .scr-d { font-size: 44px; }
+.scr--stage .scr-result[data-fit="tight"] .scr-result-main span { font-size: 28px; }
 
 /* the candidate being edited: two posts and a lintel that run into the editor's frame */
 .scr--stage .scr-sel { position: absolute; top: 0; width: 496px; height: 484px; border: 6px solid var(--c-ink); border-bottom: 0; pointer-events: none; z-index: 3; }
@@ -18715,9 +18820,10 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
 .scr--page .scr-rlabel { align-self: center; padding-right: 0.25rem; }
 .scr--page .scr-result { padding: 0.5rem 0.3rem; margin: 0.25rem 0.1rem; }
 .scr--page .scr-result-main { display: flex; flex-direction: column; }
-.scr--page .scr-result-main .scr-d { font-size: 1.45rem; line-height: 1; }
+.scr--page .scr-result-main .scr-d { font-size: 1.45rem; line-height: 1; white-space: nowrap; }
 .scr--page .scr-result-main span { font-size: 0.72rem; line-height: 1.2; font-weight: 600; }
 .scr--page .scr-result-sub { display: none; font-size: 0.72rem; line-height: 1.25; font-weight: 600; margin-top: 0.2rem; }
+.scr--page .scr-result[data-fit="tight"] .scr-result-main .scr-d { font-size: 1.1rem; }
 
 /* the verdict for the candidate in hand, kept in view while its numbers are edited */
 .scr--page .scr-bar { position: sticky; bottom: 0; z-index: 5; display: flex; gap: 0.75rem; align-items: center; margin: 1.25rem -1rem 0; padding: 0.6rem 1rem; background: var(--c-ink); color: var(--c-bg); }
@@ -19178,32 +19284,52 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
 
   /* The number controls of one candidate. `step` is what one press of - or + changes. */
   var FIELDS = [
-    { key: 'minutesPerRun',         label: 'Minutes saved each time',  step: 1 },
-    { key: 'runsPerWeek',           label: 'Times a week',             step: 5 },
+    { key: 'minutesPerRun',         label: 'Minutes saved each time',  step: 1,   max: 480 },
+    { key: 'runsPerWeek',           label: 'Times a week',             step: 5,   max: 10000 },
     { key: 'tier',                  label: 'What runs it',             type: 'cycle' },
-    { key: 'toolsPerMonth',         label: 'Tools, a month',           step: 10, pre: '$' },
-    { key: 'buildHours',            label: 'Build and rollout hours',  step: 4 },
-    { key: 'upkeepHoursPerMonth',   label: 'Upkeep hours a month',     step: 0.5 },
-    { key: 'growth',                label: 'Growth over a year',       step: 0.1, post: TIMES },
+    { key: 'toolsPerMonth',         label: 'Tools, a month',           step: 10,  max: 100000, pre: '$' },
+    { key: 'buildHours',            label: 'Build and rollout hours',  step: 4,   max: 10000 },
+    { key: 'upkeepHoursPerMonth',   label: 'Upkeep hours a month',     step: 0.5, max: 500 },
+    { key: 'growth',                label: 'Growth over a year',       step: 0.1, max: 10, post: TIMES },
     { key: 'ownerNamed',            label: 'Owner for the freed time', type: 'yesno' },
     { key: 'lens',                  label: 'Product or service',       type: 'lens' },
     { key: 'touchesCashPath',       label: 'On the cash path',         type: 'yesno', lens: 'product' },
-    { key: 'daysOffCashCycle',      label: 'Days off the cash cycle',  step: 1, lens: 'product', cash: true },
-    { key: 'capacityConversion',    label: 'Becomes paid work',        step: 10, post: '%', share: true, lens: 'service' },
-    { key: 'billableMarginPerHour', label: 'Margin per billable hour', step: 5, pre: '$', lens: 'service' }
+    { key: 'daysOffCashCycle',      label: 'Days off the cash cycle',  step: 1,   max: 365, lens: 'product', cash: true },
+    { key: 'capacityConversion',    label: 'Becomes paid work',        step: 10,  max: 100, post: '%', share: true, lens: 'service' },
+    { key: 'billableMarginPerHour', label: 'Margin per billable hour', step: 5,   max: 1000, pre: '$', lens: 'service' }
   ];
 
   /* The house rules and the rates behind them. `path` is group.key in the assumptions Gates takes. */
   var RULES = [
-    { path: 'houseRules.costMaxShareOfReturn', label: 'Cost limit, of return',  step: 5, post: '%', share: true },
-    { path: 'houseRules.minReturnPerYear',     label: 'Return floor, a year',   step: 500, pre: '$' },
-    { path: 'houseRules.maxPaybackWeeks',      label: 'Payback limit, weeks',   step: 1 },
-    { path: 'houseRules.minGrowth',            label: 'Growth minimum',         step: 0.1, post: TIMES },
-    { path: 'rates.loadedHourly',              label: 'Staff time, an hour',    step: 5, pre: '$' },
-    { path: 'rates.builderHourly',             label: 'Builder time, an hour',  step: 5, pre: '$' },
-    { path: 'rates.workWeeks',                 label: 'Working weeks a year',   step: 1 },
-    { path: 'company.annualRevenue',           label: 'Sales a year',           step: 1000000, pre: '$' }
+    { path: 'houseRules.costMaxShareOfReturn', label: 'Cost limit, of return',  step: 5,       max: 100, post: '%', share: true },
+    { path: 'houseRules.minReturnPerYear',     label: 'Return floor, a year',   step: 500,     max: 10000000, pre: '$' },
+    { path: 'houseRules.maxPaybackWeeks',      label: 'Payback limit, weeks',   step: 1,       max: 520 },
+    { path: 'houseRules.minGrowth',            label: 'Growth minimum',         step: 0.1,     max: 10, post: TIMES },
+    { path: 'rates.loadedHourly',              label: 'Staff time, an hour',    step: 5,       max: 1000, pre: '$' },
+    { path: 'rates.builderHourly',             label: 'Builder time, an hour',  step: 5,       max: 1000, pre: '$' },
+    { path: 'rates.workWeeks',                 label: 'Working weeks a year',   step: 1,       max: 52 },
+    { path: 'company.annualRevenue',           label: 'Sales a year',           step: 1000000, max: 100000000000, pre: '$' }
   ];
+
+  /*
+   * Every number box has a generous ceiling (`max`, in the units the box shows:
+   * a share box counts in percent) and a floor of zero, so a slip such as 9999
+   * minutes cannot put a nine-figure result on the projector. A typed figure
+   * past either end counts as the end at once and the box shows it when the
+   * entry is committed (Enter or leaving the box). Anything that is not a plain
+   * number is left exactly as typed, for Gates to point out.
+   */
+  function clampText(text, spec) {
+    var s = String(text == null ? '' : text);
+    if (!spec || typeof spec.max !== 'number' || s.trim() === '') { return s; }
+    var n = Number(s.replace(/[$,%\s\u00d7x]/gi, ''));
+    if (!isFinite(n)) { return s; }
+    if (n > spec.max) { return cm().number(spec.max); }
+    if (n < 0) { return '0'; }
+    return s;
+  }
+
+  var GUARD_MS = 1500;   // after Enter commits a box, a reflex Escape within this long is swallowed
 
   var memory = {};   // live state kept while the page is open, per layout, so leaving a slide does not lose it
 
@@ -19244,8 +19370,12 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
     var G = gates();
     var CM = cm();
     var layout = opts.layout === 'page' ? 'page' : 'stage';
-    var store = storageFor(opts.persist);
-    var memoryKey = layout + ':' + (opts.persist || 'none');
+    // On the stage what is typed is kept for this browser tab (sessionStorage), so a reload mid-exercise
+    // does not lose the room's candidates; Reset forgets it. The page asks for 'local' itself.
+    var persist = opts.persist || (layout === 'stage' ? 'session' : null);
+    var storeKey = layout === 'stage' ? STORE_KEY + ':stage' : STORE_KEY;
+    var store = storageFor(persist);
+    var memoryKey = layout + ':' + (persist || 'none');
     var onChange = typeof opts.onChange === 'function' ? opts.onChange : null;
     var uid = 'scr' + Math.floor(Math.random() * 1e9).toString(36);
 
@@ -19271,10 +19401,10 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
       if (usable(memory[memoryKey])) { return memory[memoryKey]; }
       if (!store) { return null; }
       try {
-        var saved = JSON.parse(store.getItem(STORE_KEY) || 'null');
+        var saved = JSON.parse(store.getItem(storeKey) || 'null');
         if (!saved || saved.v !== 1 || !usable(saved.state)) { return null; }
         // On stage the saved state belongs to one set of examples; if they were edited since, start clean.
-        if (opts.persist === 'session' && saved.signature !== signature) { return null; }
+        if (persist === 'session' && saved.signature !== signature) { return null; }
         var fresh = defaults();
         saved.state.example.forEach(function (isExample, i) { if (isExample) { saved.state.candidates[i] = fresh.candidates[i]; } });
         saved.state.selected = Math.max(0, Math.min(2, Number(saved.state.selected) || 0));
@@ -19286,7 +19416,7 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
     function save() {
       memory[memoryKey] = state;
       if (!store) { return; }
-      try { store.setItem(STORE_KEY, JSON.stringify({ v: 1, signature: signature, state: state })); }
+      try { store.setItem(storeKey, JSON.stringify({ v: 1, signature: signature, state: state })); }
       catch (e) { /* storage full or blocked: the page still works */ }
     }
 
@@ -19421,11 +19551,11 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
       var cand = state.candidates[c];
       var spec = fieldSpec(key);
       if (key === 'name') { cand.name = String(text); }
-      else if (key === 'buildHours') { cand.buildHours = storedValue(text, spec); cand.rolloutHours = 0; }
+      else if (key === 'buildHours') { cand.buildHours = storedValue(clampText(text, spec), spec); cand.rolloutHours = 0; }
       else if (key === 'touchesCashPath' || key === 'ownerNamed') { cand[key] = text === true || text === 'true'; }
       else if (key === 'lens') { cand.lens = text === 'service' ? 'service' : 'product'; }
       else if (key === 'tier') { cand.tier = String(text); }
-      else { cand[key] = storedValue(text, spec); }
+      else { cand[key] = storedValue(clampText(text, spec), spec); }
       state.example[c] = false;
     }
 
@@ -19436,7 +19566,8 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
     function readRule(path) { var p = path.split('.'); return state.assumptions[p[0]][p[1]]; }
     function writeRule(path, text) {
       var p = path.split('.');
-      state.assumptions[p[0]][p[1]] = storedValue(text, ruleSpec(path) || {});
+      var spec = ruleSpec(path) || {};
+      state.assumptions[p[0]][p[1]] = storedValue(clampText(text, spec), spec);
     }
 
     /* ---- drawing ---- */
@@ -19472,6 +19603,33 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
       if (fits(100)) { lo = 100; }
       else { for (var i = 0; i < 7; i++) { var mid = (lo + hi) / 2; if (fits(mid)) { lo = mid; } else { hi = mid; } } }
       inputs.forEach(function (input) { input.style.fontStretch = lo >= 100 ? '' : Math.floor(lo) + '%'; });
+    }
+
+    /*
+     * The two-year figure always fits its box. Written out in full when it
+     * fits ("$1,234,567"); when it does not, the same figure to three
+     * significant figures with its unit ("$45.8B"), which is how money is
+     * written on the slides; and if even that is too wide, a size down
+     * (data-fit="tight"). The full figure stays in the box's title (Gates'
+     * summary). The line under it is fitted the same way.
+     */
+    function fitResults() {
+      qa('.scr-result').forEach(function (box) {
+        var main = box.querySelector('.scr-result-main');
+        var b = main.querySelector('b[data-full]');
+        var sub = box.querySelector('.scr-result-sub');
+        box.removeAttribute('data-fit');
+        if (b) { b.textContent = b.getAttribute('data-full'); }
+        sub.textContent = sub.getAttribute('data-full') || '';
+        if (!box.clientWidth) { return; }                      // not on screen in this layout
+        var over = function (el) { return el.scrollWidth > el.clientWidth + 0.5; };
+        var mainOver = function () { return over(main) || (b && over(b)); };
+        if (b && mainOver()) {
+          b.textContent = b.getAttribute('data-short');
+          if (mainOver()) { box.setAttribute('data-fit', 'tight'); }
+        }
+        if (sub.getAttribute('data-short') && sub.clientWidth && over(sub)) { sub.textContent = sub.getAttribute('data-short'); }
+      });
     }
 
     function renderEditor() {
@@ -19575,23 +19733,27 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
         if (r.verdict === 'YES') {
           anyWinner = anyWinner || r.winner;
           box.setAttribute('data-outcome', r.winner ? 'winner' : 'pass');
-          main.innerHTML = '<b class="scr-d">' + esc(CM.money(r.twoYearValue)) + '</b><span>over two years</span>';
+          main.innerHTML = '<b class="scr-d" data-full="' + esc(CM.money(r.twoYearValue)) + '" data-short="' + esc(CM.shortMoney(r.twoYearValue)) + '"></b><span>over two years</span>';
           if (r.cashFreed > 0) {
             var cash = aboutFigure(r.cashFreed);
-            sub.textContent = 'Frees ' + (cash.about ? 'about ' : '') + cash.text + ', one time';
+            sub.setAttribute('data-full', 'Frees ' + (cash.about ? 'about ' : '') + cash.text + ', one time');
+            sub.setAttribute('data-short', 'Frees about ' + CM.shortMoney(r.cashFreed) + ', one time');
           } else {
-            sub.textContent = 'Pays back in ' + G.formatWeeks(r.paybackWeeks);
+            sub.setAttribute('data-full', 'Pays back in ' + G.formatWeeks(r.paybackWeeks));
+            sub.removeAttribute('data-short');
           }
         } else {
           box.setAttribute('data-outcome', 'no');
           main.innerHTML = '<span>Out at ' + esc(r.gates[r.firstNo].label) + '</span>';
-          sub.textContent = '';
+          sub.removeAttribute('data-full');
+          sub.removeAttribute('data-short');
         }
         box.setAttribute('data-two-year', String(r.twoYearValue));
         box.title = r.summary;
       });
 
       fitNames();
+      fitResults();
       q('.scr-rlabel').textContent = anyWinner ? 'The math picks' : 'Nothing passes';
       if (layout === 'stage') { selBox.style.left = (248 + state.selected * 496) + 'px'; }
 
@@ -19665,7 +19827,7 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
       var input = ctl.querySelector('input');
       var spec = input.hasAttribute('data-rule') ? ruleSpec(key) : fieldSpec(key);
       var next = Math.max(0, CM.tidy(looseNumber(input.value) + dir * (spec.step || 1)));
-      if (spec.share) { next = Math.min(100, next); }
+      if (typeof spec.max === 'number') { next = Math.min(spec.max, next); }
       input.value = CM.number(next);
       sizeInput(input);
       if (input.hasAttribute('data-rule')) { writeRule(key, input.value); } else { writeField(state.selected, key, input.value); }
@@ -19692,8 +19854,49 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
       if (act === 'rules') { state.rulesOpen = !state.rulesOpen; renderRules(); }
     }
 
+    /*
+     * Keys in a box. Enter commits it and hands the keyboard back to the deck,
+     * so the arrows move on again. Escape in a box does nothing at all: the
+     * engine never sees it. And because a reflex Escape just after Enter would
+     * otherwise reach the deck and put the overview grid on the projector, the
+     * first key after Enter, if it is Escape and comes within GUARD_MS, is
+     * swallowed too (guardKeys, listening on the window before the engine).
+     */
+    var guardUntil = 0;
     function onKeyDown(e) {
-      if (e.key === 'Enter' && e.target && e.target.tagName === 'INPUT' && e.target.blur) { e.target.blur(); }
+      var t = e.target;
+      if (!t || t.tagName !== 'INPUT') { return; }
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); return; }
+      if (e.key === 'Enter' && t.blur) {
+        e.preventDefault();
+        e.stopPropagation();
+        t.blur();
+        guardUntil = Date.now() + GUARD_MS;
+      }
+    }
+
+    var LONE_KEYS = { Shift: 1, Control: 1, Alt: 1, AltGraph: 1, Meta: 1, CapsLock: 1 };
+    function guardKeys(e) {
+      if (!guardUntil || LONE_KEYS[e.key]) { return; }
+      var live = Date.now() < guardUntil;
+      guardUntil = 0;                                         // only the first key after Enter
+      if (live && e.key === 'Escape' && !(e.target && e.target.tagName === 'INPUT' && root.contains(e.target))) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      }
+    }
+
+    /* Committing a box (Enter, or leaving it) shows the figure that counts: past a ceiling, the ceiling. */
+    function onFocusOut(e) {
+      var t = e.target;
+      if (!t || t.tagName !== 'INPUT' || !t.hasAttribute('inputmode')) { return; }
+      if (t.hasAttribute('data-rule')) {
+        var path = t.getAttribute('data-rule');
+        t.value = shownValue(readRule(path), ruleSpec(path));
+      } else if (t.hasAttribute('data-field') && !t.hasAttribute('data-cand')) {
+        t.value = shownField(state.candidates[state.selected], fieldSpec(t.getAttribute('data-field')));
+      } else { return; }
+      sizeInput(t);
     }
 
     function onFocusIn(e) {
@@ -19714,7 +19917,7 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
     function reset() {
       state = defaults();
       memory[memoryKey] = state;
-      if (store) { try { store.removeItem(STORE_KEY); } catch (e) { /* nothing to remove */ } }
+      if (store) { try { store.removeItem(storeKey); } catch (e) { /* nothing to remove */ } }
       if (doc.activeElement && root.contains(doc.activeElement) && doc.activeElement.blur) { doc.activeElement.blur(); }
       renderAll();
     }
@@ -19723,13 +19926,15 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
     root.addEventListener('click', onClick);
     root.addEventListener('focusin', onFocusIn);
     root.addEventListener('keydown', onKeyDown);
+    root.addEventListener('focusout', onFocusOut);
+    window.addEventListener('keydown', guardKeys, true);
     renderAll();
-    whenFontsReady(function () { if (root.parentNode) { fitNames(); } });
-    var onResize = function () { fitNames(); };
+    whenFontsReady(function () { if (root.parentNode) { fitNames(); fitResults(); } });
+    var onResize = function () { fitNames(); fitResults(); };
     if (layout === 'page') { window.addEventListener('resize', onResize); }
 
     return {
-      step: function () { fitNames(); },
+      step: function () { fitNames(); fitResults(); },
       resize: onResize,
       destroy: function () {
         window.removeEventListener('resize', onResize);
@@ -19737,6 +19942,8 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
         root.removeEventListener('click', onClick);
         root.removeEventListener('focusin', onFocusIn);
         root.removeEventListener('keydown', onKeyDown);
+        root.removeEventListener('focusout', onFocusOut);
+        window.removeEventListener('keydown', guardKeys, true);
         if (root.parentNode) { root.parentNode.removeChild(root); }
       },
       // for tests and for the page around it

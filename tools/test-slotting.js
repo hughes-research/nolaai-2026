@@ -739,6 +739,8 @@ async function testSlide(S, r) {
     var playing = await live.evaluate(function () { var d = window.__deck.scene('warehouse').debug(); return d.playing && d.t > 0 && d.t < d.durations[0]; });
     ok(playing, 'on entry (real clock) the building draws itself');
     for (var press = 0; press < 6; press++) { await live.keyboard.press('ArrowRight'); await live.waitForTimeout(60); }   // a speaker in a hurry
+    // cold, the search may still be running in slices: the slide waits for it (it never blocks), then lands
+    await live.waitForFunction(function () { var d = window.__deck.scene('warehouse').debug(); return d.ready && !d.waiting; }, null, { timeout: 30000 });
     await live.waitForTimeout(1200);
     var hurried = await live.evaluate(function () {
       var d = window.__deck.scene('warehouse').debug();
