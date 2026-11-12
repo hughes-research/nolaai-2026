@@ -62,3 +62,15 @@ You are not done when the code runs. You are done when you have looked at it.
 5. Run `node tools/test-engine.js` once at the end to confirm you broke nothing.
 
 Report honestly at the end: what works, what you verified by looking, what you could not verify, and anything in the brief you deviated from and why.
+
+## Engine facts worth knowing (from the engine builder's report)
+
+- **Hook order.** `enter(ctx)` runs before step visibility is applied and before scenes mount, so it may add `data-step` and `data-scene` markup. A slide's own `step()` fires on changes only, not on entry. `exit()` runs when the outgoing slide is removed at the end of the transition. Scenes get `step(currentStep, 0)` once on mount.
+- **Thumbnails** in the overview and presenter view are built from a slide's `html` only. Markup added in `enter()` will not appear there, and scenes show as labelled boxes. Put anything that should be recognisable in the overview into `html`.
+- **Counters.** `data-count-format="%d"` is a plain integer; a percent sign is written as a trailing `%` (as in `d%`) and the value is not multiplied by 100. `data-count-duration` is in seconds.
+- **The timer scene** runs on `Motion.now()`, so it counts 20× in `?fast`. Its finished state flashes for about 3 seconds and then holds.
+- **Blackout.** While the screen is black, a next or back key only brings the picture back; it does not also advance.
+- **Demo and kit slides.** `slides/_demo.js` is forced on by `?demo` (the engine tests use it) and `slides/_kit.js` by `?kit`. Neither appears in the talk.
+- **Theme hooks.** The engine exposes one progress tick per slide, the act number and name, where-we-are attributes on the stage, and a fresh `.deck-transition` element per slide change. They are documented at the top of `deck/engine/deck.css`. Engine rules have zero specificity, so ordinary theme rules win.
+- **Numbers that must match between Node and the browser.** `Math.log`, `exp`, `pow`, `sin`, `cos`, `tan`, `atan` and `atan2` differ in the last digit between Node 22 and Chromium on some inputs. `Math.sqrt` and `Math.hypot` do not. Anything that must give identical results on the command line and in the deck (the slotting model above all) avoids those functions or works in integers. `Motion.rng().normal()` is safe: it is a sum of twelve uniform draws.
+- **Not verifiable here:** Safari, Edge and Firefox; real fullscreen; a physical clicker; a real pop-up blocker. Keep to plain, widely supported CSS and JS.
