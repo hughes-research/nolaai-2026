@@ -149,7 +149,7 @@ TIME: 1 minute.
 *2:42:30 · 1.5 min · 1 click · id `gate-cost`*
 
 **SAY:** Gate one. What does it cost to run?  
-Every dot is a model from the BenchLM leaderboard file. 41 of the 50 have a price. Same task for every one: read about a page and a half, write a few paragraphs.  
+Every dot is a model from the BenchLM leaderboard file. 41 of the 50 have a usable price. Same task for every one: read about a page and a half, write a few paragraphs.  
 The cheapest does it for $0.00045. The dearest for $0.15.  
 You look this up before you start. Not after.  
   
@@ -174,16 +174,16 @@ LESSON ONE: at people scale, cost rarely says no. Effort and return decide. Thos
 
 *2:45 · 2 min · 4 clicks · id `cost-record-scale`*
 
-**SAY:** Same task. Not one person this time: 100,000 records, one run each.  
-The small model does the batch for $45. The premium one wants $15,000. Same job. The bars are drawn to scale, which is why you can barely see the first one.  
+**SAY:** Same task. Not one person this time: 100,000 records.  
+Small model: $45. Premium: $15,000. Drawn to scale.  
 LESSON TWO: at record scale, the tool you pick is the whole game. And plain code wins.  
   
-**DO:** Try the volume buttons: 1 record, a thousand, a million. At a million the bars leave the screen.  
+**DO:** Volume buttons if there is time.  
 Click 1: plain code. About zero. No bar to draw.  
-Click 2: every priced model, score against price. 36 of 41 are beaten by something that costs the same or less. (31 by something strictly cheaper, 5 by something at the same price.) Only 5 are on the line.  
-Click 3: from the small model to the mid one, 20× the price buys about 22 points.  
-Click 4: from there to the frontier model, another 4× buys 3.5.  
-Say it plainly: the scores are the file’s own estimates. Hollow dots are the 12 it marks as estimated, and it says rank order is not certain. Talk in tiers, not ranks.  
+Click 2: score against price. 36 of 41 are beaten by something that costs the same or less. Only 5 are on the line.  
+Click 3: small to mid, 20× the price for about 22 points.  
+Click 4: mid to frontier, another 4× for an estimated 3.5.  
+The scores are the file’s own. Hollow dots are the 12 it marks estimated. Talk in tiers, not ranks.  
   
 **NEXT:** So you do not start at the top. You climb only as far as the task makes you.
 
@@ -495,24 +495,19 @@ Nothing on this slide calls a model.
 *3:38:30 · 2.5 min · 2 clicks · id `slotting-results`*
 
 **SAY:** That was a re-creation on made-up data. These are the real numbers, from the runs of Oct 27–28, 2026.  
-        On the left, the as-is move: every part carried across in the order it sits in today. On the right, the layout the tool chose.  
+        Left: the as-is move, every part carried across in today's order. Right: the layout the tool chose.  
   
-        DO: Click once. The four results come in one at a time. Read each one as it lands.  
+        DO: Click once. Read each result as it lands.  
   
-        SAY: Walk per pick run: 133.6 feet down to 91.1. That is 31.8 percent less.  
-        Pick time per year: 32.8 hours down to 17.4. 47.0 percent less.  
-        Picks that need a ladder: 23 percent down to 0.6 percent.  
-        Fast movers in the golden zone: 39 percent up to 100 percent.  
-  
-        SAY: The caveats, out loud. Three things before you write any of that down.  
-        These are measured against the as-is move: every part in its current order. That is the baseline, and it says so on the slide.  
-        The pick times are placeholders. They stand until we do a time study on the floor.  
-        And they are for the pack station we chose. Move the pack station and the numbers move.  
+        SAY: The caveats, out loud, before anyone writes these down.  
+        The baseline is the as-is move. It says so on the slide.  
+        The pick times are placeholders until we do a time study on the floor.  
+        And they hold for the pack station we chose. Move it and the numbers move.  
   
         DO: Click once more for the old building.  
   
-        SAY: Against the old building as it runs today: 12.3 percent less walking and 22.7 percent less pick time. In a bigger building.  
-        One more caveat, and it is on the slide: the old building's floor plan is an estimate.  
+        SAY: Against the old building as it runs today: 12.3 percent less walking, 22.7 percent less pick time. In a bigger building.  
+        The old building's floor plan is an estimate. That is on the slide too.  
   
         NEXT: It did not come out like that the first time. Or the third.
 
@@ -521,26 +516,23 @@ Nothing on this slide calls a model.
 *3:41 · 2.5 min · 3 clicks · id `seven-attempts`*
 
 **SAY:** This is what the work actually looked like. Seven attempts.  
-        The line is the old building. Above it is less walking than we do today. Below it is more.  
+        The line is the old building. Above it: less walking than today. Below it: more.  
   
-        DO: Click once for the first three.  
+        DO: Click once for the first three. Read them as they land.  
   
-        SAY: Attempt 1: evolve layouts. −8.8%. Attempt 2: match parts to slots one by one. −27.2%. Retired. Attempt 3: exact optimizer. −34.4%. Retired.  
-        Three attempts in, we were losing to the old building. And the fancier the math got, the worse it did.  
-        We retired two of them.  
+        SAY: Three attempts in, we were losing to the old building. The fancier the math got, the worse it did. We retired two of them.  
   
         YOUR STORY: what made you keep going after three losses.  
   
-        DO: Click once for the climb.  
+        DO: Click once for the climb. Read the four bars as they land.  
   
-        SAY: Attempt 4: add “ordered together” and annealing. +3.5%. Attempt 5: score by replaying real orders. +7.9%. Attempt 6: mine order patterns, weight recent ones. +11%. Attempt 7: ten different starting points. +16.4%.  
-        The gains came from measuring real orders, not from fancier solvers.  
+        SAY: The gains came from measuring real orders, not from fancier solvers.  
   
         DO: Click once for three lines from our own experiment log.  
   
-        SAY: Marked our own number down: 13.1% became 11.0%. One ruler said 26%. We reported 15%. A bug said 220%. We called it nonsense and fixed it.  
-        The first one: we found placements that could not physically happen, so we marked our own headline down.  
-        The second: two ways of measuring the same layout disagreed, and we reported the lower one.  
+        SAY: We found placements that could not physically happen, so we marked our own headline down.  
+        Two ways of measuring the same layout disagreed. We reported the lower one.  
+        And a bug once said 220 percent. We called it nonsense and fixed it.  
   
         NEXT: That is the building of it. Now the part this talk is named after.
 
@@ -576,7 +568,7 @@ Nothing on this slide calls a model.
         DO: Click once for the thought experiment.  
   
         SAY: Now pretend every one of those 10 million tries was a call to a model. Same task size I have used all afternoon.  
-        Small model: $4,500 for one run. Frontier model: $360,000 for one run. Premium "pro" model: $1,500,000 for one run.  
+        Small model: $4,500 for one run. Frontier model: $360,000 for one run. Premium “pro” model: $1,500,000 for one run.  
         Plain code: the electricity.  
         Nobody would build it this way. That is the point. It is the wrong tool for the job, and the cost gate tells you so before you start.  
   
@@ -588,29 +580,20 @@ Nothing on this slide calls a model.
 
 ## 32. My own project, through my own gates
 
-*3:47:30 · 2 min · 3 clicks · id `slotting-scorecard`*
+*3:47:30 · 2.5 min · 3 clicks · id `slotting-scorecard`*
 
-**SAY:** Now the uncomfortable part. My own favourite project, through my own four gates, in front of you.  
+**SAY:** Now the uncomfortable part. My own favorite project, through my own four gates.  
   
-        DO: Click once for Cost.  
+        DO: Click: Cost. SAY: $0 to run. No model runs when it runs. Pass.  
   
-        SAY: Cost. $0 to run. No model runs when it runs. Pass.  
+        DO: Click: Return. SAY: On minutes alone it saves 15.4 pick hours a year. At $30 an hour, $462.  
+        My own rule says under $5,000 a year is a no. So on minutes alone: no. I would be telling you so.  
   
-        DO: Click once for Return.  
+        DO: Click: the bigger return.  
   
-        SAY: Return, on minutes alone. The tool saves 15.4 pick hours a year. At $30 an hour that is $462.  
-        My own house rule says under $5,000 a year is a no. So on minutes alone: no.  
-        If minutes were the whole story, this project stops at gate two, and I would be telling you so.  
+        YOUR STORY: the bigger return. The move is the one free re-slot: every part moved anyway, so it was never automate or not. It was guess or calculate.  
   
-        DO: Click once for the bigger return.  
-  
-        YOUR STORY: the bigger return. The move is the one free re-slot: every part was moving anyway, so the choice was never automate or not. It was guess or calculate. Say what calculating was worth, in your own numbers.  
-  
-        YOUR STORY: effort. What it took to build, and what it takes to keep alive.  
-  
-        YOUR STORY: potential. Where it goes next.  
-  
-        SAY: The minutes said no. The move said yes.  
+        YOUR STORY: effort, and where it goes next.  
   
         NEXT: We just got the minutes back. So who owns them?
 
@@ -620,7 +603,7 @@ Nothing on this slide calls a model.
 
 ## 33. Who owns the minutes?
 
-*3:49:30 · 30 sec · 1 click · id `who-owns`*
+*3:50 · 30 sec · 1 click · id `who-owns`*
 
 **SAY:** That was the build. The minutes came back.  
       Now the part a business case usually skips.  
@@ -632,36 +615,36 @@ Nothing on this slide calls a model.
 
 ## 34. The objection
 
-*3:50 · 1.5 min · 1 click · id `the-objection`*
+*3:50:30 · 1.5 min · 1 click · id `the-objection`*
 
-**SAY:** “My people will just waste the time.” It's a fair worry. I'm not making fun of it.  
-      But the sentence isn't about the tool. The tool did its job. It handed back minutes.  
-      What the minutes turn into is our call. Freed time is a management decision.  
-      If nobody decides, the time leaks away. That isn't the AI failing. That's us not managing.  
+**SAY:** “My people will just waste the time.” A fair worry.  
+      But the tool did its job. It handed back minutes.  
+      What they turn into is a management decision.  
+      If nobody decides, the time leaks away. That's on us, not the AI.  
   
-      DO: Read the objection out loud. Click. Let the answer land before you speak.  
+      DO: Read the objection out loud. Click. Let the answer land, then speak.  
   
       NEXT: So what does managing it look like? Three things. My view, not a study.
 
 ## 35. Share the gain
 
-*3:51:30 · 2 min · 4 clicks · id `share-the-gain`*
+*3:52 · 2 min · 4 clicks · id `share-the-gain`*
 
-**SAY:** This is my view, not a study. Freed time is a management decision.  
-      One. Name the goal. Decide what the hours are for before the tool ships.  
+**SAY:** My view, not a study.  
+      One. Name the goal: decide what the freed hours are for.  
       Two. Measure it, the way we measured the minutes.  
-      Three. Share the upside: income, a bonus, or an ownership stake, tied to growth.  
+      Three. Share the upside: income, a bonus or an ownership stake, tied to growth.  
       People content with the status quo are not who you build around.  
   
-      DO: One click per beat. One more for the last line: read it off the screen.  
+      DO: One click per beat, one more for the last line.  
   
-      YOUR STORY: how the gain is shared where you work.  
+      YOUR STORY: how you share the gain at work.  
   
-      NEXT: To share a gain you have to prove it. Back to Waypoint.
+      NEXT: A shared gain needs proof. Back to Waypoint.
 
 ## 36. The Waypoint standard
 
-*3:53:30 · 1 min · 1 click · id `waypoint-standard`*
+*3:54 · 1 min · 1 click · id `waypoint-standard`*
 
 **SAY:** You saw these four at the start. It's the Waypoint standard.  
       The task. The prompt. The output. The time saved.  
@@ -675,7 +658,7 @@ Nothing on this slide calls a model.
 
 ## 37. Monday morning
 
-*3:54:30 · 1 min · 3 clicks · id `monday`*
+*3:55 · 1 min · 3 clicks · id `monday`*
 
 **SAY:** Three things. You already hold the worksheet for the first two.  
       One. Inventory two weeks of real work. You started today. Finish it.  
@@ -689,24 +672,24 @@ Nothing on this slide calls a model.
 
 ## 38. Close: say yes to the math
 
-*3:55:30 · 1 min · 3 clicks · id `close`*
+*3:56 · 1 min · 3 clicks · id `close`*
 
-**SAY:** Shannon again. Same page, 1956. His sentence, as he wrote it.  
-      (click) The same swap we made at the start. Our edit, not his.  
+**SAY:** Shannon again. His sentence, as he wrote it.  
+      (click) The swap we made at the start. Our edit, not his.  
       He said it in 1956. Find the few.  
       (click) Say no to the exciting.  
       (click) Say yes to the math.  
   
       DO: Read his sentence.  
-      Click: our edit. Read it again with the swap.  
-      Click: say line one. The screen goes black for one second. Say nothing.  
-      Click: say line two. Hands off the clicker until THE MATH lands.  
+      Click: our edit.  
+      Click: line one. The stage flips to black for one second. Say nothing.  
+      Click: line two. Hands off the clicker until THE MATH lands.  
   
       NEXT: Thank you.
 
 ## 39. Thank you. Questions.
 
-*3:56:30 · 3 min · 0 clicks · id `thanks`*
+*3:57 · 3 min · 0 clicks · id `thanks`*
 
 **SAY:** Thank you.  
       I'm Dustin T Hughes, VP of Technology, Laborde Products.  

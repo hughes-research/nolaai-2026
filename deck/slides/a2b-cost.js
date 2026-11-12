@@ -85,6 +85,7 @@
       n.up1pts = CM.number(CM.roundTo(a.scoreGain, 0));
       n.up2 = CM.ratio(b.priceRatio);
       n.up2pts = CM.number(CM.roundTo(b.scoreGain, 1));
+      if (b.estimated) { n.up2pts = 'an estimated ' + n.up2pts; }
     }
   }
 
@@ -108,7 +109,7 @@
       '<p class="source-line">' + esc(copy.ladderSource) + '</p>',
     notes: [
       'SAY: Gate one. What does it cost to run?',
-      'Every dot is a model from the BenchLM leaderboard file. ' + n.priced + ' of the ' + n.rows + ' have a price. Same task for every one: ' + n.task + '.',
+      'Every dot is a model from the BenchLM leaderboard file. ' + n.priced + ' of the ' + n.rows + ' have a usable price. Same task for every one: ' + n.task + '.',
       'The cheapest does it for ' + n.cheapest + '. The dearest for ' + n.dearest + '.',
       'You look this up before you start. Not after.',
       '',
@@ -158,6 +159,7 @@
     minutes: 2,
     layout: 'chart',
     steps: 4,
+    printSteps: [1, 4],   // the PDF gets the bars with the plain-code punchline, and the scatter
     html:
       gateStrip(1) +
       '<p class="kicker">Gate 1 · Cost · Record scale</p>' +
@@ -167,16 +169,16 @@
       '<p class="source-line cg-swap" data-cg-view="bars" data-step-out="2">' + esc(copy.barsSource) + '</p>' +
       '<p class="source-line cg-swap" data-cg-view="scatter" data-step="2">' + esc(copy.scatterSource) + '</p>',
     notes: [
-      'SAY: Same task. Not one person this time: ' + n.volume + ' records, one run each.',
-      'The small model does the batch for ' + n.small100k + '. The premium one wants ' + n.premium100k + '. Same job. The bars are drawn to scale, which is why you can barely see the first one.',
+      'SAY: Same task. Not one person this time: ' + n.volume + ' records.',
+      'Small model: ' + n.small100k + '. Premium: ' + n.premium100k + '. Drawn to scale.',
       'LESSON TWO: at record scale, the tool you pick is the whole game. And plain code wins.',
       '',
-      'DO: Try the volume buttons: 1 record, a thousand, a million. At a million the bars leave the screen.',
+      'DO: Volume buttons if there is time.',
       'Click 1: plain code. About zero. No bar to draw.',
-      'Click 2: every priced model, score against price. ' + n.sentence + '. (' + n.strict + ' by something strictly cheaper, ' + n.same + ' by something at the same price.) Only ' + n.frontier + ' are on the line.',
-      'Click 3: from the small model to the mid one, ' + n.up1 + ' the price buys about ' + n.up1pts + ' points.',
-      'Click 4: from there to the frontier model, another ' + n.up2 + ' buys ' + n.up2pts + '.',
-      'Say it plainly: the scores are the file’s own estimates. Hollow dots are the ' + n.estimated + ' it marks as estimated, and it says rank order is not certain. Talk in tiers, not ranks.',
+      'Click 2: score against price. ' + n.sentence + '. Only ' + n.frontier + ' are on the line.',
+      'Click 3: small to mid, ' + n.up1 + ' the price for about ' + n.up1pts + ' points.',
+      'Click 4: mid to frontier, another ' + n.up2 + ' for ' + n.up2pts + '.',
+      'The scores are the file’s own. Hollow dots are the ' + n.estimated + ' it marks estimated. Talk in tiers, not ranks.',
       '',
       'NEXT: So you do not start at the top. You climb only as far as the task makes you.'
     ].join('\n')

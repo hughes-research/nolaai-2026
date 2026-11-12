@@ -1283,11 +1283,17 @@ test('?print: every slide at its final step, one per 1920x1080 page, scenes moun
         slides: pg.querySelectorAll('.slide').length
       };
     }));
-    eq(pages.map((x) => x.id), ids, 'one page per slide, in order');
+    // A slide prints once, at its final step, unless it lists printSteps: then it
+    // gets one page per listed step, kept together and in the running order.
+    const order = pages.map((x) => x.id).filter((id, i, all) => i === 0 || all[i - 1] !== id);
+    eq(order, ids, 'every slide is printed, in order, with its extra pages kept together');
     assert(!ids.includes('demo-skipped'), 'skipped slides are not printed');
     for (const pg of pages) {
       eq([pg.w, pg.h, pg.opacity, pg.slides], [1920, 1080, '1', 1], pg.id + ' page');
-      eq(pg.step, await page.evaluate((id) => window.__deck.stepsOf(id), pg.id), pg.id + ' is at its final step');
+      const last = await page.evaluate((id) => window.__deck.stepsOf(id), pg.id);
+      const copies = pages.filter((x) => x.id === pg.id);
+      if (copies.length === 1) { eq(pg.step, last, pg.id + ' is at its final step'); }
+      else { assert(pg.step >= 0 && pg.step <= last, pg.id + ' prints a step it has (' + pg.step + ' of ' + last + ')'); }
     }
     const detail = await page.evaluate(() => {
       const q = (id, sel) => document.querySelector('.slide[data-slide-id="' + id + '"] ' + sel);
@@ -1311,7 +1317,7 @@ test('?print: every slide at its final step, one per 1920x1080 page, scenes moun
     const pdf = await page.pdf({ width: '1920px', height: '1080px', printBackground: true, preferCSSPageSize: true });
     const raw = pdf.toString('latin1');
     const pageCount = (raw.match(/\/Type\s*\/Page(?![a-zA-Z])/g) || []).length;
-    eq(pageCount, ids.length, 'PDF has one page per slide');
+    eq(pageCount, pages.length, 'PDF has one page per print page');
     // 1920 x 1080 CSS px = 1440 x 810 pt
     const boxes = (raw.match(/\/MediaBox\s*\[[^\]]*\]/g) || []).map((b) => b.replace(/\s+/g, ' '));
     assert(boxes.length > 0 && boxes.every((b) => /\[ ?0 0 1440 810 ?\]/.test(b)), 'every PDF page is 1920x1080 px (1440x810 pt): ' + boxes.slice(0, 2).join(' '));

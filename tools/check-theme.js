@@ -14,9 +14,11 @@
  *   4. The categorical ramp (--c-data-1..5) is in strict lightness order, so
  *      the series can be told apart in greyscale.
  *   5. The heat ramp (--c-heat-0..5) is monotonic in lightness. FAILS if not.
- *   6. Type floors: body 36px, labels 32px, source lines 28px.
+ *   6. Type floors: body 36px, labels 32px, source lines 28px; the Fraunces
+ *      voice 54px or more, weight 600 or more, WONK off (DIRECTION Part 1 s4).
  *   7. Motion tokens exist and are times / curves.
- *   8. deck/theme/fonts.css exists and is under 1.5 MB.
+ *   8. deck/theme/fonts.css exists, is under 1.5 MB, and pins WONK 0 in the
+ *      Fraunces @font-face (canvas text cannot switch the axis off itself).
  *
  * It reads the CSS as text (no browser), resolves var() references between
  * tokens, and exits 1 if anything fails. No dependencies.
@@ -274,6 +276,16 @@ Object.keys(raw).filter(function (n) { return /^--t-/.test(n); }).forEach(functi
   var v = parseFloat(token(n));
   if (!isNaN(v) && v < 28) { fail(n + ' is ' + token(n) + ': nothing on stage is below 28px'); }
 });
+/* the italic second voice: DIRECTION Part 1 section 4 */
+[['--t-voice', 54], ['--t-voice-l', 54], ['--t-quote', 54], ['--wght-voice', 600]].forEach(function (f) {
+  var v = parseFloat(token(f[0]));
+  var t = pad(f[0], 14) + pad(token(f[0]), 8) + '(floor ' + f[1] + ')';
+  if (raw[f[0]] == null) { fail(f[0] + ' is missing'); } else if (v >= f[1]) { pass(t); } else { fail(t); }
+});
+function wonkOff(settings) { return /["']WONK["']\s+0(?![\d.])/.test(settings || ''); }
+var voiceSettings = token('--voice-settings');
+if (wonkOff(voiceSettings)) { pass('--voice-settings switches WONK off (' + voiceSettings + ')'); }
+else { fail('--voice-settings must contain "WONK" 0 (it is ' + voiceSettings + ')'); }
 [['--w-hair', 3], ['--w-rule', 6], ['--w-bold', 8]].forEach(function (f) {
   var v = parseFloat(token(f[0]));
   var t = pad(f[0], 10) + pad(token(f[0]), 8) + '(floor ' + f[1] + 'px)';
@@ -322,6 +334,11 @@ else {
   ['Archivo', 'Fraunces'].forEach(function (family) {
     if (fontsCss.indexOf('font-family: "' + family + '"') === -1) { fail('fonts.css has no @font-face for ' + family); }
   });
+  // the Fraunces face itself must pin WONK 0: a canvas cannot set the axis
+  var frface = /@font-face\s*\{[^}]*font-family:\s*"Fraunces"[^}]*\}/.exec(fontsCss);
+  var frSettings = frface ? (/font-variation-settings:\s*([^;]+);/.exec(frface[0]) || [])[1] : null;
+  if (frface && wonkOff(frSettings)) { pass('the Fraunces @font-face pins WONK 0, so canvas italics match the DOM'); }
+  else { fail('the Fraunces @font-face must carry font-variation-settings with "WONK" 0 (run node tools/build-fonts.js)'); }
 }
 
 /* ------------------------------------------------------------------- output */

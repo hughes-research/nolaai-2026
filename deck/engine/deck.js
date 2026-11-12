@@ -18,6 +18,7 @@
  *                               (default: the highest data-step in the html)
  *     notes: `...`,             speaker notes; blank line = new paragraph
  *     skip() { return false },  true leaves the slide out of the running order
+ *     printSteps: [1, 4],       optional: the steps to put in the PDF (default: the final step only)
  *     enter(ctx) {},            ctx = { el, step, deck }; runs before scenes mount,
  *                               so it may add markup (including data-step / data-scene)
  *     step(ctx, n, dir) {},     n = the new step, dir = +1 | -1 (changes only)
@@ -1915,13 +1916,20 @@
     root.textContent = '';
     ui.root = root;
     slides.forEach(function (slide) {
-      var page = h('div', 'deck-print-page');
-      root.appendChild(page);
-      var rec = mountSlide(slide, slide.steps, page, false);
-      rec.el.classList.add('is-current');
-      void rec.el.offsetWidth;
-      rec.el.classList.remove('no-anim');
-      printed.push(rec);
+      // A slide prints once, at its final step, unless it lists the steps it
+      // wants on paper:  printSteps: [1, 4]  gives two pages, in that order.
+      var ps = slide.def && slide.def.printSteps;
+      var wanted = Array.isArray(ps) && ps.length ? ps : [slide.steps];
+      wanted.forEach(function (n) {
+        var step = Math.max(0, Math.min(slide.steps, Number(n) || 0));
+        var page = h('div', 'deck-print-page');
+        root.appendChild(page);
+        var rec = mountSlide(slide, step, page, false);
+        rec.el.classList.add('is-current');
+        void rec.el.offsetWidth;
+        rec.el.classList.remove('no-anim');
+        printed.push(rec);
+      });
     });
     state.index = slides.length ? 0 : -1;
     state.step = slides.length ? slides[0].steps : 0;

@@ -782,10 +782,15 @@
   font-size: var(--t-quote);
   line-height: 1.2;
   max-width: 1560px;
-  text-indent: -0.44em;        /* the opening quotation mark hangs in the margin */
-  padding-left: 0.44em;
-  margin-left: -0.44em;
+  /* the opening quotation mark hangs into the margin, but never further than
+     24px, so it clears the 88px spine by 16px or more at any size. is-flush
+     sets it on the margin with no hang. */
+  --quote-hang: min(0.3em, 24px);
+  text-indent: calc(var(--quote-hang) * -1);
+  padding-left: var(--quote-hang);
+  margin-left: calc(var(--quote-hang) * -1);
 }
+.quote.is-flush { --quote-hang: 0px; }
 .quote.is-l { font-size: 104px; line-height: 1.14; }
 
 .attribution {
@@ -1063,10 +1068,19 @@ ol.list > li::before {
    Add is-flare to a NO only when that NO is the point of the slide.
 
    Gate logic (binding): after a NO, every later gate stays idle, never PASS.
-   A NO holds the bay vacant for 0.8s before it drops, and its fine print
-   (.gate-why) cuts in 0.9s after it lands; both delays are built in.
+   A NO holds still for 0.8s before it drops, and its fine print (.gate-why)
+   cuts in 0.9s after it lands; both delays are built in. The word NO is
+   printed on impact, never while the shutter is falling.
+   A gate that was under examination (is-shut) when it turns is-no keeps its
+   shutter down through the hold and then punches the rest of the way through
+   the floor: one continuous move, never a blink. THEME marks that gate
+   is-from-shut for you (theme.js watches every .gate), so any scene or slide
+   gets it by changing the class.
    Changing the class plays the move. Add is-still to .dock (or .gate) to
-   place gates with no motion.
+   place gates with no motion. Stepping back is a cut: when a slide steps
+   back, or is entered going back or at a later step, put is-still on the
+   gates you change (the kit's dock, setGates() in deck/slides/_kit.js, shows
+   the pattern: only the gates whose state changes are touched).
 
    Size: set --gw (bay width) and --gh (bay height, lintel to floor) on .dock
    or .gate. Type scales with --gw. .gate.is-s is the small gate: name and
@@ -1240,8 +1254,9 @@ ol.list > li::before {
   font-weight: 700;
   font-stretch: var(--wdth-text);
   line-height: 1.1;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
+  text-wrap: balance;
   visibility: hidden;
 }
 .gate.is-pass > .gate-why,
@@ -1277,6 +1292,7 @@ ol.list > li::before {
 @keyframes gate-lift { from { height: var(--gfull); } }
 @keyframes gate-drop { from { height: 0; } }
 @keyframes gate-shut { from { height: 0; } }
+@keyframes gate-punch { from { height: var(--gfull); } }     /* shut -> NO: already down, through the floor */
 @keyframes cut-in { from { visibility: hidden; } }
 
 .gate.is-shut > .gate-shutter { animation: gate-shut var(--d-drop) var(--e-drop) backwards; }
@@ -1286,6 +1302,8 @@ ol.list > li::before {
 .gate.is-pass > .gate-name::after,
 .gate.is-pass > .gate-why { animation: cut-in var(--d-lift) steps(1, end) backwards; }
 .gate.is-no > .gate-shutter { animation: gate-drop var(--d-drop) var(--e-drop) var(--d-hold-before) backwards; }
+.gate.is-no.is-from-shut > .gate-shutter { animation-name: gate-punch; }
+.gate.is-no > .gate-shutter::after { animation: cut-in calc(var(--d-hold-before) + var(--d-drop)) steps(1, end) backwards; }
 .gate.is-no > .gate-why { animation: cut-in calc(var(--d-hold-before) + var(--d-drop) + var(--d-hold-after)) steps(1, end) backwards; }
 
 .gate.is-still::after,
@@ -1742,6 +1760,8 @@ ol.list > li::before {
 .pair-v > .label { flex: 0 0 100%; margin-bottom: 16px; font-stretch: var(--wdth-label-tight); }
 .pair-v > b { font-weight: inherit; }
 .pair-v > small { font-size: max(var(--t-body), calc(var(--ps) * 0.42)); font-weight: var(--wght-display); text-transform: none; }
+/* a percent sign is part of the figure, not a unit beside it: set it tight */
+.pair-v > small.is-tight { margin-left: -8px; font-size: 0.6em; }
 /* Before and after are the same size and the same weight: the comparison is in
    the numbers. is-hollow draws the "before" figure as an outline; keep it for
    hero sizes (--ps 160px and up), where the outline survives the back row. */
@@ -1869,8 +1889,13 @@ ol.list > li::before {
   border-left: 20px solid var(--c-line);
   border-right: 0;
 }
+/* The point is a Flare block that stays on the grid: it fills its own column
+   (no ear past the margin, no overlap into the gap), so the arrow before it
+   ends in the gap and the label before it keeps its room. Its type is inset
+   by --s-3. The arrowheads sit above any block that does reach under them. */
+.beats > li::after { z-index: 1; }
 .beats > li.is-point {
-  margin: 0 calc(var(--s-3) * -1) 0 calc(var(--s-3) * -1);
+  margin: 0;
   padding: 216px var(--s-3) var(--s-5);
   background: var(--c-accent);
   color: var(--c-accent-ink);
@@ -2262,6 +2287,10 @@ input[type="range"].slider::-moz-range-thumb {
    bar of its own ink lying exactly over the uncovered part; then the bar's
    left edge retreats in an eighth. */
 :where(.slide:not(.layout-demo) [data-anim="pop"]) { position: relative; }
+/* --delay is registered by the engine with inherits: false, so the bar (a
+   pseudo-element) cannot read it. The line hands it on under a name that
+   inherits, and a staggered line keeps its bar until the line opens. */
+.slide:not(.layout-demo) [data-anim="pop"] { --pop-delay: var(--delay, 0s); }
 .slide:not(.layout-demo) [data-anim="pop"].is-visible { clip-path: inset(-0.12em -0.12em -0.12em -0.12em); }
 .slide:not(.layout-demo) [data-anim="pop"]:not(.is-visible) { clip-path: inset(-0.12em 100% -0.12em -0.12em); }
 .slide:not(.layout-demo) [data-anim="pop"]::after {
@@ -2275,7 +2304,7 @@ input[type="range"].slider::-moz-range-thumb {
 }
 .slide:not(.layout-demo) [data-anim="pop"].is-visible::after {
   clip-path: inset(0 0 0 100%);
-  transition: clip-path var(--d-block-out) var(--e-arrive) calc(var(--delay) + var(--d-block-in));
+  transition: clip-path var(--d-block-out) var(--e-arrive) calc(var(--pop-delay, 0s) + var(--d-block-in));
 }
 .slide:not(.layout-demo) .punch[data-anim="pop"]::after,
 .slide:not(.layout-demo) .is-punch[data-anim="pop"]::after,
@@ -2287,16 +2316,22 @@ input[type="range"].slider::-moz-range-thumb {
    spine retreats to 88px. The engine adds a fresh .deck-transition for each
    change and keeps the old slide for --deck-slide-duration. */
 .deck-transition {
+  --sleeve-from: var(--lampblack);     /* the outgoing slide's spine */
+  --sleeve-to: var(--lampblack);       /* the incoming slide's spine */
   display: block;
-  background: var(--lampblack);
+  background: var(--sleeve-to);
   /* two moves on one block: it runs across with gravity, holds, then pulls
-     back fast and stops dead */
+     back fast and stops dead. It covers in the outgoing spine's ink and cuts
+     to the incoming one under full cover, when the slides swap (44%). */
   animation:
     sleeve-cover calc(var(--deck-slide-duration) * 0.38) var(--e-drop) both,
-    sleeve-pull calc(var(--deck-slide-duration) * 0.5) var(--e-arrive) calc(var(--deck-slide-duration) * 0.5) forwards;
+    sleeve-pull calc(var(--deck-slide-duration) * 0.5) var(--e-arrive) calc(var(--deck-slide-duration) * 0.5) forwards,
+    sleeve-ink calc(var(--deck-slide-duration) * 0.44) steps(1, end);
 }
 /* a Lampblack slide has a Card spine, so its sleeve is Card */
-.deck-stage:has(.slide.is-current.on-ink) > .deck-transition { background: var(--card); }
+.deck-stage:has(.slide.is-current.on-ink) > .deck-transition { --sleeve-to: var(--card); }
+.deck-stage:has(.slide.is-leaving.on-ink) > .deck-transition { --sleeve-from: var(--card); }
+@keyframes sleeve-ink { from, to { background-color: var(--sleeve-from); } }
 
 @keyframes sleeve-cover {
   from { clip-path: inset(0 calc(100% - var(--spine-w)) 0 0); }
@@ -2376,6 +2411,14 @@ input[type="range"].slider::-moz-range-thumb {
 .deck-stage:not([data-current-layout="demo"]):has(.slide.is-current.on-ink) > .deck-progress,
 .deck-stage:not([data-current-layout="demo"]):has(.slide.is-current.is-negative) > .deck-progress { color: var(--lampblack); }
 .deck-stage:not([data-current-layout="demo"]):has(.slide.is-current.on-ink.is-negative) > .deck-progress { color: var(--card); }
+/* during a slide change the spine keeps the outgoing slide's ink until the
+   sleeve covers the stage and the slides swap (44%, see sleeve-swap) */
+.deck-stage.is-transitioning:not([data-current-layout="demo"]) > .deck-progress {
+  --spine-from: var(--card);
+  animation: spine-hold calc(var(--deck-slide-duration) * 0.44) steps(1, end);
+}
+.deck-stage.is-transitioning:not([data-current-layout="demo"]):has(.slide.is-leaving.on-ink) > .deck-progress { --spine-from: var(--lampblack); }
+@keyframes spine-hold { from, to { color: var(--spine-from); } }
 
 .deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-num {
   position: absolute;
@@ -2427,7 +2470,7 @@ input[type="range"].slider::-moz-range-thumb {
   height: auto;
   flex-direction: column;
   align-items: stretch;
-  gap: 16px;
+  gap: 28px;                           /* the gap between acts reads as a gap */
 }
 .deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-act {
   flex-basis: 0;
@@ -2447,11 +2490,11 @@ input[type="range"].slider::-moz-range-thumb {
   display: block;
   flex: none;
   width: 10px;
-  height: 3px;
+  height: var(--w-rule);               /* a tick carries meaning: 6px */
   background: currentColor;
 }
 .deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-tick.is-done { width: 16px; }
-.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-tick.is-current { width: 26px; height: 10px; margin: -3.5px 0; }
+.deck-stage:not([data-current-layout="demo"]) > .deck-progress .deck-progress-tick.is-current { width: 26px; height: 12px; margin: -3px 0; }
 
 /* ---- overview (O) ---- */
 html.deck-on .deck-overview { font-family: var(--f-body); }
@@ -2591,6 +2634,9 @@ html.mode-presenter .deck-pv-status[data-status="behind"] {
   font-weight: 600;
   margin-top: var(--s-3);
 }
+/* the keys (T, R) are for the speaker: they are in the notes, not on the
+   audience's screen */
+.deck-stage .timer-hint { display: none; }
 .timer[data-state="paused"] .timer-digits { -webkit-text-stroke-width: 0.02em; }
 
 /* ==========================================================================

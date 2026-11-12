@@ -105,6 +105,7 @@
     rootStyle = null;
     heatStops = null;
     heatStopsInk = null;
+    if (typeof readMotion === 'function') { readMotion(); }
   }
 
   /**
@@ -357,6 +358,39 @@
     bezier: bezier
   };
 
+  /* The numbers above are only the fallbacks for a page without tokens.css.
+   * The real values are read from the tokens, so retiming a token in
+   * tokens.css moves the canvas scenes with the stylesheet. */
+  var MOTION_TOKENS = {
+    fast: '--d-fast', base: '--d-base', slow: '--d-slow',
+    'note.beat': '--beat', 'note.eighth': '--eighth', 'note.sixteenth': '--sixteenth', 'note.swing': '--swing', 'note.bar': '--bar',
+    'dur.blockIn': '--d-block-in', 'dur.blockOut': '--d-block-out', 'dur.voice': '--d-voice', 'dur.lift': '--d-lift',
+    'dur.drop': '--d-drop', 'dur.jolt': '--d-jolt', 'dur.holdBefore': '--d-hold-before', 'dur.holdAfter': '--d-hold-after',
+    'dur.hold': '--d-hold', 'dur.sleeve': '--d-sleeve', 'dur.count': '--d-count'
+  };
+  var EASE_TOKENS = { arrive: '--e-arrive', lift: '--e-lift', drop: '--e-drop' };
+
+  function seconds(text) {
+    var m = /^\s*(-?[\d.]+)\s*(ms|s)\s*$/.exec(String(text || ''));
+    return m ? Number(m[1]) / (m[2] === 'ms' ? 1000 : 1) : null;
+  }
+
+  function readMotion() {
+    Object.keys(MOTION_TOKENS).forEach(function (path) {
+      var v = seconds(color(MOTION_TOKENS[path]));
+      if (v == null || !(v >= 0)) { return; }
+      var parts = path.split('.');
+      if (parts.length === 2) { motion[parts[0]][parts[1]] = v; } else { motion[path] = v; }
+    });
+    Object.keys(EASE_TOKENS).forEach(function (name) {
+      var m = /^cubic-bezier\(([^)]+)\)$/.exec(String(color(EASE_TOKENS[name]) || '').trim());
+      if (!m) { return; }
+      var p = m[1].split(',').map(Number);
+      if (p.length === 4 && p.every(function (n) { return isFinite(n); })) { motion.ease[name] = bezier(p[0], p[1], p[2], p[3]); }
+    });
+  }
+  readMotion();
+
   /* ======================================================================
    * fitStack: the Sleeve signature
    * ----------------------------------------------------------------------
@@ -558,6 +592,7 @@
     lines.forEach(function (l, j) { l.style.marginBottom = (j < n - 1 ? gap.toFixed(2) : 0) + 'px'; });
 
     el.setAttribute('data-fit-done', s);
+    el.setAttribute('data-fit-sig', fitSig(el, measure));
     release();
     return { size: s, pitch: LH * s + gap, widths: widths, measure: measure };
   }
@@ -567,14 +602,26 @@
    * whole document). The theme calls it on slide change, on resize and when
    * the fonts arrive, so slide authors only write the data-fit attribute.
    */
-  function fitAll(root) {
+  function fitAll(root, onlyChanged) {
     var scope = root && root.querySelectorAll ? root : doc;
     var nodes = Array.prototype.slice.call(scope.querySelectorAll('[data-fit]'));
     if (scope !== doc && scope.matches && scope.matches('[data-fit]')) { nodes.unshift(scope); }
+    var fitted = 0;
     nodes.forEach(function (el) {
-      try { fitStack(el); } catch (err) { /* one bad stack must not stop the deck */ }
+      // A stack that is already fitted and whose text and measure have not
+      // changed is left alone. Fitting switches transitions off on the stack
+      // and its lines for one task, which would cut a step reveal that is
+      // starting on one of its lines (data-step + data-anim on a .ln).
+      if (onlyChanged && el.hasAttribute('data-fit-done') && el.getAttribute('data-fit-sig') === fitSig(el)) { return; }
+      try { fitStack(el); fitted++; } catch (err) { /* one bad stack must not stop the deck */ }
     });
-    return nodes.length;
+    return fitted;
+  }
+
+  /* what a fit depends on: the text of each line and the measure */
+  function fitSig(el, measure) {
+    var m = measure || parseFloat(window.getComputedStyle(el).width) || el.clientWidth;
+    return Math.round(m * 10) / 10 + '|' + (el.textContent || '');
   }
 
   /* ---- range inputs ----------------------------------------------------------
@@ -608,10 +655,12 @@
   /* ---- wiring: fit on enter, on resize, when fonts land ------------------- */
 
   var fitQueued = false;
-  function queueFit() {
+  var fitForce = false;
+  function queueFit(force) {
+    if (force === true) { fitForce = true; }
     if (fitQueued) { return; }
     fitQueued = true;
-    var run = function () { fitQueued = false; if (fontsLoaded) { fitAll(doc); } };
+    var run = function () { var all = fitForce; fitQueued = false; fitForce = false; if (fontsLoaded) { fitAll(doc, !all); } };
     if (window.requestAnimationFrame) { window.requestAnimationFrame(run); } else { setTimeout(run, 16); }
   }
 
@@ -640,6 +689,27 @@
         }
       });
       mo.observe(doc.body, { childList: true, subtree: true });
+      // 1b. gates: a gate that was under examination (is-shut) when it turns
+      //     is-no is marked is-from-shut, so components.css keeps its shutter
+      //     down through the hold and punches it through the floor instead of
+      //     blinking it out and dropping a new one. Delivered before the next
+      //     frame (a microtask), so the first painted frame is already right.
+      var gateMo = new MutationObserver(function (records) {
+        var first = [];
+        records.forEach(function (r) {
+          var el = r.target;
+          if (!el.classList || !el.classList.contains('gate')) { return; }
+          if (first.every(function (f) { return f.el !== el; })) { first.push({ el: el, old: ' ' + (r.oldValue || '') + ' ' }); }
+        });
+        first.forEach(function (f) {
+          var c = f.el.classList;
+          // (touch the class only when it must change: writing it, even to the
+          // same value, is a mutation, and would wake this observer again)
+          if (!c.contains('is-no')) { if (c.contains('is-from-shut')) { c.remove('is-from-shut'); } }
+          else if (!c.contains('is-from-shut') && f.old.indexOf(' is-shut ') !== -1 && f.old.indexOf(' is-no ') === -1) { c.add('is-from-shut'); }
+        });
+      });
+      gateMo.observe(doc.body, { attributes: true, attributeFilter: ['class'], attributeOldValue: true, subtree: true });
     }
     // 2. fonts: everything again, properly, once they are in
     whenReady(function () { fitAll(doc); });
@@ -649,12 +719,13 @@
     fillRanges(doc);
     // 3. resize: the fit does not depend on the window, but sub-pixel text
     //    layout does, a little. Refit when the scale settles.
-    window.addEventListener('resize', queueFit);
+    window.addEventListener('resize', function () { queueFit(true); });
     // 4. slide and step changes (a stack revealed by a step is already fitted;
-    //    this catches stacks whose text a slide changed in enter())
+    //    this catches stacks whose text a slide changed in enter() or step(),
+    //    and leaves every unchanged stack alone, so its step reveals play)
     if (window.Deck && typeof window.Deck.on === 'function') {
-      window.Deck.on('change', queueFit);
-      window.Deck.on('start', queueFit);
+      window.Deck.on('change', function () { queueFit(false); });
+      window.Deck.on('start', function () { queueFit(true); });
     }
   }
   if (doc.body) { wire(); } else { doc.addEventListener('DOMContentLoaded', wire); }
@@ -1178,14 +1249,32 @@
 
   /**
    * THEME.draw.slot(ctx, x, y, w, h, opts): a value the speaker has not
-   * supplied. A dashed frame reading YOUR NUMBER. Never draw an invented
-   * figure where one of these belongs.
+   * supplied. A dashed frame on a 16px diagonal screen of the second stock,
+   * reading YOUR NUMBER (the same mark as .slot-yours). Never draw an
+   * invented figure where one of these belongs.
    * opts: { text: 'Your number', size: 32, ground }
    *     if (value == null) { THEME.draw.slot(ctx, x, y, 420, 140); }
    */
   draw.slot = function (ctx, x, y, w, h, opts) {
     var o = opts || {};
     var k = inks(o.ground);
+    ctx.save();
+    // the screen: 16px stripes of the second stock at 135 degrees, every 32px
+    ctx.beginPath();
+    ctx.rect(x, y, w, h);
+    ctx.clip();
+    ctx.fillStyle = k.dark ? color('--lampblack-alt') || k.ground : color('bg-alt');
+    var band = 16 * Math.SQRT2;                      // 16px measured across the stripe
+    for (var sx = x - h; sx < x + w + h; sx += band * 2) {
+      ctx.beginPath();
+      ctx.moveTo(sx, y + h);
+      ctx.lineTo(sx + band, y + h);
+      ctx.lineTo(sx + band + h, y);
+      ctx.lineTo(sx + h, y);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
     ctx.save();
     ctx.strokeStyle = k.ink;
     ctx.lineWidth = 6;
@@ -1204,7 +1293,8 @@
    * in the base inks:
    *   'no'      a solid block + NO
    *   'pass'    a hollow frame with a raised (thick) lintel + PASS
-   *   'notyet'  the frame only, dashed + NOT YET
+   *   'notyet'  the frame only (solid, as .verdict.is-notyet) + NOT YET.
+   *             Dashed frames mean YOUR NUMBER (draw.slot), nothing else.
    * (x, y) is the top-left corner. opts: { size: 64 (height; 48 minimum), word: true,
    * align: 'left' | 'center' | 'right', flare: false (true only when this NO is the
    * point of the slide), ground }
@@ -1234,7 +1324,6 @@
     } else {
       ctx.strokeStyle = k.ink;
       ctx.lineWidth = lw;
-      if (st === 'notyet') { ctx.setLineDash([lw * 2.5, lw * 1.75]); }
       ctx.strokeRect(left + lw / 2, y + lw / 2, w - lw, h - lw);
       if (st === 'pass') {                      // the raised lintel
         ctx.fillStyle = k.ink;
@@ -1356,7 +1445,7 @@
       var bodyInk = st === 'no' ? onShutter : (st === 'shut' ? 'ground' : 'ink');
       if (st === 'pass' && p < 1) { showBody = false; }
       if (showBody) {
-        var numSize = Math.max(28, Math.round(w * 0.066));
+        var numSize = Math.max(KINDS.label.floor, Math.round(w * 0.066));
         if (o.number != null) {
           draw.label(ctx, 'Gate ' + o.number, sx + padX, bodyTop, { kind: 'label', size: numSize, baseline: 'top', ground: o.ground, color: bodyInk });
         }

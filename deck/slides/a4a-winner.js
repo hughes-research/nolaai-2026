@@ -24,6 +24,8 @@
 
   var parts = num(R.parts);
   var slots = num(R.slots);
+  var partsBig = P.numDisplay(R.parts);       // display type: the comma gets air
+  var slotsBig = P.numDisplay(R.slots);
   var ladder = num(R.ladderPctAsIs) + '%';
   var label = esc(R.label || (T && T.tags.laborde) || '');
 
@@ -38,10 +40,11 @@
     minutes: 1,
     layout: 'px-winner',
     html: `
-      <h2 class="say is-l px-winner-say">The winner: where the parts live.</h2>
+      <h2 class="say is-l px-winner-say">The winner:<br>where the parts live.</h2>
+      <span class="tag is-laborde px-tag-tr">${label}</span>
       <p class="sub px-winner-sub" data-px>Warehouse slotting. Nobody pitches this.</p>
       <div class="px-fact" data-step="1">
-        <p class="num px-fact-n"><b>${parts}</b></p>
+        <p class="num px-fact-n"><b>${partsBig}</b></p>
         <p class="px-fact-t">
           <span class="px-fact-t1" data-px>parts were moving to a new building.</span>
           <span class="voice px-fact-t2" data-px>Every one needed an address.</span>
@@ -112,16 +115,17 @@
     minutes: 1.5,
     layout: 'px-problem',
     html: `
-      <h2 class="headline">${parts} parts. ${slots} slots.</h2>
+      <h2 class="headline">${partsBig} parts. ${slotsBig} slots.</h2>
       <div class="px-prob">
         <p class="px-lead" data-step="1" data-px>Move them across in their current order and</p>
         <div class="px-band" data-step="1" data-px>
           <p class="num px-band-n" data-px><b>${ladder}</b></p>
+          <p class="label px-band-src" data-px>${label}</p>
           <p class="px-band-t" data-px>of picks need a ladder.</p>
         </div>
         ${zonesHtml()}
         ${rackHtml()}
-        <span class="tag is-example px-rack-tag" data-px>${esc((T && T.tags.illustration) || 'Illustration, not data')}</span>
+        <span class="tag is-example px-rack-tag" data-px>Rack drawing: illustration</span>
       </div>
       <p class="source-line">${label}</p>
       ${P.driver('rack')}

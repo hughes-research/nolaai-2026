@@ -63,6 +63,21 @@
 
   function isNum(x) { return typeof x === 'number' && isFinite(x); }
 
+  /*
+   * Money that is never rounded into a different number. CostMath.money()
+   * keeps two significant figures under a dollar, so $0.00225 would print as
+   * "$0.0023"; wherever a figure is shown as the file's own (a row value, an
+   * operand of a division, a hover chip) it must be the exact one.
+   */
+  function exactMoney(C, x) {
+    var text = C.money(x);
+    var n = Number(x && x.pricePerRun != null ? x.pricePerRun : x);
+    if (!isNum(n) || n <= 0 || n >= 1) { return text; }
+    var shown = Number(String(text).replace(/[^0-9.]/g, ''));
+    if (Math.abs(shown - n) <= 1e-12 * Math.max(1, n)) { return text; }
+    return '$' + C.number(C.tidy(n));
+  }
+
   function each(list, fn) { Array.prototype.forEach.call(list, fn); }
 
   function theme() { return W.THEME || null; }
@@ -99,6 +114,8 @@
   }
 
   /* Average letter widths in em, measured once in the deck's fonts: the fallback for estimate() below. */
+  var SIGN = { l1: 64, l2: 44, gap: 12, pad: 18 };      // a step-up sign: its two type sizes, the gap between lines, its padding
+  var IN_BAR = 76;                                       // a value printed on its own bar: smaller than the 80px row, so no glyph is cut
   var EM = { num: 0.41, display: 0.45, label: 0.86, name: 0.47, body: 0.52, voice: 0.46 };
   var FONT = {
     num: { weight: 900, stretch: 'extra-condensed', family: 'Archivo' },
@@ -109,6 +126,7 @@
     voice: { weight: 600, stretch: 'normal', family: 'Fraunces', italic: true }
   };
   var ruler = null;
+  var uid = 0;                                           // unique ids for the SVG masks and markers of each drawing
 
   /*
    * The width of a piece of text, in px. Used only to decide where things go
@@ -226,8 +244,8 @@
     '.cg-host :is([data-step], [data-step-only], [data-step-out]) { transition: none; }',
     '.cg-host .cg-a { position: absolute; }',
     '.cg-host .cg-hide { visibility: hidden; }',
-    /* the gate strip's pointer reaches y = 128: start these headlines just under it */
-    ':is([data-slide-id="gate-cost"], [data-slide-id="cost-people-scale"], [data-slide-id="cost-record-scale"], [data-thumb-of="gate-cost"], [data-thumb-of="cost-people-scale"], [data-thumb-of="cost-record-scale"]) > .kicker { margin-bottom: 42px; }',
+    /* the gate strip's pointer reaches y = 128 and these headlines run under it: start their cap line clear of it, at y 160 */
+    ':is([data-slide-id="gate-cost"], [data-slide-id="cost-people-scale"], [data-slide-id="cost-record-scale"], [data-thumb-of="gate-cost"], [data-thumb-of="cost-people-scale"], [data-thumb-of="cost-record-scale"]) > .kicker { margin-bottom: 70px; }',
     /* slide-level pieces that swap with the view of the cost scene */
     '.cg-swap:is([data-step], [data-step-out]):not(.is-visible), .cg-swap.cg-off { display: none; }',
     '.cg-wipe { position: absolute; left: var(--spine-w); top: 0; right: 0; bottom: 0; z-index: 6; background: var(--c-ink); pointer-events: none; }',
@@ -306,9 +324,10 @@
     '.cg-show .cg-row-l > span { font-size: 32px; font-weight: 500; line-height: 1; white-space: nowrap; color: var(--c-ink-soft); }',
     '.cg-show .cg-bar { position: absolute; background: var(--c-ink); }',
     '.cg-show .cg-val { position: absolute; font-size: 96px; }',
-    '.cg-show .cg-val.is-in { color: var(--c-bg); }',
+    '.cg-show .cg-val.is-in { color: var(--c-bg); font-size: ' + IN_BAR + 'px; }',
     '.cg-show .cg-long { position: absolute; color: var(--c-bg); }',
     '.cg-show .cg-whole { position: absolute; display: flex; align-items: center; gap: 22px; }',
+    '.cg-show .cg-whole.is-none .cg-arrow { display: none; }',
     '.cg-show .cg-arrow { position: relative; width: 120px; height: 8px; background: var(--c-ink); flex: none; }',
     '.cg-show .cg-arrow::before { content: ""; position: absolute; left: -2px; top: 50%; translate: 0 -50%; border: 17px solid transparent; border-left: 0; border-right: 26px solid var(--c-ink); }',
     '.cg-show .cg-brk { position: absolute; border: var(--w-rule) solid var(--c-line); border-left: 0; }',
@@ -321,7 +340,7 @@
     '.cg-show .cg-plain > span { display: block; width: max-content; white-space: nowrap; }',
     '.cg-show .cg-plain > span + span { margin-top: 0.12em; }',
     '.cg-show .cg-zero { position: absolute; display: flex; align-items: baseline; gap: 26px; }',
-    '.cg-show .cg-zero > .cg-say { font-size: var(--t-voice-l); }',
+    '.cg-show .cg-zero > .cg-approx { font-size: 180px; }',
     '.cg-show .cg-zero > .cg-num { font-size: 264px; }',
     '.cg-show .cg-nobar { position: absolute; right: 56px; }',
 
@@ -329,7 +348,9 @@
     '.cg-show svg.cg-plot { position: absolute; left: 0; top: 0; overflow: visible; }',
     '.cg-show .cg-ax { stroke: var(--c-line); stroke-width: 6; fill: none; stroke-linecap: square; }',
     '.cg-show .cg-front { stroke: var(--c-ink); stroke-width: 6; fill: none; stroke-linejoin: miter; stroke-linecap: butt; }',
-    '.cg-show .cg-arm { stroke: var(--c-ink); stroke-width: 6; fill: none; stroke-linejoin: miter; stroke-linecap: butt; }',
+    /* a step-up is a comparison, not the frontier: a thinner dashed path that ends in an arrowhead at the dearer dot */
+    '.cg-show .cg-arm { stroke: var(--c-ink); stroke-width: 4; stroke-dasharray: 14 10; fill: none; stroke-linejoin: miter; stroke-linecap: butt; }',
+    '.cg-show .cg-arrowhead { fill: var(--c-ink); }',
     '.cg-show .cg-ring { fill: var(--c-bg); }',
     '.cg-show .cg-pt { fill: var(--c-ink); }',
     '.cg-show .cg-hole { fill: var(--c-bg); }',
@@ -341,13 +362,13 @@
     '.cg-show .cg-tk { position: absolute; }',
     '.cg-show .cg-sign { position: absolute; display: flex; flex-direction: column; align-items: flex-start; padding: 18px 22px 18px; background: var(--c-ink); color: var(--c-bg); font-family: var(--f-display); font-weight: var(--wght-display); font-stretch: var(--wdth-display); line-height: var(--lh-cap); text-transform: uppercase; white-space: nowrap; }',
     '.cg-show .cg-sign.is-point { background: var(--c-accent); color: var(--c-accent-ink); }',
-    '.cg-show .cg-sign > b { font-size: 76px; font-weight: inherit; }',
-    '.cg-show .cg-sign > span { font-size: 52px; margin-top: 14px; }',
-    '.cg-show .cg-legend { position: absolute; left: 40px; right: 56px; bottom: 0; height: 40px; display: flex; align-items: center; gap: 44px; }',
+    '.cg-show .cg-sign > b { font-size: ' + SIGN.l1 + 'px; font-weight: inherit; }',
+    '.cg-show .cg-sign > span { font-size: ' + SIGN.l2 + 'px; margin-top: ' + SIGN.gap + 'px; }',
+    '.cg-show .cg-legend { position: absolute; left: 40px; right: 56px; bottom: 0; height: 40px; display: flex; align-items: center; gap: 36px; }',
     '.cg-show .cg-legend > span { display: flex; align-items: center; gap: 14px; }',
     '.cg-show .cg-legend > .cg-xt { margin-left: auto; }',
     '.cg-show .cg-sw { display: block; width: 28px; height: 28px; border-radius: 50%; background: var(--c-ink); flex: none; }',
-    '.cg-show .cg-sw.is-beaten { background: var(--c-muted); }',
+    '.cg-show .cg-sw.is-beaten { width: 20px; height: 20px; margin: 0 4px; background: var(--c-muted); }',
     '.cg-show .cg-sw.is-est { background: var(--c-bg); border: 7px solid var(--c-ink); }'
   ].join('\n');
 
@@ -465,7 +486,7 @@
     });
 
     L.points.forEach(function (p) {
-      h.push('<i class="cg-dot" data-cg="dot" data-x="' + px(p.x).replace('px', '') + '" data-lift="' + (Math.round(p.lift * 10) / 10) + '" data-name="' + esc(p.m.name) + '" data-price="' + esc(C.money(p.m.pricePerRun)) + '"' +
+      h.push('<i class="cg-dot" data-cg="dot" data-x="' + px(p.x).replace('px', '') + '" data-lift="' + (Math.round(p.lift * 10) / 10) + '" data-name="' + esc(p.m.name) + '" data-price="' + esc(exactMoney(C, p.m.pricePerRun)) + '"' +
         ' style="left:' + px(p.x - LAD.r) + ';bottom:' + px(floor + p.lift) + ';width:' + px(2 * LAD.r) + ';height:' + px(2 * LAD.r) + '"></i>');
     });
 
@@ -482,10 +503,10 @@
     var left = LAD.xCheap - 3;
     var width = LAD.xDear - LAD.xCheap + 6;
     var postHeight = LAD.railBottom - LAD.band;
-    // the bay under the rail is held vacant until the spread lands in it: two posts and a floor
-    h.push('<i class="cg-post" data-cg="post-l" style="left:' + px(left) + ';bottom:0;height:' + px(postHeight + LAD.band) + '"></i>');
-    h.push('<i class="cg-post" data-cg="post-r" style="left:' + px(left + width - 6) + ';bottom:0;height:' + px(postHeight + LAD.band) + '"></i>');
-    h.push('<i class="cg-post" data-cg="floor" style="left:' + px(left) + ';bottom:0;width:' + px(width) + ';height:6px"></i>');
+    // the bay under the rail: two posts and a floor, put up with the click that lands the spread in it (never a resting empty box)
+    h.push('<i class="cg-post"' + step1 + ' data-cg="post-l" style="left:' + px(left) + ';bottom:0;height:' + px(postHeight + LAD.band) + '"></i>');
+    h.push('<i class="cg-post"' + step1 + ' data-cg="post-r" style="left:' + px(left + width - 6) + ';bottom:0;height:' + px(postHeight + LAD.band) + '"></i>');
+    h.push('<i class="cg-post"' + step1 + ' data-cg="floor" style="left:' + px(left) + ';bottom:0;width:' + px(width) + ';height:6px"></i>');
     h.push('<div class="cg-spread"' + step1 + ' data-cg="spread" data-width="' + width + '" style="left:' + px(left) + ';width:' + px(width) + ';height:' + px(LAD.band) + '">' +
       '<div class="cg-spread-in" style="width:' + px(width) + '">' +
       '<div class="cg-num cg-sum" data-cg="sum">' + esc(C.money(L.hi)) + ' ÷ ' + esc(C.money(L.lo)) + ' =</div>' +
@@ -554,9 +575,11 @@
     axis: 469,            // left edge of the axis rule (stage x 557)
     x0: 475,              // bars start here, at the right edge of the axis rule (stage x 563)
     full: 1357,           // from there to the edge of the stage
-    top: 96, rowH: 80, pitch: 94,   // rows start under the 72px control row
-    band: 255             // the plain-code band, at the foot
+    top: 96, rowH: 80, pitch: 90,   // rows start under the 72px control row
+    band: 240             // the plain-code band, at the foot
   };
+  var WHOLE = 'the whole bar.';
+  var NONE = 'not one bar is a pixel long.';
 
   /* The snap points of the volume slider: 1, 2, 5, 10, 20, 50 ... up to the largest preset. */
   function volumeStops() {
@@ -577,14 +600,18 @@
       var cost = C.volumeCost(t.pricePerRun, volume);
       var true_ = cost * perDollar;
       var shown = true_ >= 1 ? Math.min(BAR.full, Math.round(true_)) : 0;       // under a pixel there is no bar to draw
-      var text = C.money(cost);
+      var text = exactMoney(C, cost);
       var wide = estimate(text, 96, 'num');
+      var inside = shown + 22 + wide > BAR.full - 56;                            // no room after the bar: print the value on it
       return {
         tier: t, i: i, cost: cost, text: text, truePx: true_, px: shown,
         y: BAR.top + i * BAR.pitch,
-        inside: shown + 22 + wide > BAR.full - 56,                               // no room after the bar: print the value on it
+        inside: inside,
         over: true_ > BAR.full + 0.5,
-        wide: wide
+        // the one "screens long" line: the longest bar, and only once it is at least a screen long
+        long: i === models.length - 1 && true_ >= 1920,
+        wide: inside ? estimate(text, IN_BAR, 'num') : wide,
+        lead: 0
       };
     });
     // the sliver worth pointing at: the smallest bar that is still a bar
@@ -592,20 +619,41 @@
     rows.forEach(function (r) { if (r.px >= 1 && r.px < 12 && (!sliver || r.px < sliver.px)) { sliver = r; } });
     var first = rows[0];
     var last = rows[rows.length - 1];
+    // the deadpan line of this view: an arrow at the sliver, or, when no bar reaches a pixel, the plain fact
+    var dead = null;
+    if (sliver) {
+      dead = { mode: 'sliver', row: sliver, text: WHOLE, left: BAR.x0 + sliver.px + 12, top: sliver.y + (BAR.rowH - 54) / 2 };
+    } else if (first && rows.every(function (r) { return r.px < 1; })) {
+      // in the open stock under the rows, where no bar is, so the multiple keeps its place
+      dead = { mode: 'none', row: null, text: NONE, left: BAR.x0 + 36, top: last.y + BAR.rowH + 44 };
+    }
     return {
-      rows: rows, perDollar: perDollar, sliver: sliver,
-      sum: first && last ? C.money(last.cost) + ' ÷ ' + C.money(first.cost) + ' =' : '',
+      rows: rows, perDollar: perDollar, sliver: sliver, dead: dead,
+      sum: first && last ? exactMoney(C, last.cost) + ' ÷ ' + exactMoney(C, first.cost) + ' =' : '',
       mult: first && last && first.cost > 0 ? C.ratio(last.cost / first.cost) : ''
     };
   }
 
-  /* Where things go for one row at one bar length (also used while a bar is moving). */
-  function rowLayout(r) {
+  /*
+   * Where things go for one row at one bar length (also used while a bar is
+   * moving). `lead` is room held between the bar and its value: the arrow and
+   * "the whole bar." sit there, so the arrow's tip is at the sliver itself.
+   */
+  function rowLayout(r, lead) {
+    var l = lead || 0;
     return {
-      valueLeft: r.inside ? null : BAR.x0 + r.px + 22,
-      end: r.inside ? BAR.x0 + r.px : BAR.x0 + r.px + 22 + r.wide
+      valueLeft: r.inside ? null : BAR.x0 + r.px + 22 + l,
+      end: r.inside ? BAR.x0 + r.px : BAR.x0 + r.px + 22 + l + r.wide
     };
   }
+
+  /* The room the sliver's deadpan line takes before its value: the gap to the arrow, the arrow, the words, a gap. */
+  function wholeLead(dead, sayWidth) {
+    if (!dead || dead.mode !== 'sliver') { return 0; }
+    return 12 + 120 + 22 + (sayWidth || estimate(WHOLE, 54, 'voice')) + 36 - 22;
+  }
+
+  function valueTop(r) { return r.y + (BAR.rowH - (r.inside ? IN_BAR : 96) * 0.708) / 2; }
 
   /*
    * The bracket that ties the first bar to the last: a tick at the first row,
@@ -655,26 +703,29 @@
       }
     });
 
+    var dead = B.dead;
+    var showWhole = !!dead && step < 1;
+    var lead = showWhole ? wholeLead(dead) : 0;
     B.rows.forEach(function (r) {
-      var lay = rowLayout(r);
+      var lay = rowLayout(r, dead && r === dead.row ? lead : 0);
       h.push('<div class="cg-row-l" style="top:' + px(r.y) + ';height:' + px(BAR.rowH) + '"><b>' + esc(curly(r.tier.label)) + '</b><span>' + esc(r.tier.modelName) + '</span></div>');
       h.push('<i class="cg-bar" data-cg="bar" style="left:' + px(BAR.x0) + ';top:' + px(r.y) + ';height:' + px(BAR.rowH) + ';width:' + px(r.px) + '"></i>');
-      h.push('<b class="cg-num cg-val' + (r.inside ? ' is-in' : '') + '" data-cg="val" style="top:' + px(r.y + (BAR.rowH - 66) / 2) + ';' +
+      h.push('<b class="cg-num cg-val' + (r.inside ? ' is-in' : '') + '" data-cg="val" style="top:' + px(valueTop(r)) + ';' +
         (r.inside ? 'right:56px' : 'left:' + px(lay.valueLeft)) + '">' + esc(r.text) + '</b>');
-      h.push('<span class="cg-say cg-long' + (r.over ? '' : ' cg-hide') + '" data-cg="long" style="left:' + px(BAR.x0 + 40) + ';top:' + px(r.y + (BAR.rowH - 54) / 2) + '">this bar is ' +
-        esc(r.over ? screensText(f, r) : '') + ' screens long</span>');
+      h.push('<span class="cg-say cg-long' + (r.long ? '' : ' cg-hide') + '" data-cg="long" style="left:' + px(BAR.x0 + 40) + ';top:' + px(r.y + (BAR.rowH - 54) / 2) + '">' +
+        esc(r.long ? 'this bar is ' + screensText(f, r) + ' screens long' : '') + '</span>');
     });
 
-    // "the whole bar.": the deadpan line of this view, pointing at the sliver
-    var s = B.sliver;
-    var showWhole = !!s && step < 1;
-    var wholeLeft = s ? rowLayout(s).end + 30 : 0;
-    h.push('<div class="cg-whole' + (showWhole ? '' : ' cg-hide') + '" data-cg="whole"' + (live ? '' : ' data-step-out="1"') + ' style="left:' + px(wholeLeft) + ';top:' + px((s ? s.y : 0) + (BAR.rowH - 54) / 2) + ';height:54px">' +
-      '<i class="cg-arrow"></i><span class="cg-say">the whole bar.</span></div>');
+    // the deadpan line of this view: "the whole bar." with its arrow's tip at the sliver, or the plain fact when there is no bar at all
+    h.push('<div class="cg-whole' + (dead && dead.mode === 'none' ? ' is-none' : '') + (showWhole ? '' : ' cg-hide') + '" data-cg="whole"' + (live ? '' : ' data-step-out="1"') +
+      ' style="left:' + px(dead ? dead.left : 0) + ';top:' + px(dead ? dead.top : 0) + ';height:54px">' +
+      '<i class="cg-arrow"></i><span class="cg-say" data-cg="whole-say">' + esc(dead ? dead.text : WHOLE) + '</span></div>');
 
     // the multiple, tied to the two bars it compares; shown while nothing runs into it
     var multLeft = 1250;
-    var clear = B.rows.slice(0, -1).every(function (r) { return rowLayout(r).end + (s === r && showWhole ? 30 + 120 + 22 + estimate('the whole bar.', 54, 'voice') : 0) < multLeft - 70; });
+    var clear = B.rows.slice(0, -1).every(function (r) {
+      return rowLayout(r, dead && r === dead.row ? lead : 0).end < multLeft - 70;
+    });
     var first = B.rows[0];
     var last = B.rows[B.rows.length - 1];
     if (first && last && last !== first) {
@@ -686,13 +737,15 @@
 
     // plain code: the punchline
     var plain = code ? String(code.label).split('/')[0].trim() : 'Plain code';
+    // the brief's punchline is "Plain code ≈ $0": the amount from CostMath, with its "about" set as the sign
     var zero = C.money(code ? code.pricePerRun : 0);                              // "about $0"
     var zeroParts = /^(\D*?)\s*(\$.*)$/.exec(zero) || [zero, '', zero];
+    if (/^about$/i.test(zeroParts[1])) { zeroParts[1] = '≈'; }
     h.push('<div class="cg-band' + (live && step < 1 ? ' cg-hide' : '') + '" data-cg="band"' + band12 + ' style="height:' + px(BAR.band) + '">' +
       '<i class="cg-band-axis" style="left:' + px(BAR.axis) + '"></i>' +
       '<div class="cg-plain" data-cg="plain">' + plain.split(/\s+/).map(function (w) { return '<span>' + esc(w) + '</span>'; }).join('') + '</div>' +
-      '<div class="cg-zero" data-cg="zero" style="left:' + px(BAR.x0 + 36) + ';bottom:34px"><span class="cg-say">' + esc(zeroParts[1]) + '</span><b class="cg-num">' + esc(zeroParts[2]) + '</b></div>' +
-      '<p class="cg-say cg-nobar" data-cg="nobar" style="bottom:44px">No bar to draw.</p></div>');
+      '<div class="cg-zero" data-cg="zero" style="left:' + px(BAR.x0 + 36) + ';bottom:26px">' + (zeroParts[1] ? '<span class="cg-num cg-approx">' + esc(zeroParts[1]) + '</span>' : '') + '<b class="cg-num">' + esc(zeroParts[2]) + '</b></div>' +
+      '<p class="cg-say cg-nobar" data-cg="nobar" style="bottom:40px">No bar to draw.</p></div>');
 
     h.push('</div>');
     return h.join('');
@@ -710,7 +763,9 @@
     top: 70,                    // the top of the plot
     foot: 132,                  // room under the price axis: tick labels, then the legend
     r: 13,
-    nominalHeight: 658
+    rBeaten: 9,                 // beaten marks are smaller as well as paler: size first, ink second
+    arrow: 22,                  // the arrowhead at the end of a step-up
+    nominalHeight: 630
   };
 
   function overlap(a, b, pad) {
@@ -770,9 +825,22 @@
       if (!t || !t.modelName) { return null; }
       return front.filter(function (p) { return p.m.name === t.modelName; })[0] || null;
     }
-    function gainText(g) {
+    // the lines under a sign's multiple; a gap built on a score the file marks estimated says so on the claim itself
+    function gainLines(g, estimated) {
       var shown = Math.abs(g) >= 10 ? C.roundTo(g, 0) : C.roundTo(g, 1);
-      return (Math.abs(shown - g) > 0.005 ? 'about ' : '') + C.number(shown);
+      if (estimated) { return ['for an estimated', C.number(shown) + ' points']; }
+      return ['for ' + (Math.abs(shown - g) > 0.005 ? 'about ' : '') + C.number(shown) + ' points'];
+    }
+    function signBox(from, to, line1, rest) {
+      var w = estimate(line1, SIGN.l1, 'display');
+      rest.forEach(function (ln) { w = Math.max(w, estimate(ln, SIGN.l2, 'display')); });
+      var hgt = 2 * SIGN.pad + SIGN.l1 * 0.708 + rest.length * (SIGN.gap + SIGN.l2 * 0.708);
+      return { x0: from.x - 3, x1: from.x - 3 + w + 2 * 22, y1: to.y - 3, y0: to.y - 3 - hgt, sign: true };
+    }
+    // a step-up's arm: up from the cheaper dot, then across to the dearer one, stopping where its arrowhead meets that dot
+    function armPath(from, to) {
+      var endX = to.x - SC.r - 4;
+      return { d: 'M' + from.x + ' ' + from.y + ' V' + to.y + ' H' + endX.toFixed(1), length: (from.y - to.y) + (endX - from.x) };
     }
     var a = pointOf('small');
     var b = pointOf('mid');
@@ -781,18 +849,16 @@
     if (a && b && b.x > a.x && b.y < a.y) {
       var s1 = C.stepComparison(a.m, b.m);
       var t1 = C.ratio(s1.priceRatio) + ' the price';
-      var u1 = 'for ' + gainText(s1.scoreGain) + ' points';
-      var w1 = Math.max(estimate(t1, 76, 'display'), estimate(u1, 52, 'display')) + 44;
-      ups.push({ from: a, to: b, line1: t1, line2: u1, arm: 'M' + a.x + ' ' + a.y + ' V' + b.y + ' H' + b.x, armLength: (a.y - b.y) + (b.x - a.x),
-        box: { x0: a.x - 3, x1: a.x - 3 + w1, y1: b.y - 3, y0: b.y - 3 - 138, sign: true } });
+      var u1 = gainLines(s1.scoreGain, s1.estimated);
+      var p1 = armPath(a, b);
+      ups.push({ from: a, to: b, line1: t1, rest: u1, arm: p1.d, armLength: p1.length, box: signBox(a, b, t1, u1) });
     }
     if (b && c && c.x > b.x && c.y < b.y) {
       var s2 = C.stepComparison(b.m, c.m);
       var t2 = 'another ' + C.ratio(s2.priceRatio);
-      var u2 = 'for ' + gainText(s2.scoreGain) + ' points';
-      var w2 = Math.max(estimate(t2, 76, 'display'), estimate(u2, 52, 'display')) + 44;
-      ups.push({ from: b, to: c, line1: t2, line2: u2, arm: 'M' + b.x + ' ' + b.y + ' V' + c.y + ' H' + c.x, armLength: (b.y - c.y) + (c.x - b.x),
-        box: { x0: b.x - 3, x1: b.x - 3 + w2, y1: c.y - 3, y0: c.y - 3 - 138, sign: true } });
+      var u2 = gainLines(s2.scoreGain, s2.estimated);
+      var p2 = armPath(b, c);
+      ups.push({ from: b, to: c, line1: t2, rest: u2, arm: p2.d, armLength: p2.length, box: signBox(b, c, t2, u2) });
     }
 
     // things a label must not sit on
@@ -824,8 +890,10 @@
       layouts.forEach(function (lay) {
         var up = p.y - SC.r - 10 - lay.h;
         var mid = p.y - lay.h / 2;
-        spots.push({ lay: lay, x0: p.x - 18 - lay.w, y0: up, align: 'right' });          // above, to the left
-        spots.push({ lay: lay, x0: p.x + 18, y0: up, align: 'left' });                   // above, to the right
+        spots.push({ lay: lay, x0: p.x - 6 - lay.w, y0: up, align: 'right' });           // above, to the left, ending over its own dot
+        spots.push({ lay: lay, x0: p.x + 6, y0: up, align: 'left' });                    // above, to the right, starting over its own dot
+        spots.push({ lay: lay, x0: p.x - 18 - lay.w, y0: up, align: 'right' });
+        spots.push({ lay: lay, x0: p.x + 18, y0: up, align: 'left' });
         spots.push({ lay: lay, x0: p.x - 24 - lay.w, y0: mid, align: 'right' });         // level, to the left
         [18, 36, 54, 72].forEach(function (d) { spots.push({ lay: lay, x0: p.x - 18 - lay.w + d, y0: up, align: 'right' }); });
         [24, 48, 72, 96].forEach(function (d) { spots.push({ lay: lay, x0: p.x + 18 + d, y0: up, align: 'left' }); });
@@ -846,16 +914,30 @@
       }
       placed.push(best);
     });
+    // two one-line names side by side on almost the same baseline read as one jogging line: put them on one baseline
+    placed.forEach(function (a) {
+      placed.forEach(function (b) {
+        if (a === b || a.col || b.col) { return; }
+        var gapX = Math.max(a.box.x0, b.box.x0) - Math.min(a.box.x1, b.box.x1);
+        var dy = a.box.y0 - b.box.y0;
+        if (gapX < 120 && dy > 0 && dy < 16) {
+          var lifted = { x0: a.box.x0, x1: a.box.x1, y0: b.box.y0, y1: b.box.y0 + (a.box.y1 - a.box.y0) };
+          var clash = blocks.some(function (bl) { return bl.of !== a.p && overlap(lifted, bl, bl.line ? 6 : 4); });
+          if (!clash) { a.box = lifted; }
+        }
+      });
+    });
 
     return { H: H, X: X, Y: Y, y0: y0, y1: y1, sLo: sLo, sHi: sHi, pts: pts, front: front, path: path, length: length, reach: reach, xt: xt, yt: yt, ups: ups, labels: placed, perDecade: perDecade };
   }
 
   function dotSVG(p, beaten) {
+    var r = p.front ? SC.r : SC.rBeaten;
     var cls = 'cg-mark' + (p.front ? ' is-front' : '') + (beaten ? ' is-beaten' : '');
     return '<g class="' + cls + '" data-cg="pt" data-x="' + p.x.toFixed(1) + '" data-y="' + p.y.toFixed(1) + '" data-front="' + (p.front ? 1 : 0) + '">' +
-      '<circle class="cg-ring" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + (SC.r + 3) + '"/>' +
-      '<circle class="cg-pt" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + SC.r + '"/>' +
-      (p.est ? '<circle class="cg-hole" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + (SC.r - 6.5) + '"/>' : '') + '</g>';
+      '<circle class="cg-ring" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + (r + 3) + '"/>' +
+      '<circle class="cg-pt" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + r + '"/>' +
+      (p.est ? '<circle class="cg-hole" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + (r - (p.front ? 6.5 : 5)) + '"/>' : '') + '</g>';
   }
 
   function scatterHTML(f, live, height, step) {
@@ -873,13 +955,22 @@
     // beaten models first, then the line, then the five on it
     S.pts.filter(function (p) { return !p.front; }).forEach(function (p) { h.push(dotSVG(p, true)); });
     h.push('<path class="cg-front" data-cg="front" data-length="' + S.length.toFixed(1) + '" d="' + S.path + '"/>');
+    // each arm is dashed and drawn through a mask, so it can still be drawn at one speed; ids are unique per drawing
     S.ups.forEach(function (u, i) {
-      h.push('<path class="cg-arm' + (live && step < 3 + i ? ' cg-hide' : '') + '" data-cg="arm" data-length="' + u.armLength.toFixed(1) + '"' + (live ? '' : ' data-step="' + (3 + i) + '"') + ' d="' + u.arm + '"/>');
+      var id = 'cg-arm-' + (++uid);
+      h.push('<defs><marker id="' + id + '-h" markerUnits="userSpaceOnUse" markerWidth="' + SC.arrow + '" markerHeight="' + SC.arrow + '" viewBox="0 0 10 10" refX="10" refY="5" orient="auto">' +
+        '<path class="cg-arrowhead" d="M0 0 L10 5 L0 10 Z"/></marker>' +
+        '<mask id="' + id + '-m" maskUnits="userSpaceOnUse" x="0" y="0" width="' + SC.width + '" height="' + S.H + '">' +
+        '<path data-cg="arm-mask" d="' + u.arm + '" stroke="#fff" stroke-width="' + (SC.arrow + 8) + '" fill="none"/></mask></defs>');
+      h.push('<path class="cg-arm' + (live && step < 3 + i ? ' cg-hide' : '') + '" data-cg="arm" data-length="' + u.armLength.toFixed(1) + '"' + (live ? '' : ' data-step="' + (3 + i) + '"') +
+        ' mask="url(#' + id + '-m)" marker-end="url(#' + id + '-h)" d="' + u.arm + '"/>');
     });
     h.push('</svg>');
 
     // axis words
-    h.push('<span class="cg-cap cg-a" style="left:40px;top:0">Overall score</span>');
+    // the score axis does not start at zero: say where it starts, at its foot and in its caption
+    h.push('<span class="cg-cap cg-a" style="left:40px;top:0">Overall score · axis starts at ' + esc(C.number(S.sLo)) + '</span>');
+    h.push('<span class="cg-cap cg-tk" style="right:' + px(SC.width - SC.axisX + 26) + ';top:' + px(S.y1 - 16) + '">' + esc(C.number(S.sLo)) + '</span>');
     S.yt.forEach(function (t) { h.push('<span class="cg-cap cg-tk" style="right:' + px(SC.width - SC.axisX + 26) + ';top:' + px(t.y - 16) + '">' + esc(C.number(t.v)) + '</span>'); });
     S.xt.forEach(function (t, i) {
       h.push('<span class="cg-cap cg-tk" style="left:' + px(t.x) + ';top:' + px(S.y1 + 26) + ';translate:-50% 0">' + esc(C.money(t.v)) + '</span>');
@@ -903,7 +994,7 @@
     // the two step-ups
     S.ups.forEach(function (u, i) {
       var last = i === S.ups.length - 1;
-      var body = ' style="left:' + px(u.box.x0) + ';bottom:' + px(S.H - u.box.y1) + '"><b>' + esc(u.line1) + '</b><span>' + esc(u.line2) + '</span></div>';
+      var body = ' style="left:' + px(u.box.x0) + ';bottom:' + px(S.H - u.box.y1) + '"><b>' + esc(u.line1) + '</b>' + u.rest.map(function (ln) { return '<span>' + esc(ln) + '</span>'; }).join('') + '</div>';
       if (live) {
         h.push('<div class="cg-sign' + (last || step === 3 + i ? ' is-point' : '') + (step < 3 + i ? ' cg-hide' : '') + '" data-cg="sign"' + body);
       } else if (last) {
@@ -924,8 +1015,8 @@
     var s = f.summary;
     h.push('<div class="cg-legend"><span class="cg-cap"><i class="cg-sw"></i>' + esc(s.frontier) + ' not beaten</span>' +
       '<span class="cg-cap"><i class="cg-sw is-beaten"></i>' + esc(s.dominated) + ' beaten</span>' +
-      '<span class="cg-cap"><i class="cg-sw is-est"></i>score ' + esc(estWord) + '</span>' +
-      '<span class="cg-cap cg-xt">Price of one task</span></div>');
+      '<span class="cg-cap"><i class="cg-sw is-est"></i>' + esc(estWord) + '</span>' +
+      '<span class="cg-cap cg-xt">Price of one task · log scale</span></div>');
 
     h.push('</div>');
     return h.join('');
@@ -1067,7 +1158,7 @@
       dots.forEach(function (d) { show(d, true); });
       flags.forEach(function (fl) { show(fl, true); });
       var on = step >= 1;
-      bay.forEach(function (b) { show(b, true); });
+      bay.forEach(function (b) { show(b, on); });
       show(band, on); show(sum, on); show(say, on);
       band.style.clipPath = '';
       mult.textContent = finalMult;
@@ -1091,9 +1182,6 @@
         show(fl, false);
         tl.at(sweepStart + sweep + K.eighth + K.swung(i), function () { show(fl, true); }, function () { show(fl, false); });
       });
-      // last, the vacant bay under the rail
-      bay.forEach(function (b) { show(b, false); });
-      tl.at(sweepStart + sweep + K.eighth + K.swung(flags.length) + K.eighth, function () { bay.forEach(function (b) { show(b, true); }); }, function () { bay.forEach(function (b) { show(b, false); }); });
       tl.play();
     }
 
@@ -1103,6 +1191,7 @@
       var time = bandWidth / K.speed;
       var ticksN = Math.max(1, Math.round(time / K.sixteenth));
       show(band, true); show(sum, false); show(say, true);
+      bay.forEach(function (b) { show(b, true); });
       tl.add({
         from: 0, to: 1, duration: time, ease: 'linear',
         onUpdate: function (p) {
@@ -1178,7 +1267,8 @@
     }
 
     function onInput() {
-      stop();
+      // only the count-up gives way to the hand; the cells' reveal is left to finish, or they would stay hidden
+      if (counting) { counting.cancel(); counting = null; }
       var raw = Number(input.value);
       // snap to the slider's step, but let the two ends and the deck's own rate through
       var snapped = Math.round(raw / range.step) * range.step;
@@ -1296,7 +1386,7 @@
     function collectBars() {
       els = {
         bars: qa(host, 'bar'), vals: qa(host, 'val'), longs: qa(host, 'long'), axis: qa(host, 'axis-row'),
-        whole: q(host, 'whole'), brk: q(host, 'brk'), mult: q(host, 'mult'), msum: q(host, 'msum'), mx: q(host, 'mx'),
+        whole: q(host, 'whole'), wholeSay: q(host, 'whole-say'), brk: q(host, 'brk'), mult: q(host, 'mult'), msum: q(host, 'msum'), mx: q(host, 'mx'),
         band: q(host, 'band'), plain: q(host, 'plain'), zero: q(host, 'zero'), nobar: q(host, 'nobar'),
         presets: qa(host, 'preset'), vol: q(host, 'vol')
       };
@@ -1338,25 +1428,33 @@
 
     /* Put every label of the bars view where the current volume says. `moving` holds rows whose bar is still travelling. */
     function placeBars(B, moving) {
+      var anyMoving = !!moving && moving.some(Boolean);
+      var dead = B.dead;
+      var showWhole = !!dead && step < 1 && !anyMoving;
+      var sayW = 0;
+      if (dead) {
+        els.whole.classList.toggle('is-none', dead.mode === 'none');
+        els.wholeSay.textContent = dead.text;
+        sayW = els.wholeSay.offsetWidth || estimate(dead.text, 54, 'voice');
+      }
+      var lead = showWhole ? wholeLead(dead, sayW) : 0;
       B.rows.forEach(function (r, i) {
-        var lay = rowLayout(r);
+        var lay = rowLayout(r, dead && r === dead.row ? lead : 0);
         var val = els.vals[i];
         val.textContent = r.text;
         val.classList.toggle('is-in', r.inside);
         val.style.left = r.inside ? '' : px(lay.valueLeft);
         val.style.right = r.inside ? '56px' : '';
+        val.style.top = px(valueTop(r));
         show(val, !(moving && moving[i]));
         var long = els.longs[i];
-        long.textContent = r.over ? 'this bar is ' + screensText(f, r) + ' screens long' : '';
-        show(long, r.over && !(moving && moving[i]));
+        long.textContent = r.long ? 'this bar is ' + screensText(f, r) + ' screens long' : '';
+        show(long, r.long && !(moving && moving[i]));
         show(els.axis[i], !(r.px >= 1 && r.px < 12));
       });
-      var anyMoving = !!moving && moving.some(Boolean);
-      var s = B.sliver;
-      var showWhole = !!s && step < 1 && !anyMoving;
-      if (s) {
-        els.whole.style.left = px(rowLayout(s).end + 30);
-        els.whole.style.top = px(s.y + (BAR.rowH - 54) / 2);
+      if (dead) {
+        els.whole.style.left = px(dead.left);
+        els.whole.style.top = px(dead.top);
       }
       show(els.whole, showWhole);
       if (els.mult) {
@@ -1366,8 +1464,7 @@
         // the sum is set to the width of the multiple, so the multiple alone says how wide the pair is
         var edge = host.offsetWidth - 56 - (els.mx.offsetWidth || 400) - 100;
         var clear = !anyMoving && B.rows.slice(0, -1).every(function (r) {
-          var end = rowLayout(r).end + (s === r && showWhole ? 30 + (els.whole.offsetWidth || 470) : 0);
-          return end < edge;
+          return rowLayout(r, dead && r === dead.row ? lead : 0).end < edge;
         });
         var brk = bracketBox(B.rows[0], B.rows[B.rows.length - 1], edge + 66);
         els.brk.style.left = px(edge + 20);
@@ -1393,8 +1490,8 @@
 
     /* A preset: every bar travels to its new length at one speed, and its value cuts in when it stops. */
     function runTo(target) {
-      stopAll();
-      var before = barsModel(f, volume);
+      // only the bars give way: the step's own reveal (the plain-code band landing) is left to finish
+      stopChase();
       volume = target;
       var B = barsModel(f, volume);
       headline();
@@ -1402,12 +1499,13 @@
       stops.forEach(function (sv, i) { if (Math.abs(log10(sv) - log10(volume)) < Math.abs(log10(stops[nearest]) - log10(volume))) { nearest = i; } });
       els.vol.value = nearest;
       fillVol();
-      var moving = B.rows.map(function (r, i) { return Math.abs(r.px - before.rows[i].px) >= 1; });
+      // where each bar is now, even if it was still travelling (or had not started its entrance)
+      var now = els.bars.map(function (b) { var w = parseFloat(b.style.width); return isNum(w) ? w : 0; });
+      var moving = B.rows.map(function (r, i) { return Math.abs(r.px - now[i]) >= 1; });
       placeBars(B, moving);
       B.rows.forEach(function (r, i) {
         if (!moving[i]) { els.bars[i].style.width = px(r.px); return; }
-        var shown = parseFloat(els.bars[i].style.width);                 // where the bar is now, even if it was still travelling
-        var from = isNum(shown) ? shown : before.rows[i].px;
+        var from = now[i];
         var t = M.tween({
           from: from, to: r.px, duration: Math.abs(r.px - from) / K.speed, ease: 'linear',
           onUpdate: function (v) { els.bars[i].style.width = px(Math.round(v)); },
@@ -1480,12 +1578,12 @@
       host.innerHTML = scatterHTML(f, true, host.offsetHeight || SC.nominalHeight, step);
       view = 'scatter';
       var marks = qa(host, 'pt');
-      els = { marks: marks, front: q(host, 'front'), arms: qa(host, 'arm'), labs: qa(host, 'lab'), signs: qa(host, 'sign') };
+      els = { marks: marks, front: q(host, 'front'), arms: qa(host, 'arm'), armMasks: qa(host, 'arm-mask'), labs: qa(host, 'lab'), signs: qa(host, 'sign') };
       var S = scatterModel(f, host.offsetHeight || SC.nominalHeight);
       removeTips = hoverTips(host, function () {
         return S.pts.map(function (p) { return { x: p.x, y: p.y, p: p }; });
       }, function (pt, tip) {
-        tipLine(tip, pt.p.m.name, ' · ' + C.money(pt.p.m.pricePerRun) + ' a task · score ' + C.number(C.roundTo(pt.p.m.overallScore, 1)) + (pt.p.est ? ' (estimated)' : ''));
+        tipLine(tip, pt.p.m.name, ' · ' + exactMoney(C, pt.p.m.pricePerRun) + ' a task · score ' + C.number(C.roundTo(pt.p.m.overallScore, 1)) + (pt.p.est ? ' (estimated)' : ''));
       });
     }
 
@@ -1495,7 +1593,8 @@
       els.front.style.strokeDashoffset = '';
       show(els.front, true);
       els.labs.forEach(function (l) { show(l, true); });
-      els.arms.forEach(function (a, i) { show(a, step >= 3 + i); a.style.strokeDasharray = ''; a.style.strokeDashoffset = ''; });
+      els.arms.forEach(function (a, i) { show(a, step >= 3 + i); });
+      els.armMasks.forEach(function (m) { m.style.strokeDasharray = ''; m.style.strokeDashoffset = ''; });
       els.signs.forEach(function (s, i) {
         show(s, step >= 3 + i);
         s.classList.toggle('is-point', step === 3 + i || (step > 3 + i && i === els.signs.length - 1));
@@ -1564,15 +1663,18 @@
     /* A step-up: its arm is drawn at the same speed, and its sign cuts in when the arm lands. */
     function landSign(i) {
       var arm = els.arms[i];
+      var mask = els.armMasks[i];
       var sign = els.signs[i];
-      if (!arm || !sign) { return; }
+      if (!arm || !sign || !mask) { return; }
       var len = Number(arm.getAttribute('data-length'));
+      var full = len + SC.arrow;                 // the mask runs on past the end, so the arrowhead is uncovered last
       var time = len / K.speed;
       var tl = M.timeline();
       show(arm, true); show(sign, false);
-      arm.style.strokeDasharray = len + ' ' + len;
-      tl.add({ from: len, to: 0, duration: time, ease: 'linear', onUpdate: function (v) { arm.style.strokeDashoffset = v.toFixed(1); } }, 0);
-      tl.at(time, function () { show(sign, true); arm.style.strokeDasharray = ''; arm.style.strokeDashoffset = ''; }, function () { show(sign, false); });
+      mask.style.strokeDasharray = full + ' ' + full;
+      mask.style.strokeDashoffset = String(full);
+      tl.add({ from: full, to: 0, duration: time, ease: 'linear', onUpdate: function (v) { mask.style.strokeDashoffset = v.toFixed(1); } }, 0);
+      tl.at(time, function () { show(sign, true); mask.style.strokeDasharray = ''; mask.style.strokeDashoffset = ''; }, function () { show(sign, false); });
       play(tl);
     }
 

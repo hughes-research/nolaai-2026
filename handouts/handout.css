@@ -58,8 +58,10 @@
   --p-gate: 14pt;             /* a gate's name */
   --p-body-l: 9.6pt;
   --p-body: 8.5pt;            /* row labels, instructions */
-  --p-fine: 6.5pt;            /* the working: formulas, assumptions, sources */
-  --p-label: 6.2pt;           /* wide caps */
+  --p-fine: 7.5pt;            /* the working: formulas, assumptions, sources */
+  --p-rule: 8pt;              /* a house rule: what decides PASS or NO */
+  --p-cap: 6.5pt;             /* the smallest thing on the sheet: a unit in a box */
+  --p-label: 6.5pt;           /* wide caps */
   --p-voice: 10pt;            /* Fraunces italic */
   --p-hand: 9.5pt;            /* the worked example, written in */
 
@@ -69,9 +71,9 @@
   --l-bold: 3pt;              /* the rule a section hangs from */
 
   /* the scorecard grid */
-  --row: 9mm;                 /* a writing row. Never under 8mm inside */
-  --col-label: 60mm;
-  --col-ex: 18mm;
+  --row: 8.5mm;               /* a writing row. Never under 8mm inside */
+  --col-label: 58mm;
+  --col-ex: 20mm;
 
   /* Fraunces at text sizes: a lower optical size keeps the hairlines printable.
      The wonk and swash forms stay off, as on stage. */
@@ -193,10 +195,13 @@ i, em { font-style: normal; }
 
 .fine {
   font-size: var(--p-fine);
-  font-weight: 500;
+  font-weight: 600;
   font-stretch: 95%;
   line-height: 1.17;
 }
+
+/* words that must stay on one line */
+.nw { white-space: nowrap; }
 
 /* a default: a house rule or a rate. The dashed line says "change me". */
 .dflt {
@@ -314,15 +319,18 @@ i, em { font-style: normal; }
 
 .credit {
   display: flex;
+  flex-wrap: wrap;                /* a longer role or venue takes a second line, never the margin */
   justify-content: space-between;
   align-items: baseline;
-  gap: 4mm;
+  gap: 0.6mm 4mm;
   margin-top: 3mm;
   font-size: var(--p-body);
   font-weight: 600;
-  font-stretch: 88%;
-  white-space: nowrap;
+  font-stretch: 85%;
 }
+
+.credit > span { white-space: nowrap; }
+.credit > span:last-child { margin-left: auto; }
 
 .credit b { font-weight: 900; text-transform: uppercase; }
 
@@ -340,6 +348,16 @@ i, em { font-style: normal; }
 }
 
 .ex-head .label { display: block; margin-bottom: 2.2mm; }
+
+/* the instruction beside a headline */
+.ex-head .how {
+  font-size: var(--p-body-l);
+  font-weight: 600;
+  line-height: 1.2;
+  margin-bottom: -0.22em;           /* its baseline on the headline's */
+}
+
+.ex-2 .ex-head .how { text-align: right; }
 
 .ex-1 { margin-top: 5.2mm; }
 .ex-2 { margin-top: 5.6mm; }
@@ -382,12 +400,12 @@ i, em { font-style: normal; }
 .inv { margin-top: 0.6mm; border-top: var(--l-bold) solid var(--c-line); }
 .inv col.c-n { width: 7mm; }
 .inv col.c-often { width: 27mm; }
-.inv col.c-min { width: 32mm; }
+.inv col.c-min { width: 34mm; }
 .inv col.c-who { width: 36mm; }
 .inv th { height: 6.2mm; padding: 2.1mm 1.6mm 0; border-bottom: var(--l-rule) solid var(--c-line); }
 .inv th + th,
 .inv td + td { border-left: var(--l-hair) solid var(--c-line); }
-.inv td { height: 9.5mm; border-bottom: var(--l-hair) solid var(--c-line); }
+.inv td { height: 9.2mm; border-bottom: var(--l-hair) solid var(--c-line); }
 .inv tbody tr:last-child td { border-bottom: var(--l-rule) solid var(--c-line); }
 .inv .n {
   padding: 0 0 1.5mm;
@@ -440,13 +458,12 @@ i, em { font-style: normal; }
    Side 2 · the scorecard
    ========================================================================== */
 
-.ex-3 .ex-head { align-items: flex-end; justify-content: flex-start; gap: 0; }
-.ex-3 .what { flex: none; width: var(--col-label); }
-.ex-3 .how { flex: 1 1 0; }
-.ex-3 .how .voice { font-size: 12.5pt; }
-.ex-3 .how .body { margin-top: 1mm; font-size: var(--p-body); font-weight: 600; line-height: 1.2; }
+.ex-3 .ex-head { align-items: flex-end; gap: 6mm; }
+.ex-3 .ex-head .label { margin-bottom: 1.7mm; }
+.ex-3 .what { flex: none; }
+.ex-3 .how { flex: 1 1 0; max-width: 62mm; text-align: right; text-wrap: balance; }
 
-.card { margin-top: 2.8mm; }
+.card { margin-top: 2.4mm; }
 
 .card col.c-label { width: var(--col-label); }
 .card col.c-ex { width: var(--col-ex); }
@@ -460,7 +477,7 @@ i, em { font-style: normal; }
 
 /* ---- column heads: the example, then your three ---- */
 .card .heads td {
-  height: 12.4mm;
+  height: 11.8mm;
   vertical-align: top;
   border-top: var(--l-bold) solid var(--c-line);
   border-bottom: 0;
@@ -468,19 +485,20 @@ i, em { font-style: normal; }
 
 .card .heads .lead { padding: 1.8mm 2mm 0 0; }
 .card .heads .lead .label { display: block; margin-bottom: 1.3mm; }
+.card .heads .lead .fine { display: block; }
 
 .col-head {
   display: flex;
   flex-direction: column;
-  height: 12.4mm;
-  padding: 1.5mm 1.5mm 0;
+  height: 11.8mm;
+  padding: 1.3mm 1.5mm 0;
 }
 
 .col-head .who { display: flex; align-items: center; gap: 1.5mm; min-height: 5.2mm; }
 .col-head .who .fine { font-weight: 700; line-height: 1.08; }
-.col-head.is-ex { padding: 1.5mm 0.8mm 0 1.3mm; }
-.col-head.is-ex .label { display: block; margin-bottom: 1mm; }
-.col-head.is-ex .fine { font-weight: 700; line-height: 1.06; }
+.col-head.is-ex { padding: 1.3mm 0.6mm 0 1.3mm; }
+.col-head.is-ex .label { display: block; margin-bottom: 0.7mm; }
+.col-head.is-ex .fine { font-size: 7pt; font-weight: 700; line-height: 1; }
 
 /* ---- a block: the minutes, then each gate. It hangs from a heavy rule. ---- */
 .card .blk td {
@@ -494,7 +512,8 @@ i, em { font-style: normal; }
   display: flex;
   align-items: center;
   gap: 2.2mm;
-  height: 7.6mm;
+  min-height: 7.2mm;
+  padding: 0.3mm 0;
   white-space: nowrap;
 }
 
@@ -529,15 +548,17 @@ i, em { font-style: normal; }
   padding-left: 3mm;
   text-align: right;
   white-space: normal;
-  font-weight: 600;
-  line-height: 1.22;
+  font-size: var(--p-rule);
+  font-weight: 700;
+  line-height: 1.15;
   text-wrap: balance;
 }
 
 /* ---- a row ---- */
-.card .lab { padding: 1mm 2mm 1mm 0; vertical-align: middle; }
+.card .lab { padding: 0.7mm 2mm 0.7mm 0; vertical-align: middle; }
 .card .lab .t { display: block; font-size: var(--p-body); font-weight: 700; line-height: 1.12; }
 .card .lab .fine { display: block; margin-top: 0.45mm; }
+.card .lab .fine.is-tight { font-stretch: 84%; }
 .card .lab .op { display: inline-block; width: 3.4mm; font-weight: 900; }
 
 .card tr.is-sum .lab .t { font-weight: 900; text-transform: uppercase; font-stretch: 88%; letter-spacing: 0.01em; }
@@ -550,7 +571,7 @@ i, em { font-style: normal; }
   padding: 0.35mm 0.9mm 0.3mm;
   background: var(--c-ink);
   color: var(--c-bg);
-  font-size: 5pt;
+  font-size: var(--p-cap);
   font-weight: 800;
   font-stretch: 112%;
   line-height: 1;
@@ -561,7 +582,7 @@ i, em { font-style: normal; }
 
 /* the worked example, in the hand of someone who has done it */
 .card .ex {
-  padding: 0 0.8mm 0 1.3mm;
+  padding: 0.5mm 0.8mm 0.5mm 1.3mm;
   vertical-align: middle;
   font-family: var(--f-voice);
   font-style: italic;
@@ -574,8 +595,8 @@ i, em { font-style: normal; }
 
 .card .ex small {
   display: block;
-  margin-top: 0.3mm;
-  font-size: 6.6pt;
+  margin-top: 0.4mm;
+  font-size: var(--p-fine);
   line-height: 1.08;
   font-weight: 600;
 }
@@ -592,15 +613,18 @@ i, em { font-style: normal; }
   line-height: 1;
 }
 
+/* a unit sits in the top-right corner, as on a form: the whole baseline is left
+   for the pen, and a long figure written after the $ never runs into it */
 .w .u.is-r,
 .w .tk {
   left: auto;
   right: 1.2mm;
-  bottom: 1.25mm;
-  font-size: 5.2pt;
+  top: 1.1mm;
+  bottom: auto;
+  font-size: var(--p-cap);
   font-weight: 700;
   font-stretch: 112%;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -620,49 +644,45 @@ i, em { font-style: normal; }
   border: var(--l-hair) solid var(--c-line);
 }
 
-.w .tk { position: absolute; left: 1.4mm; right: auto; bottom: 1.1mm; display: flex; align-items: flex-end; }
+.w .tk { position: absolute; left: 1.4mm; right: auto; top: auto; bottom: 1.1mm; display: flex; align-items: flex-end; }
 
-/* ---- the tools to circle, with what 1,000 runs cost ---- */
-.card tr.is-tools td { height: 13.6mm; }
+/* ---- the price list, printed once: what 1,000 runs cost on each tool ---- */
+.card tr.is-prices td { height: auto; }
+.card tr.is-prices .lab { padding-top: 1.2mm; padding-bottom: 1.2mm; }
+.card td.prices { vertical-align: middle; padding: 0 1.6mm 0 1.3mm; }
 
-.tools {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 13.6mm;
-  padding: 1.2mm 1.6mm 1.25mm;
-}
+.price-list { display: flex; flex-wrap: wrap; gap: 0.6mm 5mm; }
 
-.tools > li {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  font-size: 7pt;
+.price-list > li {
+  font-size: var(--p-rule);
   font-weight: 600;
-  line-height: 1;
+  line-height: 1.15;
+  white-space: nowrap;
 }
 
-.tools > li > b { font-weight: 800; }
+.price-list > li > b { font-weight: 800; margin-left: 1mm; }
 
 /* ---- the verdict: the dock, drawn in line ----
    Four bays share their posts and stand on one floor line. Each door has its
    name on the lintel and two panels: PASS rides high, NO sits on the floor.
    Circle one. */
 .card tr.is-verdict td {
-  height: 19.6mm;
+  height: 13.6mm;
   border-top: var(--l-bold) solid var(--c-line);
   border-bottom: var(--l-rule) solid var(--c-line);
   vertical-align: middle;
 }
 
-.card tr.is-verdict .lab { vertical-align: top; padding-top: 2.2mm; }
-.card tr.is-verdict .gate-name { display: block; font-size: var(--p-gate); margin-bottom: 1.6mm; }
+.card tr.is-verdict .lab { vertical-align: top; padding-top: 1.6mm; padding-bottom: 1.2mm; }
+.card tr.is-verdict .gate-name { display: block; font-size: var(--p-gate); margin-bottom: 1.2mm; }
+.card tr.is-verdict .fine b { font-weight: 900; }
 
+/* the floor line ends 1 mm short of the cell rules, on purpose */
 .dock {
   position: relative;
   display: flex;
-  height: 15mm;
-  margin: 0 1.1mm;
+  height: 11.8mm;
+  margin: 0 2mm;
   border-bottom: var(--l-rule) solid var(--c-line);
 }
 
@@ -704,18 +724,18 @@ i, em { font-style: normal; }
   white-space: nowrap;
 }
 
-/* the four names share one size: they are equals */
+/* the gate's number on the lintel: the four share one size, they are equals */
 .bay-n {
   flex: none;
-  height: 3.1mm;
+  height: 3.3mm;
   border-bottom: var(--l-hair) solid var(--c-line);
-  font-size: 5.6pt;
-  letter-spacing: 0.01em;
+  font-size: 8pt;
+  letter-spacing: 0;
 }
 
 .say { min-height: 0; }
-.say.is-pass { flex: 1 1 0; font-size: 8.8pt; letter-spacing: 0.03em; border-bottom: var(--l-hair) solid var(--c-line); }
-.say.is-no { flex: 1.35 1 0; font-size: 13.5pt; letter-spacing: 0.02em; }
+.say.is-pass { flex: 1 1 0; font-size: 8.5pt; letter-spacing: 0.03em; border-bottom: var(--l-hair) solid var(--c-line); }
+.say.is-no { flex: 1.35 1 0; font-size: 12pt; letter-spacing: 0.02em; }
 
 /* a small gate, shape only: the example's verdicts */
 .gate-s {
@@ -760,14 +780,21 @@ i, em { font-style: normal; }
 
 .dock-s .gate-s + .gate-s { margin-left: calc(var(--l-hair) * -1); }
 
-/* ---- the last line: what the math picks ---- */
-.card tr.is-pick td { height: 11.6mm; border-bottom: var(--l-bold) solid var(--c-line); }
-.card tr.is-pick .gate-name { display: block; font-size: var(--p-gate); margin-bottom: 1.1mm; }
+/* ---- the last line: what the math picks. A black block, the only other one on
+   the sheet besides the NO slab on the front, with a white slot to write in. ---- */
+.card tr.is-pick td { height: 9mm; border-top: var(--l-rule) solid var(--c-line); border-bottom: var(--l-bold) solid var(--c-line); }
+.card tr.is-pick .lab {
+  padding: 0 2.4mm;
+  vertical-align: middle;
+  background: var(--c-ink);
+  color: var(--c-bg);
+}
+.card tr.is-pick .gate-name { display: block; font-size: 15pt; }
 
-.star { margin-top: 1.4mm; font-size: 6pt; line-height: 1.2; }
+.star { margin-top: 0.9mm; font-size: 7pt; font-weight: 600; line-height: 1.2; }
 
 /* ---- the foot of side 2: the ladder, the standard, the session ---- */
-.foot-2 { flex: none; margin-top: auto; padding-top: 2mm; }
+.foot-2 { flex: none; margin-top: auto; padding-top: 0.6mm; }
 
 .foot-main {
   display: flex;
@@ -777,14 +804,15 @@ i, em { font-style: normal; }
 }
 
 .rungs { position: relative; }
-.rungs > .label { position: absolute; left: 0; top: 0; }
+.rungs-head { position: absolute; left: 0; top: 0; display: flex; align-items: baseline; gap: 3mm; white-space: nowrap; }
+.rungs-head .voice { font-size: 9pt; }
 
-.ladder { display: flex; align-items: flex-end; padding-top: 1.2mm; }
+.ladder { display: flex; align-items: flex-end; padding-top: 4.3mm; }
 
 .ladder > li {
   position: relative;
   padding: 0 2mm 0.9mm 1.5mm;
-  margin-bottom: calc(var(--i) * 1.05mm);
+  margin-bottom: calc(var(--i) * 0.9mm);
   border-bottom: var(--l-rule) solid var(--c-line);
   font-size: 7.2pt;
   font-weight: 700;
@@ -799,8 +827,8 @@ i, em { font-style: normal; }
   content: "";
   position: absolute;
   left: 0;
-  bottom: calc(-1.05mm - var(--l-rule));
-  height: calc(1.05mm + var(--l-rule));
+  bottom: calc(-0.9mm - var(--l-rule));
+  height: calc(0.9mm + var(--l-rule));
   border-left: var(--l-rule) solid var(--c-line);
 }
 
@@ -808,13 +836,8 @@ i, em { font-style: normal; }
 .standard .label { display: block; margin-bottom: 1.2mm; }
 .standard .voice { font-size: 9.6pt; line-height: 1.1; max-width: 66mm; margin-left: auto; text-wrap: balance; }
 
-.sign-off {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-top: 1.8mm;
-  padding-top: 1.4mm;
-  border-top: var(--l-hair) solid var(--c-line);
-}
-
-.sign-off .voice { font-size: 8.6pt; }
+/* a way back to the screener or the code, in the masthead: only printed when a link is set */
+.mast-side .link { display: flex; align-items: flex-start; justify-content: flex-end; gap: 2mm; margin-bottom: auto; }
+.link-t { display: flex; flex-direction: column; align-items: flex-end; gap: 1mm; text-align: right; padding-top: 0.4mm; }
+.link-t .url { font-size: var(--p-fine); font-weight: 700; max-width: 30mm; overflow-wrap: anywhere; line-height: 1.15; }
+.link svg { display: block; width: 13mm; height: 13mm; flex: none; }

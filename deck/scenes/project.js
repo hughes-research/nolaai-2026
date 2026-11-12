@@ -81,6 +81,23 @@
     return (x < 0 ? '−' : '+') + body;
   }
 
+  /** A figure for display type: the thousands comma gets a little air, so it
+      never fuses with the 4 or the 1 beside it (returns html). */
+  function numDisplay(x, decimals) {
+    return num(x, decimals).replace(/,/g, '<span class="px-comma">,</span>');
+  }
+
+  /** Straight double quotes to curly ones, for labels set on screen. */
+  function curly(s) {
+    return String(s == null ? '' : s).replace(/"([^"]*)"/g, '\u201c$1\u201d');
+  }
+
+  /** A line of copy closed with a full stop (for lists set as sentences). */
+  function sentence(s) {
+    s = String(s == null ? '' : s).trim();
+    return s ? s + (/[.!?]$/.test(s) ? '' : '.') : '';
+  }
+
   function lowerFirst(s) {
     s = String(s || '');
     return s.charAt(0).toLowerCase() + s.slice(1);
@@ -161,6 +178,9 @@
     slotting: SL,
     esc: esc,
     num: num,
+    numDisplay: numDisplay,
+    curly: curly,
+    sentence: sentence,
     decimalsOf: decimalsOf,
     signedPct: signedPct,
     lowerFirst: lowerFirst,
@@ -187,6 +207,8 @@
        static copies (overview, presenter preview) show the finished picture. */
     '.px-live [data-px]:not(.is-on) { visibility: hidden; }',
     '.px-tag-tr { position: absolute; right: var(--m-right); top: 62px; z-index: 2; }',
+    '.px-comma { margin: 0 0.015em 0 0.025em; }',
+    '.px-nobr { white-space: nowrap; }',
 
     /* ---- the-winner ---- */
     '.px-winner-say { margin-top: 84px; }',
@@ -204,6 +226,7 @@
     '.px-band { left: calc((var(--m-x) - var(--spine-w)) * -1); right: calc(var(--m-right) * -1); bottom: 432px; height: 212px; background: var(--c-accent); color: var(--c-accent-ink); }',
     '.px-band > * { position: absolute; }',
     '.px-band-n { left: calc(var(--m-x) - var(--spine-w)); top: 26px; font-size: 232px; }',
+    '.px-band-src { left: 452px; top: 34px; color: var(--c-accent-ink); white-space: nowrap; }',
     '.px-band-t { left: 452px; bottom: 30px; font-size: 56px; font-weight: 800; line-height: 1; white-space: nowrap; }',
     '.px-rack { right: 0; bottom: 0; width: 560px; height: 668px; }',
     '.px-rack > * { position: absolute; }',
@@ -225,7 +248,7 @@
     '.px-hatch { left: 12px; right: 12px; height: 212px; bottom: 432px; background-image: repeating-linear-gradient(135deg, var(--c-ink) 0 4px, transparent 4px 16px); }',
     '.px-zone { right: 592px; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 8px; padding-right: 30px; border-right: var(--w-rule) solid var(--c-line); text-align: right; white-space: nowrap; }',
     '.px-zone > span { font-size: 36px; font-weight: var(--wght-text); line-height: 1; }',
-    '.px-rack-tag { right: 0; top: 4px; }',
+    '.px-rack-tag { right: 0; bottom: -78px; }',
 
     /* ---- slotting-results: four before / after pairs ---- */
     '.px-results { display: flex; flex-direction: column; }',
@@ -235,13 +258,16 @@
     '.px-results .pair { --ps: 118px; align-items: end; padding: 20px 0 22px; border-top: var(--w-hair) solid var(--c-line); }',
     '.px-results .px-res-head + .pair { border-top: var(--w-rule) solid var(--c-line); }',
     '.px-results .pair-v { min-width: 0; }',
-    '.px-old { display: grid; grid-template-columns: 492px 344px 96px 344px 1fr; column-gap: var(--s-4); align-items: end; padding: 24px 0 0; border-top: var(--w-rule) solid var(--c-line); }',
-    '.px-old > .label { align-self: center; line-height: 1.25; font-stretch: var(--wdth-label-tight); }',
-    '.px-old-f { display: flex; flex-direction: column; gap: 14px; white-space: nowrap; }',
+    '.px-results .pair-what { text-wrap: balance; }',
+    /* the old building is its own band, under a double rule that closes the table:
+       nothing in it sits under the AS-IS / OPTIMIZED heads */
+    '.px-old { margin-top: 14px; padding-top: 26px; border-top: 18px double var(--c-line); }',
+    '.px-old > .label { font-stretch: var(--wdth-label-tight); }',
+    '.px-old-row { display: flex; align-items: baseline; gap: 72px; margin-top: 22px; }',
+    '.px-old-f { display: flex; align-items: baseline; gap: 18px; white-space: nowrap; }',
     '.px-old-f > .num { font-size: 104px; }',
-    '.px-old-f > span { font-size: var(--t-body); font-weight: 600; line-height: 1; }',
-    '.px-old-f + .px-old-f { grid-column: 4; }',
-    '.px-old > .deadpan { grid-column: 5; justify-self: end; align-self: end; text-align: right; line-height: 1.04; }',
+    '.px-old-f > span { font-size: var(--t-body-l); font-weight: 700; line-height: 1; }',
+    '.px-old-row > .deadpan { margin-left: auto; white-space: nowrap; }',
     '.px-src-more:is([data-step], [data-step-out]):not(.is-visible) { display: none; }',
     '.px-src-line2 { display: block; }',
 
@@ -266,10 +292,13 @@
 
     /* ---- said-no: four gates, four shutters ---- */
     '.px-no-head { margin-bottom: 0; }',
-    '.px-no-dock { --gw: 458px; --gh: 780px; position: absolute; left: 96px; top: 236px; }',
-    '.px-no-dock .gate-name { top: 52px; white-space: normal; font-size: 76px; line-height: 0.86; letter-spacing: 0; text-wrap: balance; }',
+    '.px-no-dock { --gw: 458px; --gh: 780px; position: absolute; left: 96px; top: 262px; }',
+    '.px-no-dock .gate-name { top: 52px; white-space: normal; font-size: 68px; line-height: 0.94; letter-spacing: 0; text-wrap: balance; }',
+    '.px-no-tag { top: 180px; }',
     '.px-no-dock .gate-q { top: auto; bottom: calc(var(--gcap) + var(--gl) + var(--gw) * 0.035 + var(--gw) * 0.733 * var(--cap) + 34px); font-size: var(--t-body-l); font-weight: 700; line-height: 1.1; text-wrap: balance; }',
     '.px-no-dock .gate.is-flare > .gate-q { color: var(--c-accent-ink); mix-blend-mode: normal; }',
+    /* static copies (overview, presenter preview): a refusal not reached yet is a vacant bay */
+    '.slide.is-static .px-no-dock .gate:has(> .gate-name:not(.is-visible)) > .gate-shutter { height: 0; }',
 
     /* ---- slotting-cost ---- */
     '.px-facts { flex: 1 1 0; min-height: 0; display: grid; grid-template-columns: 1.02fr 0.78fr 1.2fr; border-top: var(--w-rule) solid var(--c-line); }',
@@ -280,11 +309,13 @@
     '.px-fact3 > .counter-v { --cs: 330px; font-size: var(--cs); }',
     '.px-fact3 > .counter-v > small { font-size: 112px; }',
     '.px-fact3 > p:last-child { font-size: 52px; font-weight: 700; line-height: 1.1; max-width: 560px; text-wrap: balance; }',
-    '.px-cost-head { margin-top: 18px; }',
+    '.px-cost-head { margin-top: 76px; }',
+    '.px-cb-recap { margin-top: 0; font-size: 36px; font-weight: 600; line-height: 1.1; white-space: nowrap; }',
+    '.px-cb-recap > b { font-weight: 800; }',
     '.px-cb { flex: none; display: flex; flex-direction: column; }',
     '.px-cb > * { flex: none; }',
-    '.px-cb-lead { font-size: 48px; font-weight: 700; line-height: 1.08; }',
-    '.px-cb-note { margin-top: 16px; font-stretch: var(--wdth-label-tight); }',
+    '.px-cb-lead { margin-top: 10px; font-size: 48px; font-weight: 700; line-height: 1.08; }',
+    '.px-cb-note { margin-top: 12px; font-stretch: var(--wdth-label-tight); }',
     '.px-cb-plot { position: relative; margin-top: 20px; margin-right: calc(var(--m-right) * -1); }',
     '.px-cb-plot > * { position: absolute; }',
     '.px-cb-axis { left: 429px; top: 0; bottom: 0; width: var(--w-rule); background: var(--c-line); }',
@@ -294,22 +325,36 @@
     '.px-cb-bar { left: 435px; top: 0; height: 80px; background: var(--c-ink); }',
     '.px-cb-val { top: 10px; font-size: 88px; white-space: nowrap; }',
     '.px-cb-val.is-inside { left: auto; right: var(--m-right); color: var(--c-bg); }',
-    '.px-cb-cut { left: 423px; width: 18px; height: 80px; background: var(--c-bg); }',
+    /* a sliver: the axis is broken beside it (12px clear above and below), so the bar stands alone, and an arrow points at it */
+    '.px-cb-cut { left: 423px; top: -12px; width: 18px; height: 104px; background: var(--c-bg); }',
+    '.px-cb-ptr { top: 36px; width: 56px; height: 8px; background: var(--c-ink); }',
+    '.px-cb-ptr::before { content: ""; position: absolute; left: -14px; top: -10px; border: 14px solid transparent; border-left-width: 0; border-right: 18px solid var(--c-ink); }',
     '.px-cb-plot > .deadpan { right: var(--m-right); top: 14px; }',
-    '.px-cb-band { position: relative; flex: none; height: 176px; margin: 0 calc(var(--m-right) * -1) 0 calc((var(--m-x) - var(--spine-w)) * -1); background: var(--c-accent); color: var(--c-accent-ink); }',
+    '.px-cb-band { position: relative; flex: none; height: 156px; margin: 0 calc(var(--m-right) * -1) 0 calc((var(--m-x) - var(--spine-w)) * -1); background: var(--c-accent); color: var(--c-accent-ink); }',
     '.px-cb-band > * { position: absolute; }',
-    '.px-cb-band-name { left: calc(var(--m-x) - var(--spine-w)); top: 58px; font-family: var(--f-display); font-size: 88px; font-weight: var(--wght-display); font-stretch: var(--wdth-display); line-height: var(--lh-cap); text-transform: uppercase; }',
+    '.px-cb-band-name { left: calc(var(--m-x) - var(--spine-w)); top: 48px; font-family: var(--f-display); font-size: 88px; font-weight: var(--wght-display); font-stretch: var(--wdth-display); line-height: var(--lh-cap); text-transform: uppercase; }',
     '.px-cb-band-axis { left: calc(var(--m-x) - var(--spine-w) + 429px); top: 0; bottom: 0; width: var(--w-rule); background: var(--c-accent-ink); }',
-    '.px-cb-band-val { left: calc(var(--m-x) - var(--spine-w) + 478px); bottom: 36px; font-size: 124px; line-height: 0.9; white-space: nowrap; }',
-    '.px-cb-line { margin-top: 28px; font-size: var(--t-voice); line-height: 1.05; white-space: nowrap; }',
+    '.px-cb-band-val { left: calc(var(--m-x) - var(--spine-w) + 478px); bottom: 28px; font-size: 124px; line-height: 0.9; white-space: nowrap; }',
+    '.px-cb-line { margin-top: 22px; font-size: var(--t-voice); line-height: 1.05; white-space: nowrap; }',
 
     /* ---- slotting-scorecard ---- */
-    '.px-sc-head { max-width: 1000px; margin-bottom: 0; text-wrap: initial; }',
+    '.px-sc-head { max-width: 1000px; margin-bottom: 0; line-height: 0.8; text-wrap: initial; }',
     '.px-sc-close { position: absolute; right: var(--m-right); top: 62px; text-align: right; line-height: 1.12; white-space: nowrap; }',
     '.px-sc-dock { --gw: 440px; --gh: 664px; position: absolute; left: var(--m-x); top: 236px; }',
     '.px-sc-dock .gate { --gcap: 80px; }',
     '.px-sc-dock .gate-name { top: calc(var(--gl) * 2 + var(--graised) + 36px); }',
+    '.px-sc-dock .gate-why { font-size: var(--t-label); font-stretch: var(--wdth-tight); letter-spacing: 0.03em; white-space: nowrap; }',
     '.px-sc-dock .gate.is-no > .gate-shutter::after { font-size: calc(var(--gw) * 0.47); bottom: calc(var(--gl) + var(--gthrough) + var(--gw) * 0.04); }',
+    /* static copies (overview, presenter preview) follow the step: a gate whose
+       finding is not printed yet is a vacant bay, and RETURN only shows its NO
+       while the minutes are on screen */
+    '.slide.is-static .px-sc-dock .gate:not(:has(> .px-find.is-visible)) > .gate-shutter { height: 0; }',
+    '.slide.is-static .px-sc-dock .gate:not(:has(> .px-find.is-visible)) > .gate-why { visibility: hidden; }',
+    '.slide.is-static .px-sc-dock .gate:not(:has(> .px-find.is-visible))::after, .slide.is-static .px-sc-dock .gate:not(:has(> .px-find.is-visible)) > .gate-name::after { content: none; }',
+    '.slide.is-static .px-g-return:not(.is-pass):has(> .px-find-rec2.is-visible) > .gate-shutter { height: 0; }',
+    '.slide.is-static .px-g-return:not(.is-pass):has(> .px-find-rec2.is-visible) > .gate-why { visibility: hidden; }',
+    '.slide.is-static .px-g-return:not(.is-pass):not(:has(> .px-find-rec2.is-visible))::after { content: none; }',
+    '.slide.is-static .px-find-min:has(~ .px-find-rec2.is-visible) { display: none; }',
     '.px-find { position: absolute; left: calc(var(--gl) * 2 + var(--gpad)); right: calc(var(--gl) * 2 + var(--gpad)); top: calc(var(--gl) * 2 + var(--graised) + 126px); z-index: 1; display: flex; flex-direction: column; align-items: flex-start; }',
     '.px-find[data-step]:not(.is-visible) { display: none; }',
     '.px-find.is-blend { color: var(--card); mix-blend-mode: difference; }',
@@ -319,30 +364,45 @@
     '.px-find-hero { display: flex; align-items: baseline; gap: 18px; margin-top: 6px; white-space: nowrap; }',
     '.px-find-hero > .num { font-size: 200px; }',
     '.px-find-hero > span { font-size: 56px; font-weight: 800; line-height: 1; }',
-    '.px-find-rec { display: flex; align-items: center; gap: 20px; margin-top: 12px; white-space: nowrap; }',
-    '.px-find-rec > .num { font-size: 72px; }',
-    '.px-find-rec > span.px-per { font-size: 36px; font-weight: 600; line-height: 1; }',
-    '.px-find-rec > .verdict { --vh: 60px; }',
+    /* step 3: the NO on minutes stays on the record as the tell-tale under the
+       floor, where a NO's reason is printed; the bay above is free again */
+    '.px-sc-dock .px-find.px-find-rec2 { top: var(--gh); height: var(--gcap); left: calc(var(--gl) * 2); right: 0; flex-direction: row; align-items: center; }',
+    '.px-find-rec { display: flex; align-items: center; gap: 14px; white-space: nowrap; }',
+    '.px-find-rec > .num { font-size: 44px; }',
+    '.px-find-rec > span.px-per { font-size: var(--t-label); font-weight: 700; font-stretch: var(--wdth-tight); line-height: 1; }',
+    '.px-find-rec > .verdict { --vh: 48px; order: -1; }',
+    '.px-find-rec > .verdict.is-pass { --vh: 56px; }',
     /* if the rate is ever set so high that the minutes pass on their own */
-    '.px-g-return.is-minutes-pass .px-find-rec > .px-per { display: none; }',
+    '.px-g-return:has(> .px-find-rec2.is-visible) > .gate-why { visibility: hidden !important; }',
     '.px-g-return.is-minutes-pass > .gate-name::after { content: none; }',
-    /* the bigger return: it takes the place where the NO came down, floor and all */
-    '.px-brx { --brs: 1; position: absolute; left: calc(var(--gl) * 2); right: calc(var(--gl) * 2); top: 392px; z-index: 2; display: flex; flex-direction: column; padding: 24px var(--gpad) 22px; overflow: hidden; }',
+    /* the bigger return: a block inside the bay, above the floor line (a block
+       through the floor is the shape of a NO). One designed layout per count. */
+    '.px-brx { position: absolute; left: calc(var(--gl) * 2); right: calc(var(--gl) * 2); top: calc(var(--gl) * 2 + var(--graised) + 114px); bottom: calc(var(--gcap) + var(--gl) * 2); z-index: 2; display: flex; flex-direction: column; padding: 18px var(--gpad) 16px; overflow: hidden; }',
     '.px-brx[data-step]:not(.is-visible) { display: none; }',
     '.px-brx > .label { flex: none; font-stretch: var(--wdth-text); letter-spacing: 0.02em; white-space: nowrap; }',
-    '.px-brx.is-point { bottom: 0; background: var(--c-accent); color: var(--c-accent-ink); }',
-    '.px-brx.is-empty { bottom: calc(var(--gcap) + var(--gl) * 2); padding-bottom: 14px; }',
+    '.px-brx.is-point { background: var(--c-accent); color: var(--c-accent-ink); }',
+    '.px-brx.is-empty { padding-bottom: 14px; }',
     '.px-brx.is-empty > .slot-yours { flex: 1 1 0; min-width: 0; min-height: 0; margin-top: 16px; padding: 0; font-stretch: var(--wdth-label-tight); letter-spacing: 0.08em; }',
-    '.px-br { display: flex; flex-direction: column; gap: calc(18px * var(--brs)); margin-top: calc(18px * var(--brs)); }',
-    '.px-br-item { display: flex; flex-direction: column; gap: calc(8px * var(--brs)); }',
-    '.px-br-item + .px-br-item { padding-top: calc(16px * var(--brs)); border-top: var(--w-hair) solid var(--c-accent-ink); }',
-    '.px-br-v { font-size: calc(var(--brv, 96px) * var(--brs)); white-space: nowrap; }',
-    '.px-br-l { font-size: max(32px, calc(38px * var(--brs))); font-weight: 700; line-height: 1.08; }',
-    '.px-br-n { font-size: 36px; font-weight: var(--wght-text); line-height: 1.12; }',
+    '.px-br { display: flex; flex-direction: column; gap: 18px; margin-top: 20px; min-height: 0; }',
+    '.px-br-item { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }',
+    '.px-br-item + .px-br-item { padding-top: 16px; border-top: var(--w-rule) solid var(--c-accent-ink); }',
+    '.px-br-item.is-cut { display: none; }',
+    '.px-br-v { max-width: 100%; font-size: var(--brv, 96px); line-height: 0.84; overflow-wrap: anywhere; }',
+    '.px-br-l { font-size: 36px; font-weight: 700; line-height: 1.08; text-wrap: balance; }',
+    '.px-br-n { font-size: 36px; font-weight: var(--wght-text); line-height: 1.1; text-wrap: balance; }',
+    '.px-br.is-tight .px-br-n { display: none; }',
+    /* two or three entries: the first leads, the others are one-line rows */
+    '.px-br.is-many .px-br-item + .px-br-item { flex-direction: row; flex-wrap: wrap; align-items: baseline; column-gap: 14px; row-gap: 4px; }',
+    '.px-br.is-many .px-br-item + .px-br-item > .px-br-v { font-size: min(var(--brv), 56px); }',
+    '.px-br.is-many .px-br-l { font-size: 32px; }',
+    '.px-br.is-three .px-br-item { flex-direction: row; flex-wrap: wrap; align-items: baseline; column-gap: 14px; row-gap: 4px; }',
+    '.px-br.is-three .px-br-item > .px-br-v { font-size: min(var(--brv), 56px); }',
+    '.px-br .slot-yours { min-width: 0; min-height: 64px; padding: 0 18px; font-size: 32px; font-stretch: var(--wdth-label-tight); letter-spacing: 0.08em; }',
     '.px-find .slot-yours { min-width: 0; align-self: stretch; margin-top: 12px; padding: 0; font-stretch: var(--wdth-label-tight); letter-spacing: 0.08em; }',
     '.px-kv { align-self: stretch; display: flex; flex-direction: column; align-items: flex-start; }',
     '.px-kv + .px-kv { margin-top: 26px; padding-top: 22px; border-top: var(--w-hair) solid var(--c-line); }',
-    '.px-kv-v { display: flex; align-items: baseline; gap: 14px; margin-top: 12px; white-space: nowrap; }',
+    /* a long figure pushes its unit onto the next line instead of through the gate wall */
+    '.px-kv-v { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 14px; row-gap: 8px; margin-top: 12px; max-width: 100%; white-space: nowrap; }',
     '.px-kv-v > .num { font-size: 96px; }',
     '.px-kv-v > span { font-size: var(--t-body); font-weight: 700; line-height: 1; }',
     '.px-kv-note { margin-top: 14px; font-size: 36px; font-weight: 600; line-height: 1.14; }',
@@ -479,7 +539,9 @@
       seq.tw(t, o.duration || D_COUNT, tickEase, function (v) {
         var done = v >= 1;
         var x = done ? to : (v <= 0 ? from : from + (to - from) * v);
-        el.textContent = pre + num(x, done ? dTo : (v <= 0 ? decimalsOf(from) : dRun)) + suf;
+        var d = done ? dTo : (v <= 0 ? decimalsOf(from) : dRun);
+        if (o.display) { el.innerHTML = esc(pre) + numDisplay(x, d) + esc(suf); }
+        else { el.textContent = pre + num(x, d) + suf; }
       });
       return seq;
     };
@@ -538,16 +600,37 @@
   }
 
   /**
-   * The speaker's own lines can be any length. Step a block's type down (the
-   * --brs factor in its styles) until it fits its box, never under the floors.
+   * The bigger return is the speaker's own text and can be any length. Each
+   * count of entries has its own designed layout (in the styles); if the words
+   * still do not fit the bay: drop the notes (they belong in the speaker notes),
+   * then step the figures down (never under 64px, never down to the size of
+   * their labels), then show only the entries that fit and say so in the
+   * console, which tools/shoot.js reports.
    */
-  function fitBlock(el) {
-    if (!el || !el.clientHeight) { return; }
-    var s = 1;
-    el.style.setProperty('--brs', s);
-    while (el.scrollHeight > el.clientHeight + 1 && s > 0.62) {
-      s = Math.round((s - 0.06) * 100) / 100;
-      el.style.setProperty('--brs', s);
+  function fitBigger(box, state) {
+    var list = box && box.querySelector('.px-br');
+    if (!list || !box.clientHeight) { return; }
+    var items = Array.prototype.slice.call(list.querySelectorAll('.px-br-item'));
+    var vals = Array.prototype.slice.call(list.querySelectorAll('.px-br-v'));
+    list.classList.remove('is-tight');
+    items.forEach(function (it) { it.classList.remove('is-cut'); });
+    vals.forEach(function (v) { v.style.setProperty('--brv', v.getAttribute('data-brv') + 'px'); });
+    function over() { return box.scrollHeight > box.clientHeight + 1; }
+    if (!over()) { return; }
+    list.classList.add('is-tight');
+    for (var size = 88; over() && size >= 64; size -= 8) {
+      vals.forEach(function (v) {
+        if (Number(v.getAttribute('data-brv')) > size) { v.style.setProperty('--brv', size + 'px'); }
+      });
+    }
+    var shown = items.length;
+    while (over() && shown > 1) { items[--shown].classList.add('is-cut'); }
+    if ((shown < items.length || over()) && !state.warned) {
+      state.warned = true;
+      if (window.console && console.error) {
+        console.error('[slotting-scorecard] "The bigger return" does not fit its bay: ' + shown + ' of ' + items.length +
+          ' entries are shown. Shorten the label or value in deck/content/your-numbers.js, or move the rest to the notes.');
+      }
     }
   }
 
@@ -566,7 +649,7 @@
 
     b = seq.base();
     var n = q('.px-fact-n b');
-    if (n) { seq.count(b + SIXTEENTH, n, 0, Number(R.parts) || 0); }
+    if (n) { seq.count(b + SIXTEENTH, n, 0, Number(R.parts) || 0, { display: true }); }
     seq.cut(b + SIXTEENTH + D_COUNT, q('.px-fact-t1'));
     seq.wipe(b + SIXTEENTH + D_COUNT + BEAT + SWING, q('.px-fact-t2'));
     seq.end(b + SIXTEENTH + D_COUNT + BEAT + SWING + D_VOICE);
@@ -610,6 +693,7 @@
       seq.count(bandAt, n, 0, Number(R.ladderPctAsIs) || 0, { suffix: '%' });
     }
     seq.cut(bandAt + D_COUNT, q('.px-band-t'));
+    seq.cut(bandAt + D_COUNT, q('.px-band-src'));
     seq.end(bandAt + D_COUNT + EPS);
     c.entrance = true;
   };
@@ -642,7 +726,7 @@
     var figs = qa('.px-old-f');
     seq.cut(b, figs[0]);
     seq.cut(b + BEAT + SWING, figs[1]);
-    seq.wipe(b + BEAT * 4, q('.px-old > .deadpan'));
+    seq.wipe(b + BEAT * 4, q('.px-old .deadpan'));
     seq.end(b + BEAT * 4 + D_VOICE);
   };
 
@@ -765,6 +849,7 @@
 
     // step 1: the thought experiment, drawn to scale
     b = seq.base() + SIXTEENTH;
+    seq.cut(b, q('.px-cb-recap'));
     seq.cut(b, q('.px-cb-note'));
     seq.lift(b + BEAT, q('.px-cb-axis'), BEAT);
     var t = b + BEAT * 2;
@@ -779,6 +864,7 @@
       seq.tw(t, dur, 'linear', function (v) { bar.style.width = (full * v).toFixed(1) + 'px'; });
       stop = t + dur;
       seq.cut(stop, row.querySelector('.px-cb-val'));
+      seq.cut(stop, row.querySelector('.px-cb-ptr'));
       t = stop + (i % 2 ? BEAT : BEAT + SWING);
     });
     // one full beat of nothing, then the row that is the point
@@ -844,6 +930,8 @@
       });
       seq.at(t + D_LIFT, function () { setGate(gRet, ['has-tell'], false); },
         function () { setGate(gRet, ['is-no'], false); });
+      // the minutes stay printed on the shutter while it goes up, and go with it
+      seq.hide(t + D_LIFT, qa('.px-find-min [data-px]'));
       t += D_LIFT;
     }
     seq.cut(t, qa('.px-find-rec2 [data-px="rec"]'));
@@ -851,7 +939,8 @@
     if (brx) {
       // it comes up from the floor, where the NO went down
       seq.lift(t + BEAT * 3, brx, D_LIFT);
-      c.fit.push(function () { fitBlock(brx); });
+      var fitState = { warned: false };
+      c.fit.push(function () { fitBigger(brx, fitState); });
     }
     seq.cut(t + BEAT * 5 + SWING, qa('.px-g-effort .px-find [data-px]'));
     seq.cut(t + BEAT * 7, qa('.px-g-potential .px-find [data-px]'));

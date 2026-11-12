@@ -10,9 +10,9 @@ Generated from the deck by `node tools/build-run-of-show.js`. Do not edit by han
 | 1. The Bandwagon | 10 min | 10 min |
 | 2. The Four Gates | 15 min | 15 min |
 | 3. Your Turn | 35 min | 35 min |
-| 4. Build the Winner | 20 min | 19.5 min |
+| 4. Build the Winner | 20 min | 20 min |
 | 5. Who Owns the Minutes? | 10 min | 10 min |
-| **Total** | **90 min** | **89.5 min** |
+| **Total** | **90 min** | **90 min** |
 
 
 ## Act 0: Walk-in
@@ -70,21 +70,21 @@ Generated from the deck by `node tools/build-run-of-show.js`. Do not edit by han
 | 29 | 3:41 | Seven attempts | 2.5 min | 3 |
 | 30 | 3:43:30 | What we said no to | 2 min | 4 |
 | 31 | 3:45:30 | What it costs to run: nothing | 2 min | 2 |
-| 32 | 3:47:30 | My own project, through my own gates | 2 min | 3 |
+| 32 | 3:47:30 | My own project, through my own gates | 2.5 min | 3 |
 
-## Act 5: Who Owns the Minutes? (10 min, starts 3:49:30)
+## Act 5: Who Owns the Minutes? (10 min, starts 3:50)
 
 | # | Clock | Slide | Time | Clicks |
 |---|---|---|---|---|
-| 33 | 3:49:30 | Who owns the minutes? | 30 sec | 1 |
-| 34 | 3:50 | The objection | 1.5 min | 1 |
-| 35 | 3:51:30 | Share the gain | 2 min | 4 |
-| 36 | 3:53:30 | The Waypoint standard | 1 min | 1 |
-| 37 | 3:54:30 | Monday morning | 1 min | 3 |
-| 38 | 3:55:30 | Close: say yes to the math | 1 min | 3 |
-| 39 | 3:56:30 | Thank you. Questions. | 3 min | 0 |
+| 33 | 3:50 | Who owns the minutes? | 30 sec | 1 |
+| 34 | 3:50:30 | The objection | 1.5 min | 1 |
+| 35 | 3:52 | Share the gain | 2 min | 4 |
+| 36 | 3:54 | The Waypoint standard | 1 min | 1 |
+| 37 | 3:55 | Monday morning | 1 min | 3 |
+| 38 | 3:56 | Close: say yes to the math | 1 min | 3 |
+| 39 | 3:57 | Thank you. Questions. | 3 min | 0 |
 
-Session ends at 3:59:30.
+Session ends at 4:00.
 
 ## Still to fill in (`deck/content/your-numbers.js`)
 

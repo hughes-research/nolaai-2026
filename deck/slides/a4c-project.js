@@ -44,8 +44,8 @@
   var slot = function (size) { return T ? T.slot(null, size) : '<span class="slot-yours">Your number</span>'; };
   var storyLines = ((window.YOUR.story || {}).howWeBuiltIt || []).filter(function (line) { return isFilled(line); });
 
-  /* a line of copy from the numbers file, closed with a full stop for the notes */
-  function sentence(s) { s = String(s || '').trim(); return s ? s + (/[.!?]$/.test(s) ? '' : '.') : ''; }
+  /* a line of copy from the numbers file, closed with a full stop */
+  var sentence = P.sentence;
 
   /* Each slide is registered inside its own guard: if a value in the numbers
      file breaks one slide, the others still register, and tools/shoot.js
@@ -76,9 +76,9 @@
       return '<div class="pair' + (p.point ? ' is-point' : '') + '" data-from="' + p.from + '" data-to="' + p.to + '"' + (p.point ? ' data-point' : '') + '>' +
         '<p class="pair-what">' + esc(p.what) + '</p>' +
         '<p class="pair-v is-before"><b>' + num(p.from) + suffix + '</b>' + unit + '</p>' +
-        '<i class="pair-arrow" data-px></i>' +
-        '<p class="pair-v is-after" data-px><b data-suffix="' + suffix + '">' + num(p.to) + suffix + '</b>' + unit + '</p>' +
-        (isFilled(p.less) ? '<p class="pair-note" data-px>' + num(p.less, 1) + '% less</p>' : '<span></span>') +
+        '<i class="pair-arrow" data-step="1" data-px></i>' +
+        '<p class="pair-v is-after" data-step="1" data-px><b data-suffix="' + suffix + '">' + num(p.to) + suffix + '</b>' + unit + '</p>' +
+        (isFilled(p.less) ? '<p class="pair-note" data-step="1" data-px>' + num(p.less, 1) + '% less</p>' : '<span></span>') +
         '</div>';
     }
 
@@ -96,34 +96,31 @@
           ${pairs.map(pairHtml).join('')}
         </div>
         <div class="px-old" data-step="2">
-          <p class="label">Versus the<br>old building</p>
-          <p class="px-old-f" data-px><b class="num">${num(old.walkPctLess, 1)}%</b><span>less walking</span></p>
-          <p class="px-old-f" data-px><b class="num">${num(old.pickTimePctLess, 1)}%</b><span>less pick time</span></p>
-          <p class="deadpan" data-px>In a bigger<br>building.</p>
+          <p class="label">Optimized, versus the old building today</p>
+          <div class="px-old-row">
+            <p class="px-old-f" data-px><b class="num">${num(old.walkPctLess, 1)}%</b><span>less walking</span></p>
+            <p class="px-old-f" data-px><b class="num">${num(old.pickTimePctLess, 1)}%</b><span>less pick time</span></p>
+            <p class="deadpan" data-px>In a bigger building.</p>
+          </div>
         </div>
-        <p class="source-line">Laborde results, ${esc(R.asOf)} · ${caveats[0] || ''} · ${caveats[1] || ''}<span class="px-src-more px-src-line2" data-step="2">${esc(R.caveats && R.caveats[2] || '')} · results depend on where the pack station is</span></p>
+        <p class="source-line">Laborde results, ${esc(R.asOf)} · ${caveats[0] || ''} · ${caveats[1] || ''}<span class="px-src-line2">results depend on where the pack station is<span class="px-src-more" data-step="2"> · ${caveats[2] || ''}</span></span></p>
         ${P.driver('results')}
       `,
       notes: `
         SAY: That was a re-creation on made-up data. These are the real numbers, from the runs of ${R.asOf}.
-        On the left, the as-is move: every part carried across in the order it sits in today. On the right, the layout the tool chose.
+        Left: the as-is move, every part carried across in today's order. Right: the layout the tool chose.
 
-        DO: Click once. The four results come in one at a time. Read each one as it lands.
+        DO: Click once. Read each result as it lands.
 
-        SAY: Walk per pick run: ${num(R.walkFtAsIs)} feet down to ${num(R.walkFtOptimized)}. That is ${num(R.walkPctLess, 1)} percent less.
-        Pick time per year: ${num(R.pickHoursAsIs)} hours down to ${num(R.pickHoursOptimized)}. ${num(R.pickTimePctLess, 1)} percent less.
-        Picks that need a ladder: ${num(R.ladderPctAsIs)} percent down to ${num(R.ladderPctOptimized)} percent.
-        Fast movers in the golden zone: ${num(R.goldenPctAsIs)} percent up to ${num(R.goldenPctOptimized)} percent.
-
-        SAY: The caveats, out loud. Three things before you write any of that down.
-        These are measured against the as-is move: every part in its current order. That is the baseline, and it says so on the slide.
-        The pick times are placeholders. They stand until we do a time study on the floor.
-        And they are for the pack station we chose. Move the pack station and the numbers move.
+        SAY: The caveats, out loud, before anyone writes these down.
+        The baseline is the as-is move. It says so on the slide.
+        The pick times are placeholders until we do a time study on the floor.
+        And they hold for the pack station we chose. Move it and the numbers move.
 
         DO: Click once more for the old building.
 
-        SAY: Against the old building as it runs today: ${num(old.walkPctLess, 1)} percent less walking and ${num(old.pickTimePctLess, 1)} percent less pick time. In a bigger building.
-        One more caveat, and it is on the slide: the old building's floor plan is an estimate.
+        SAY: Against the old building as it runs today: ${num(old.walkPctLess, 1)} percent less walking, ${num(old.pickTimePctLess, 1)} percent less pick time. In a bigger building.
+        The old building's floor plan is an estimate. That is on the slide too.
 
         NEXT: It did not come out like that the first time. Or the third.
       `
@@ -168,7 +165,8 @@
         lab = 'bottom:' + (AT.h - AT.y0 + 16) + 'px';
         if (a.retired) { ret = '<span class="px-att-ret" data-px style="top:' + (AT.y0 + AT.rule + h - 58) + 'px">retired</span>'; }
       }
-      return '<div class="px-att-col" data-dir="' + (up ? 1 : -1) + '" style="left:' + (i * AT.col) + 'px;width:' + AT.col + 'px">' +
+      // data-step: static copies (overview, presenter preview) follow the builds too
+      return '<div class="px-att-col" data-step="' + (up ? 2 : 1) + '" data-dir="' + (up ? 1 : -1) + '" style="left:' + (i * AT.col) + 'px;width:' + AT.col + 'px">' +
         '<i class="px-att-bar' + (a.retired ? ' is-retired is-struck' : '') + (last && up ? ' is-point' : '') + '" data-px data-h="' + h + '" style="' + bar + '"></i>' +
         '<b class="num px-att-val" data-px style="' + val + '">' + P.signedPct(a.pct) + '</b>' +
         ret +
@@ -191,13 +189,13 @@
       minutes: 2.5,
       layout: 'chart px-attempts-slide',
       html: `
-        <h2 class="headline is-s">Seven attempts. The first three lost to the old building.</h2>
-        <p class="label axis-note">Percent less walking than the old building · drawn to scale</p>
+        <h2 class="headline is-s">Seven attempts.<br>The first three lost to the old building.</h2>
+        <p class="label axis-note">Percent less walking · zero is the old building · drawn to scale</p>
         <div class="px-att" style="height:${AT.h}px">
           <i class="px-att-zero" data-px style="top:${AT.y0}px"></i>
           ${attempts.map(attemptHtml).join('')}
           <ul class="px-rigor" data-step="3" style="left:${firstUp * AT.col - 4}px;top:${AT.y0 + AT.rule + 18 + 182 + 26}px">
-            ${(R.rigor || []).map(function (line) { return '<li data-px>' + esc(line) + '</li>'; }).join('')}
+            ${(R.rigor || []).map(function (line) { return '<li data-px>' + esc(sentence(line)) + '</li>'; }).join('')}
           </ul>
         </div>
         <p class="sub px-att-line" data-step="2" data-px>The gains came from measuring real orders, not from fancier solvers.</p>
@@ -206,26 +204,23 @@
       `,
       notes: `
         SAY: This is what the work actually looked like. Seven attempts.
-        The line is the old building. Above it is less walking than we do today. Below it is more.
+        The line is the old building. Above it: less walking than today. Below it: more.
 
-        DO: Click once for the first three.
+        DO: Click once for the first three. Read them as they land.
 
-        SAY: ${attempts.filter(function (a) { return a.pct < 0; }).map(attemptLine).join(' ')}
-        Three attempts in, we were losing to the old building. And the fancier the math got, the worse it did.
-        We retired two of them.
+        SAY: Three attempts in, we were losing to the old building. The fancier the math got, the worse it did. We retired two of them.
 
         YOUR STORY: what made you keep going after three losses.
 
-        DO: Click once for the climb.
+        DO: Click once for the climb. Read the four bars as they land.
 
-        SAY: ${attempts.filter(function (a) { return a.pct >= 0; }).map(attemptLine).join(' ')}
-        The gains came from measuring real orders, not from fancier solvers.
+        SAY: The gains came from measuring real orders, not from fancier solvers.
 
         DO: Click once for three lines from our own experiment log.
 
-        SAY: ${(R.rigor || []).map(sentence).join(' ')}
-        The first one: we found placements that could not physically happen, so we marked our own headline down.
-        The second: two ways of measuring the same layout disagreed, and we reported the lower one.
+        SAY: We found placements that could not physically happen, so we marked our own headline down.
+        Two ways of measuring the same layout disagreed. We reported the lower one.
+        And a bug once said 220 percent. We called it nonsense and fixed it.
 
         NEXT: That is the building of it. Now the part this talk is named after.
       `
@@ -254,12 +249,15 @@
       steps: refusals.length,
       html: `
         <h2 class="headline is-hero px-no-head">What we said no to.</h2>
+        <span class="tag is-laborde px-tag-tr px-no-tag">${label}</span>
         <div class="dock px-no-dock">
-          ${refusals.map(function (r) {
+          ${refusals.map(function (r, i) {
+            // data-step: static copies (overview, presenter preview) follow the builds too
             return '<article class="gate is-no is-flare is-still">' +
               '<i class="gate-shutter"></i>' +
-              '<h3 class="gate-name" data-px>' + esc(r.what) + '</h3>' +
-              '<p class="gate-q" data-px>' + esc(r.why) + '</p>' +
+              // a hyphen inside a word never breaks ("a-year" stays whole); one after a figure may
+              '<h3 class="gate-name" data-step="' + (i + 1) + '" data-px>' + esc(r.what).replace(/[A-Za-z]+(?:-[A-Za-z]+)+/g, '<span class="px-nobr">$&</span>') + '</h3>' +
+              '<p class="gate-q" data-step="' + (i + 1) + '" data-px>' + esc(sentence(r.why)) + '</p>' +
               '</article>';
           }).join('')}
         </div>
@@ -312,17 +310,22 @@
       var top = i * (CB.row + CB.gap);
       var biggest = r.total === CB.max;
       var sliver = w < 12;
+      // a sliver stands alone: the axis is broken beside it and an arrow points at it
+      var PTR = 56 + 18, GAP = 16;
+      var valLeft = 435 + w + 22 + (sliver ? GAP + PTR + 14 : 0);
       return '<div class="px-cb-row" style="top:' + top + 'px">' +
         (sliver ? '<i class="px-cb-cut" data-px></i>' : '') +
-        '<p class="px-cb-name" data-px>' + esc(r.label) + '</p>' +
+        '<p class="px-cb-name" data-px>' + esc(P.curly(r.label)) + '</p>' +
         '<i class="px-cb-bar" data-px data-w="' + w + '" style="width:' + w + 'px"></i>' +
-        '<b class="num px-cb-val' + (biggest ? ' is-inside' : '') + '" data-px' + (biggest ? '' : ' style="left:' + (435 + w + 22) + 'px"') + '>' + esc(r.text) + '</b>' +
+        (sliver ? '<i class="px-cb-ptr" data-px style="left:' + (435 + w + GAP + 18) + 'px"></i>' : '') +
+        '<b class="num px-cb-val' + (biggest ? ' is-inside' : '') + '" data-px' + (biggest ? '' : ' style="left:' + valLeft + 'px"') + '>' + esc(r.text) + '</b>' +
         '</div>';
     }
 
     var costStrip = T ? T.gateStrip({ now: 1 }) : '';
-    var tokensLine = mc.tokens ? 'assumes ' + num(mc.tokens.in) + ' tokens in / ' + num(mc.tokens.out) + ' out per call' : '';
-    var pricedAs = mc.rows.map(function (r) { return esc(r.model); }).join(', ');
+    var NB = '\u00a0';
+    var tokensLine = mc.tokens ? [num(mc.tokens.in), 'tokens', 'in', '/', num(mc.tokens.out), 'out', 'per', 'call'].join(NB) : '';
+    var pricedAs = mc.rows.map(function (r) { return '<span class="px-nobr">' + esc(r.model) + '</span>'; }).join(', ');
 
     Deck.slide({
       id: 'slotting-cost',
@@ -332,7 +335,6 @@
       layout: 'px-cost-slide',
       steps: mc.ok ? 2 : 0,
       html: `
-        <p class="kicker">Cost · on the real project</p>
         ${costStrip}
         <h2 class="headline px-cost-head">What it costs to run: nothing.</h2>
         <div class="px-facts"${mc.ok ? ' data-step-out="1"' : ''}>
@@ -351,8 +353,9 @@
         </div>
         ${mc.ok ? `
         <div class="px-cb" data-step="1">
+          <p class="px-cb-recap" data-px><b>${num(commits.aiCoAuthored)} of ${num(commits.total)}</b> commits co‑written with AI · <b>${num(R.aiModelsAtRunTime)}</b> AI models at run time · <b>${callsWords}</b> swaps in about ${num(run.minutes)}&nbsp;minutes</p>
           <p class="px-cb-lead">If each of those ${callsWords} tries were a model call:</p>
-          <p class="label px-cb-note" data-px>Cost of one run · US dollars · bars drawn to scale</p>
+          <p class="label px-cb-note" data-px>${esc((T && T.tags.example) || 'Example')} · Cost of one run · US dollars · bars drawn to scale</p>
           <div class="px-cb-plot" style="height:${mc.rows.length * (CB.row + CB.gap)}px">
             <i class="px-cb-axis" data-px></i>
             ${mc.rows.map(costRowHtml).join('')}
@@ -365,7 +368,7 @@
           </div>
           <p class="sub px-cb-line" data-step="2" data-px>The model’s job was to help write the tool. Not to be the tool.</p>
         </div>` : ''}
-        <p class="source-line"><span${mc.ok ? ' class="px-src-more" data-step-out="1"' : ''}>${label}</span>${mc.ok ? `<span class="px-src-more" data-step="1">Source: ${esc(mc.source)} · tiers priced as ${pricedAs} · ${tokensLine}</span>` : ''}</p>
+        <p class="source-line"><span${mc.ok ? ' class="px-src-more" data-step-out="1"' : ''}>${label}</span>${mc.ok ? `<span class="px-src-more" data-step="1">${label} · Source: ${esc(mc.source)} · tiers: ${pricedAs} · ${tokensLine}</span>` : ''}</p>
         ${P.driver('cost')}
       `,
       notes: `
@@ -377,7 +380,7 @@
         DO: Click once for the thought experiment.
 
         SAY: Now pretend every one of those ${callsWords} tries was a call to a model. Same task size I have used all afternoon.
-        ${mc.rows.map(function (r) { return r.label + ': ' + r.text + ' for one run.'; }).join(' ')}
+        ${mc.rows.map(function (r) { return P.curly(r.label) + ': ' + r.text + ' for one run.'; }).join(' ')}
         Plain code: the electricity.
         Nobody would build it this way. That is the point. It is the wrong tool for the job, and the cost gate tells you so before you start.
 
@@ -396,26 +399,41 @@
 
   guard('slotting-scorecard', function () {
     var ma = P.minutesAlone();
-    var bigger = (Array.isArray(SL.biggerReturn) ? SL.biggerReturn : []).filter(function (b) { return b && isFilled(b.value); });
+    var MAX_BIGGER = 3;
+    // an entry counts once the speaker has written anything in it; a missing value stays a YOUR NUMBER slot
+    var biggerAll = (Array.isArray(SL.biggerReturn) ? SL.biggerReturn : []).filter(function (b) {
+      return b && (isFilled(b.value) || isFilled(b.label) || isFilled(b.note));
+    });
+    if (biggerAll.length > MAX_BIGGER && window.console && console.error) {
+      console.error('[slotting-scorecard] "The bigger return" has ' + biggerAll.length + ' entries; the slide shows the first ' + MAX_BIGGER + '. Put the rest in the notes.');
+    }
+    var bigger = biggerAll.slice(0, MAX_BIGGER);
+    var biggerDone = bigger.length > 0 && bigger.every(function (b) { return isFilled(b.value); });
     var effort = SL.effort || {};
     var potential = SL.potential || {};
     var returnPass = ma.pass === true;
     var costPass = ma.costPass !== false;
-    var showClose = bigger.length > 0 && ma.pass === false;
+    var showClose = biggerDone && ma.pass === false;
     var costText = (ma.ok && M) ? M.formatNumber(ma.costPerYear, '$,d') : money(0);
     var nextAfterScorecard = storyLines.length ? 'Here is how we actually built it.' : 'We just got the minutes back. So who owns them?';
 
+    /* A value is printed as typed when it is words ('6 weeks', '$48,000'); a
+       plain number gets its thousands commas and nothing else (no unit is
+       guessed). The figure is set as large as its length and the bay allow. */
     function biggerHtml() {
       if (!bigger.length) { return slot(); }
-      var shown = bigger.slice(0, 3);
-      return '<div class="px-br">' + shown.map(function (b) {
-        // the figure is set as large as its own length and the bay allow
-        var len = Math.max(1, String(b.value).length);
-        var size = Math.max(44, Math.min(shown.length > 1 ? 72 : 104, Math.floor(318 / (0.43 * len))));
+      var n = bigger.length;
+      var cls = n === 1 ? 'is-one' : (n === 2 ? 'is-many' : 'is-many is-three');
+      return '<div class="px-br ' + cls + '">' + bigger.map(function (b, i) {
+        var hasV = isFilled(b.value);
+        var text = hasV ? (typeof b.value === 'number' ? num(b.value) : String(b.value)) : '';
+        var cap = n === 1 ? 104 : (i === 0 && n === 2 ? 72 : 56);
+        var size = Math.max(48, Math.min(cap, Math.floor(362 / (0.46 * Math.max(1, text.length)))));
         return '<div class="px-br-item">' +
-          '<b class="num px-br-v" style="--brv:' + size + 'px">' + esc(b.value) + '</b>' +
+          (hasV ? '<b class="num px-br-v" data-brv="' + size + '" style="--brv:' + size + 'px">' + esc(text) + '</b>' : slot('s')) +
           (isFilled(b.label) ? '<span class="px-br-l">' + esc(b.label) + '</span>' : '') +
-          (isFilled(b.note) ? '<span class="px-br-n">' + esc(b.note) + '</span>' : '') +
+          // with more than one entry the notes go to the speaker notes, not the bay
+          (n === 1 && isFilled(b.note) ? '<span class="px-br-n">' + esc(b.note) + '</span>' : '') +
           '</div>';
       }).join('') + '</div>';
     }
@@ -435,7 +453,8 @@
       id: 'slotting-scorecard',
       act: 4,
       title: 'My own project, through my own gates',
-      minutes: 2,
+      // how-we-built-it carries half a minute only while it is in the running order
+      minutes: storyLines.length ? 2 : 2.5,
       layout: 'px-score-slide',
       steps: 3,
       html: `
@@ -450,17 +469,16 @@
             </div>
             <p class="gate-why">${costPass ? 'carried forward' : 'over the cost limit'}</p>
           </article>
-          <article class="gate px-g-return is-still ${returnPass ? 'is-pass is-minutes-pass' : 'has-tell'}">
+          <article class="gate px-g-return is-still ${returnPass ? 'is-pass is-minutes-pass' : 'is-no has-tell'}">
             <i class="gate-shutter"></i>
             <h3 class="gate-name">Return</h3>
-            <div class="px-find px-find-min is-blend" data-step="2" data-step-out="3">
+            <div class="px-find px-find-min is-blend" data-step="2">
               <p class="label" data-px>On minutes alone</p>
               <p class="px-find-l" data-px style="margin-top:14px">${num(ma.hours)} hours a year</p>
               <p class="num px-find-eq" data-px>= ${ma.ok ? money(ma.value) : ''}</p>
             </div>
             <div class="px-find px-find-rec2" data-step="3">
-              <p class="label" data-px="rec">On minutes alone</p>
-              <p class="px-find-rec" data-px="rec"><b class="num">${ma.ok ? money(ma.value) : ''}</b><span class="px-per">a year</span>${verdictMark(returnPass)}</p>
+              <p class="px-find-rec" data-px="rec"><b class="num">${ma.ok ? money(ma.value) : ''}</b><span class="px-per">on minutes alone</span>${verdictMark(returnPass)}</p>
             </div>
             <div class="px-brx ${bigger.length ? 'is-point' : 'is-empty'}" data-step="3" data-px>
               <p class="label">The bigger return</p>
@@ -489,28 +507,19 @@
         ${P.driver('scorecard', { costPass: costPass, returnPass: returnPass })}
       `,
       notes: `
-        SAY: Now the uncomfortable part. My own favourite project, through my own four gates, in front of you.
+        SAY: Now the uncomfortable part. My own favorite project, through my own four gates.
 
-        DO: Click once for Cost.
+        DO: Click: Cost. SAY: ${costText} to run. No model runs when it runs. Pass.
 
-        SAY: Cost. ${costText} to run. No model runs when it runs. Pass.
+        DO: Click: Return. SAY: On minutes alone it saves ${num(ma.hours)} pick hours a year. At ${ma.ok ? money(ma.rate) : 'the example rate'} an hour, ${ma.ok ? money(ma.value) : 'a small number'}.
+        My own rule says under ${ma.ok ? money(ma.limit) : 'the floor'} a year is a no. So on minutes alone: no. I would be telling you so.
 
-        DO: Click once for Return.
+        DO: Click: the bigger return.
 
-        SAY: Return, on minutes alone. The tool saves ${num(ma.hours)} pick hours a year. At ${ma.ok ? money(ma.rate) : 'the example rate'} an hour that is ${ma.ok ? money(ma.value) : 'a small number'}.
-        My own house rule says under ${ma.ok ? money(ma.limit) : 'the floor'} a year is a no. So on minutes alone: no.
-        If minutes were the whole story, this project stops at gate two, and I would be telling you so.
+        YOUR STORY: the bigger return. The move is the one free re-slot: every part moved anyway, so it was never automate or not. It was guess or calculate.
 
-        DO: Click once for the bigger return.
-
-        YOUR STORY: the bigger return. The move is the one free re-slot: every part was moving anyway, so the choice was never automate or not. It was guess or calculate. Say what calculating was worth, in your own numbers.
-
-        YOUR STORY: effort. What it took to build, and what it takes to keep alive.
-
-        YOUR STORY: potential. Where it goes next.
-
-        SAY: The minutes said no. The move said yes.
-
+        YOUR STORY: effort, and where it goes next.
+${showClose ? '\n        SAY: The minutes said no. The move said yes.\n' : ''}
         NEXT: ${nextAfterScorecard}
       `
     });
@@ -522,6 +531,9 @@
 
   guard('how-we-built-it', function () {
     var story = storyLines;
+    if (story.length > 6 && window.console && console.error) {
+      console.error('[how-we-built-it] The story list has ' + story.length + ' lines; the slide shows the first 6. Put the rest in the notes.');
+    }
 
     Deck.slide({
       id: 'how-we-built-it',

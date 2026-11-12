@@ -6,7 +6,8 @@
  *   node tools/build-handouts.js --shots      also render each PDF page to PNG, in colour and in grey,
  *                                             into out/handouts/ (or --shots some/dir)
  *   node tools/build-handouts.js --check      write nothing; exit 1 if handouts/worksheet.html is not
- *                                             what the current numbers would produce (it is stale)
+ *                                             what the current numbers would produce (it is stale), or
+ *                                             if worksheet.pdf is older than the HTML or a stylesheet
  *   node tools/build-handouts.js --out dir    write worksheet.html and worksheet.pdf into another folder
  *                                             (to try a change without touching the real handout)
  *
@@ -33,7 +34,9 @@
  * WHAT IT CHECKS ON THE PAGE AND THE PDF
  *   Both fonts loaded; nothing overflows either side or any cell; every box to
  *   write in is at least 8 mm tall; the title stack is flush to its measure;
- *   the PDF is exactly two US Letter pages.
+ *   the PDF is exactly two US Letter pages. The page and the PDF are written
+ *   under temporary names and only replace the real ones when all of this
+ *   passes, so a failed build never leaves a clipped handout behind.
  *
  * The title stack is fitted here with the deck's own THEME.fitStack (in a
  * scratch page), and the fitted widths are baked into the HTML, so the printed
@@ -62,6 +65,7 @@ const CM = require(path.join(ROOT, 'deck', 'lib', 'cost-math.js'));
 const Gates = require(path.join(ROOT, 'deck', 'lib', 'gates-core.js'));
 const YOUR = require(path.join(ROOT, 'deck', 'content', 'your-numbers.js'));
 const BENCH = require(path.join(ROOT, 'deck', 'lib', 'benchlm-data.js'));
+const QR = require(path.join(ROOT, 'deck', 'lib', 'qr.js'));
 
 const MM_PER_PX = 25.4 / 96;
 const MIN_WRITE_MM = 8;             // a box you write in is never shorter than this
@@ -118,12 +122,13 @@ const COPY = {
   ex2: {
     kicker: 'Exercise 2 · 5 minutes',
     headline: 'Pick three.',
+    how: 'Circle three in your list, then name them here.',
     picks: ['One you’d love to pitch', 'One that’s boring', 'One you’d be embarrassed to bring up']
   },
   ex3: {
     kicker: 'Exercise 3 · 10 minutes',
-    headline: 'Four gates.',
-    voice: 'Run your three through the gates.'
+    headline: 'Run your three through the gates.',
+    how: 'Start with the minutes, then take the gates in order. Stop at the first NO.'
   },
   minutesLine: 'Minutes are the raw material. Money is what they turn into.',
   cashLine: 'One day off the cycle frees about one day of sales.',
@@ -132,16 +137,17 @@ const COPY = {
   ladderLine: 'Climb only as far as the task makes you.',
   standardLabel: 'The Waypoint standard',
   standard: 'A win only counts with the task, the prompt, the output, and the time saved.',
-  taskSize: 'about a page and a half read, a few paragraphs written',
+  /* A gloss tied to one task size: printed only while the sheet uses that size. */
+  taskSize: { in: 2000, out: 500, text: 'about a page and a half read, a few paragraphs written' },
   /* The record-sleeve catalogue line (docs/DIRECTION.md, Part 1, section 7): the venue's position. */
   catalogue: (eventName) => 'WAYPOINT · ' + eventName + ' · 29°57.7′N 090°03.5′W'
 };
 
-/* The tools a person can circle, cheapest first, and the CostMath tier that prices each. */
+/* The price list, printed once, cheapest first, and the CostMath tier that prices each.
+   ("Don't automate" is not a price: it stays on the ladder at the foot.) If the example
+   runs on a tier that is not listed here, it is added so the example can be traced. */
 const TOOLS = [
-  { name: 'Don’t automate', tier: null },
-  { name: 'Spreadsheet', tier: 'code' },
-  { name: 'Plain code', tier: 'code' },
+  { name: 'Spreadsheet or plain code', tier: 'code' },
   { name: 'Small model', tier: 'small' },
   { name: 'Frontier model', tier: 'frontier' }
 ];
@@ -189,6 +195,7 @@ function facts() {
     a, rates, rules, tokens, event, speaker, meta,
     minuteRule, dearerHourly, minuteRuleDearer, upkeepYearPerMonthlyHour, per1000, ruleText,
     gates: Gates.GATES,
+    links: YOUR.links || {},
     example,
     exampleResult: Gates.evaluate(example),
     smallModel: CM.tier('small', tokens).modelName,
@@ -331,7 +338,7 @@ function checkAgainstSlides() {
   const warnings = [];
   let text;
   try { text = fs.readFileSync(SLIDES_ACT3, 'utf8'); } catch (e) { return ['could not read ' + path.relative(ROOT, SLIDES_ACT3) + ' to compare the exercise copy']; }
-  const wanted = [COPY.ex1.kicker, COPY.ex2.kicker, COPY.ex3.kicker, COPY.ex1.headline, COPY.ex2.headline]
+  const wanted = [COPY.ex1.kicker, COPY.ex2.kicker, COPY.ex3.kicker, COPY.ex1.headline, COPY.ex2.headline, COPY.ex3.headline]
     .concat(COPY.ex1.prompts, COPY.ex2.picks);
   wanted.forEach((line) => {
     if (text.indexOf(line) < 0) { warnings.push('the slides in deck/slides/a3-yourturn.js do not contain "' + line + '"'); }
@@ -347,6 +354,18 @@ function checkAgainstSlides() {
 /* An arrow, drawn: the embedded fonts have no arrow glyph, and a fallback font must never print. */
 function arrows(text) {
   return esc(text).split(ARROW).map((part) => part.trim()).join(' <i class="arr"></i> ');
+}
+
+/* The last three words of a line kept together, so a prompt never ends on one word. */
+function keepEnd(text) {
+  const words = String(text).split(' ');
+  if (words.length < 5) { return esc(text); }
+  return esc(words.slice(0, -3).join(' ')) + ' <span class="nw">' + esc(words.slice(-3).join(' ')) + '</span>';
+}
+
+/* A hyphenated word is never broken at its hyphen. */
+function noHyphenBreak(text) {
+  return esc(text).replace(/(\S+-\S+)/g, '<span class="nw">$1</span>');
 }
 
 /* An operator inside the fine print, heavy enough to survive a photocopier. */
@@ -397,7 +416,7 @@ function row(o) {
   const cls = [o.sum ? 'is-sum' : '', o.last ? 'is-last' : '', o.cls || ''].filter(Boolean).join(' ');
   return '<tr' + (cls ? ' class="' + cls + '"' : '') + '>' +
     '<td class="lab"><span class="t">' + (o.op ? '<span class="op">' + esc(o.op) + '</span>' : '') + o.t + '</span>' +
-    (o.fine ? '<span class="fine">' + o.fine + '</span>' : '') + '</td>' +
+    (o.fine ? '<span class="fine' + (o.fineCls ? ' ' + o.fineCls : '') + '">' + o.fine + '</span>' : '') + '</td>' +
     '<td class="ex">' + o.ex + '</td>' +
     (o.cells || three(box(o.unit))) +
     '</tr>';
@@ -436,6 +455,21 @@ function render(f, fit) {
   const gateById = {};
   f.gates.forEach((g, i) => { gateById[g.id] = { n: i + 1, label: g.label, question: g.question }; });
 
+  /* ---- a way back to the tool, when the speaker has given one. The first link set
+     gets a QR code in the masthead, where the sheet has room for one; a second link
+     is printed in words in the footnote on the back. Nothing prints while both are empty. ---- */
+  const links = [
+    { label: 'The screener', url: String(f.links.screenerUrl || '').trim() },
+    { label: 'The deck and the code', url: String(f.links.repoUrl || '').trim() }
+  ].filter((l) => l.url);
+  /* the address as a person types it: no scheme, and it breaks only after a slash */
+  const shortUrl = (url) => esc(url.replace(/^https?:\/\//, '').replace(/\/$/, '')).split('/').join('/<wbr>');
+  const qrBlock = links.length
+    ? '<div class="link"><div class="link-t"><span class="label is-tight">' + esc(links[0].label) + '</span><span class="url">' + shortUrl(links[0].url) + '</span></div>' +
+      QR.toSVG(links[0].url, { quiet: 2, dark: '#000', light: '#fff', title: links[0].label }) + '</div>'
+    : '';
+  const linkWords = links.slice(1).map((l) => esc(l.label) + ': ' + esc(l.url) + '. ').join('');
+
   /* ---- the title stack and its slab ---- */
   const stackLines = fit.lines.map((ln) =>
     '<span class="ln" style="font-stretch:' + ln.stretch + ';letter-spacing:' + ln.tracking + ';margin:0 ' + ln.right + ' ' + ln.below + ' ' + ln.left + '">' + esc(ln.text) + '</span>'
@@ -454,7 +488,7 @@ function render(f, fit) {
       '<div class="mast-main">' +
         '<h1 class="hd-stack" style="font-size:' + fit.size + '">' + stackLines + '</h1>' +
         '<div class="slab"><span class="slab-no" style="font-size:' + fit.noSize + '">No</span></div>' +
-        '<div class="mast-side"><p class="voice">' + esc(ev.subtitle).replace(' for ', '<br>for ') + '</p></div>' +
+        '<div class="mast-side">' + qrBlock + '<p class="voice">' + esc(ev.subtitle).replace(' for ', '<br>for ') + '</p></div>' +
       '</div>' +
       '<p class="credit"><span><b>' + esc(sp.name) + '</b>' + esc(DOT + sp.role + ', ' + sp.company) + '</span>' +
       '<span>' + esc([ev.name, ev.date, ev.time, ev.venue].filter(Boolean).join(DOT)) + '</span></p>' +
@@ -463,7 +497,7 @@ function render(f, fit) {
     '<section class="ex ex-1">' +
       '<div class="ex-head"><div><span class="label">' + esc(COPY.ex1.kicker) + '</span>' +
       '<h2 class="headline">' + esc(COPY.ex1.headline) + '</h2></div></div>' +
-      '<ol class="prompts">' + COPY.ex1.prompts.map((q, i) => '<li><span class="num">' + (i + 1) + '</span><span>' + esc(q) + '</span></li>').join('') + '</ol>' +
+      '<ol class="prompts">' + COPY.ex1.prompts.map((q, i) => '<li><span class="num">' + (i + 1) + '</span><span>' + keepEnd(q) + '</span></li>').join('') + '</ol>' +
       '<table class="ruled inv"><colgroup><col class="c-n"><col><col class="c-often"><col class="c-min"><col class="c-who"></colgroup>' +
       '<thead><tr><th class="n"></th>' + COPY.ex1.columns.map((c) => '<th><span class="label is-tight">' + esc(c) + '</span></th>').join('') + '</tr></thead>' +
       '<tbody>' + Array.from({ length: COPY.ex1.rows }, (_, i) =>
@@ -473,12 +507,13 @@ function render(f, fit) {
 
     '<section class="ex ex-2">' +
       '<div class="ex-head"><div><span class="label">' + esc(COPY.ex2.kicker) + '</span>' +
-      '<h2 class="headline">' + esc(COPY.ex2.headline) + '</h2></div></div>' +
+      '<h2 class="headline">' + esc(COPY.ex2.headline) + '</h2></div>' +
+      '<p class="body how">' + esc(COPY.ex2.how) + '</p></div>' +
       '<ol class="picks">' + COPY.ex2.picks.map((q, i) =>
         '<li data-write><b class="plate">' + 'ABC'.charAt(i) + '</b><span class="ask">' + esc(q) + '</span><span class="write"></span></li>').join('') + '</ol>' +
     '</section>' +
 
-    '<footer class="foot"><span class="label turn">Turn over' + esc(DOT) + 'Exercise 3: four gates</span>' +
+    '<footer class="foot"><span class="label turn">Turn over' + esc(DOT) + esc(COPY.ex3.kicker.split(DOT)[0]) + '</span>' +
     '<span class="label is-tight">' + esc(signOff) + '</span></footer>' +
     '</section>';
 
@@ -488,163 +523,210 @@ function render(f, fit) {
 
   /* ---- the example column, worked with the sums the sheet asks for ---- */
   const c = r.candidate;
-  const exTier = CM.tier(ex.tier, f.tokens);
   const exService = c.lens === 'service';
   const exPer1000 = f.per1000[c.tier];
-  const exLabor = p.minutesAWeek * f.minuteRule;
   const small = (s) => '<small>' + s + '</small>';
   const x = ' ' + o(TIMES) + ' ';
   const xp = ' ' + TIMES + ' ';                 // the same sign, plain, for the example's handwriting
   const minus = ' ' + o(MINUS) + ' ';
+  const div = ' ' + o('÷') + ' ';
+  const dp = ' ÷ ';
+
+  /* After the example's first NO it stops, as the sheet tells everyone to: the
+     rows of the gates after that NO are left empty in the example column too. */
+  const exOut = {};
+  let seenNo = false;
+  Gates.ORDER.forEach((id) => { exOut[id] = seenNo; if (!r.gates[id].pass) { seenNo = true; } });
+  const exAt = (id, html) => (exOut[id] ? '' : html);
 
   /* ---- the example's verdict as small gates: after a NO, the rest are not yet ---- */
-  let stopped = false;
   const exGates = Gates.ORDER.map((id) => {
-    if (stopped) { return '<i class="gate-s"></i>'; }
-    if (!r.gates[id].pass) { stopped = true; return '<i class="gate-s is-no"></i>'; }
-    return '<i class="gate-s is-pass"></i>';
+    if (exOut[id]) { return '<i class="gate-s"></i>'; }
+    return r.gates[id].pass ? '<i class="gate-s is-pass"></i>' : '<i class="gate-s is-no"></i>';
   }).join('');
   const exVerdict = r.verdict === 'YES' ? 'passes all four' : 'NO at ' + r.gates[r.firstNo].label;
 
-  const toolsList = '<td class="w"><ol class="tools">' + TOOLS.map((t) =>
-    '<li><span>' + esc(t.name) + '</span><b>' + (t.tier ? esc(money(f.per1000[t.tier])) : '—') + '</b></li>').join('') + '</ol></td>';
+  /* ---- the minute rule, printed only as exactly as a pen can use it ---- */
+  const wholeCents = Math.abs(f.minuteRule * 100 - Math.round(f.minuteRule * 100)) < 1e-9;
+  const minutesRow = wholeCents
+    ? {
+      t: 'minutes a week' + x + d(minute) + ' = return',
+      fine: 'At ' + d(rate) + ' an hour, ' + d(weeks) + ' weeks. At ' + esc(money(f.dearerHourly)) + ' an hour: ' + esc(money(f.minuteRuleDearer)) + '.',
+      ex: esc(dollars(p.dollarsAYear)) + small(esc(num(p.minutesAWeek)) + xp + esc(minute))
+    }
+    : {
+      t: 'minutes a week, in dollars = return',
+      fine: 'Minutes a week' + x + d(weeks) + div + '60' + x + d(rate) + ' an hour.',
+      ex: esc(dollars(p.dollarsAYear)) + small(esc(num(p.minutesAWeek)) + xp + esc(weeks) + dp + '60' + xp + esc(rate))
+    };
+  if (exService && p.dollarsAYear !== p.minutesAWeek * f.minuteRule) {
+    minutesRow.ex = esc(dollars(p.minutesAWeek * f.minuteRule)) + small(esc(num(p.minutesAWeek)) + xp + esc(minute));
+  }
+
+  /* ---- hours a year from minutes a week: one division when it is a tidy one ---- */
+  const perHour = 60 / f.rates.workWeeks;
+  const tidyDivisor = Math.abs(perHour * 100 - Math.round(perHour * 100)) < 1e-9;
+  const hoursRule = tidyDivisor
+    ? 'Minutes a week' + div + esc(num(perHour)) + ' = hours a year'
+    : 'Minutes a week' + x + d(weeks) + div + '60 = hours a year';
+  const exHours = p.minutesAWeek * f.rates.workWeeks / 60;
+  const serviceEx = exService
+    ? esc(dollars(r.capacityValue)) + small(esc(num(exHours)) + ' h' + xp + esc(num(c.capacityConversion || 0)) + xp + esc(money(c.billableMarginPerHour || 0)))
+    : '—';
+
+  /* ---- the price list, printed once ---- */
+  const tools = TOOLS.slice();
+  if (!tools.some((t) => t.tier === c.tier)) {
+    tools.push({ name: CM.tier(c.tier, f.tokens).label, tier: c.tier });
+    tools.sort((m, n) => f.per1000[m.tier] - f.per1000[n.tier]);
+  }
+  const priceList = '<td class="prices" colspan="4"><ul class="price-list">' + tools.map((t) =>
+    '<li><span>' + esc(t.name) + '</span> <b>' + esc(money(f.per1000[t.tier])) + '</b></li>').join('') + '</ul></td>';
+  const runsAYear = c.runsPerWeek * f.rates.workWeeks;
+
+  /* ---- the payback test, as a comparison a pen can make ---- */
+  const half = f.rules.maxPaybackWeeks * 2 === 52;
+  const shareLeft = p.leftOver * f.rules.maxPaybackWeeks / 52;
+  const never = !(p.leftOver > 0) || same(p.leftOver, 0);
+  const paybackEx = never
+    ? '—' + small('none left: NO')
+    : esc(dollars(shareLeft)) + small(esc(dollars(p.oneTime)) + (over(p.oneTime, shareLeft) ? ' is more: NO' : ' is less'));
 
   /* The dock, drawn in line: four bays that share their posts, on one floor line.
-     Each door has its name on the lintel and two panels: PASS rides high, NO sits
-     on the floor. (The names were tried running up the posts, as in the title film:
-     at this size they crowd the panels.) */
-  const dock = '<td class="v"><div class="dock">' + f.gates.map((g) =>
-    '<span class="bay"><i class="bay-n">' + esc(g.label) + '</i><b class="say is-pass">Pass</b><b class="say is-no">No</b></span>').join('') + '</div></td>';
+     Each door has its gate's number on the lintel and two panels: PASS rides high,
+     NO sits on the floor. (The names do not fit a door at a size a pen-holder can
+     read, so the label beside the docks says which number is which gate.) */
+  const dock = '<td class="v"><div class="dock">' + f.gates.map((g, i) =>
+    '<span class="bay"><i class="bay-n">' + (i + 1) + '</i><b class="say is-pass">Pass</b><b class="say is-no">No</b></span>').join('') + '</div></td>';
 
-  const cashCell = '<td class="w"><div class="split is-even">' +
+  const cashCell = '<td class="w"><div class="split">' +
     '<span><i class="tk"><i class="tick"></i> yes</i></span>' +
     '<span>' + hints({ r: 'days faster' }) + '</span></div></td>';
-
-  const paybackShortcut = f.rules.maxPaybackWeeks * 2 === 52
-    ? 'That is half a year: a one-time cost above half of what is left over is a NO.'
-    : 'A one-time cost above ' + esc(num(f.rules.maxPaybackWeeks)) + x + '(left over divided by 52) is a NO.';
 
   const card =
     '<table class="ruled card"><colgroup><col class="c-label"><col class="c-ex"><col><col><col></colgroup><tbody>' +
 
     '<tr class="heads">' +
       '<td class="lead"><span class="label">One column each</span>' +
-      '<span class="fine">A number on a dashed line is a default: a rate or a house rule. Cross it out and write your own.</span></td>' +
-      '<td><div class="col-head is-ex"><span class="label is-tight">Example</span><span class="fine">' + esc(ex.name) + '</span></div></td>' +
+      '<span class="fine">A number on a dashed line is a default. Cross it out and write your own.</span></td>' +
+      '<td><div class="col-head is-ex"><span class="label is-tight">Example</span><span class="fine">' + noHyphenBreak(ex.name) + '</span></div></td>' +
       COPY.ex2.picks.map((q, i) =>
         '<td data-write><div class="col-head"><div class="who"><b class="plate">' + 'ABC'.charAt(i) + '</b><span class="fine">' + esc(q) + '</span></div></div></td>').join('') +
     '</tr>' +
 
     /* ---- start: the minutes ---- */
-    blockHead({
-      kicker: 'Start here', name: 'The minutes', voice: COPY.minutesLine, tag: 'Rule of thumb',
-      note: 'A minute a week is ' + d(minute) + ' a year.'
-    }) +
+    blockHead({ kicker: 'Start here', name: 'The minutes', voice: COPY.minutesLine }) +
     row({
-      t: 'Minutes saved each time' + x + 'times a week',
+      t: 'Minutes saved' + x + 'times a week',
       ex: esc(num(c.minutesPerRun)) + xp + esc(num(c.runsPerWeek)),
       cells: three(splitBox({ r: 'min' }, { r: 'times' }, 'is-even'))
     }) +
     row({
-      op: '=', t: 'minutes a week' + x + d(minute) + ' = return',
-      fine: 'At ' + d(rate) + ' an hour and ' + d(weeks) + ' weeks. At ' + esc(money(f.dearerHourly)) + ' an hour,' + x + esc(money(f.minuteRuleDearer)) + '.',
-      ex: esc(dollars(exLabor)) + small(esc(num(p.minutesAWeek)) + xp + esc(minute)),
-      cells: three(splitBox({ r: 'min' }, { l: '$', r: 'a year' }, 'is-even'))
+      op: '=', t: minutesRow.t, fine: minutesRow.fine, ex: minutesRow.ex,
+      cells: three(splitBox({ r: 'min a week' }, { l: '$', r: 'a year' }, 'is-even'))
     }) +
     row({
-      t: 'Service business: is this larger?',
-      fine: 'Hours freed a year' + x + 'share turned into paid work' + x + 'margin.',
-      ex: exService ? esc(dollars(r.capacityValue)) : '—', unit: { l: '$', r: 'if larger, use this' }, last: true
+      t: 'Service business: is this larger?', last: true,
+      fine: hoursRule + '.<br>' + o(TIMES) + ' share that is paid work' + x + '$ margin an hour.',
+      ex: serviceEx,
+      cells: three(splitBox({ r: 'hours' }, { l: '$', r: 'if larger' }, 'is-even'))
     }) +
 
     /* ---- gate 1: cost ---- */
     blockHead({ gate: true, kicker: 'Gate ' + gateById.cost.n, name: gateById.cost.label, voice: gateById.cost.question, note: ruleHtml('cost', f.ruleText.cost) }) +
-    row({
-      cls: 'is-tools',
-      t: 'What runs it? Circle one.',
-      fine: 'Beside each: the price of 1,000 runs.*',
-      ex: esc(dollars(exPer1000)) + small(esc(exTier ? exTier.label : 'No model')),
-      cells: three(toolsList)
-    }) +
+    '<tr class="is-prices"><td class="lab"><span class="t">What runs it? Price of 1,000 runs:*</span></td>' + priceList + '</tr>' +
     row({
       t: 'To run it for a year',
-      fine: 'Times a week' + x + d(weeks) + ', in thousands,' + x + 'the price you circled.',
-      ex: esc(dollars(p.toRun)) + small(esc(num(p.thousandsOfRuns)) + xp + esc(dollars(exPer1000))), unit: { l: '$' }
+      fine: 'Times a week' + x + d(weeks) + div + '1,000' + x + 'the price.',
+      ex: esc(dollars(p.toRun)) + small(esc(num(runsAYear)) + ' runs<br>' + esc(num(p.thousandsOfRuns)) + xp + esc(dollars(exPer1000))),
+      cells: three(splitBox({ l: '$', r: 'price' }, { l: '$', r: 'a year' }, 'is-even'))
     }) +
     row({
-      op: '+', t: 'tools and licences = cost a year', last: true,
-      fine: 'Dollars a month' + x + '12, added to the line above.',
-      ex: esc(dollars(r.costPerYear)) + small(esc(dollars(p.toRun)) + ' + ' + esc(dollars(p.tools))),
+      op: '+', t: 'tools = cost a year',
+      fine: 'Tools, dollars a month' + x + '12, plus the line above.',
+      ex: esc(dollars(p.costAYear)) + small(esc(dollars(p.toRun)) + ' + ' + esc(dollars(p.tools))),
       cells: three(splitBox({ l: '$', r: 'tools' }, { l: '$', r: 'cost' }, 'is-even'))
+    }) +
+    row({
+      t: 'Cost test: ' + d(CM.percent(f.rules.costMaxShareOfReturn)) + ' of return', last: true,
+      fine: 'Cost a year bigger than this? NO.',
+      ex: esc(dollars(p.dollarsAYear * f.rules.costMaxShareOfReturn)) + small(esc(dollars(p.costAYear)) + (p.pass.cost ? ' is less' : ' is more: NO')),
+      unit: { l: '$' }
     }) +
 
     /* ---- gate 2: return ---- */
     blockHead({ gate: true, kicker: 'Gate ' + gateById['return'].n, name: gateById['return'].label, voice: gateById['return'].question, note: ruleHtml('return', f.ruleText['return']) }) +
     row({
       t: 'On the cash path? Days faster?',
-      fine: arrows(COPY.cashPath) + '. ' + esc(COPY.cashLine),
-      ex: (c.touchesCashPath ? 'yes' : 'no') + (c.daysOffCashCycle > 0 ? small(esc(num(c.daysOffCashCycle)) + (c.daysOffCashCycle === 1 ? ' day' : ' days') + ' faster') : ''),
+      fine: '<span class="nw">' + arrows(COPY.cashPath) + '.</span> ' + esc(COPY.cashLine), fineCls: 'is-tight',
+      ex: exAt('return', (c.touchesCashPath ? 'yes' : 'no') + (c.daysOffCashCycle > 0 ? small(esc(num(c.daysOffCashCycle)) + (c.daysOffCashCycle === 1 ? ' day' : ' days') + ' faster') : '')),
       cells: three(cashCell), last: true
     }) +
 
     /* ---- gate 3: effort ---- */
-    blockHead({ gate: true, kicker: 'Gate ' + gateById.effort.n, name: gateById.effort.label, voice: gateById.effort.question, note: ruleHtml('effort', f.ruleText.effort) + ' ' + paybackShortcut }) +
+    blockHead({ gate: true, kicker: 'Gate ' + gateById.effort.n, name: gateById.effort.label, voice: gateById.effort.question, note: ruleHtml('effort', f.ruleText.effort) }) +
     row({
       t: 'Build and rollout hours' + x + d(builder), fine: 'The one-time cost.',
-      ex: esc(dollars(r.effortOnce)) + small(esc(num(c.buildHours + c.rolloutHours)) + xp + esc(builder)),
+      ex: exAt('effort', esc(dollars(p.oneTime)) + small(esc(num((c.buildHours || 0) + (c.rolloutHours || 0))) + xp + esc(builder))),
       cells: three(splitBox({ r: 'hours' }, { l: '$' }))
     }) +
     row({
       t: 'Upkeep hours a month' + x + d(upkeepRate), fine: '12 months at ' + esc(builder) + ' an hour: upkeep for a year.',
-      ex: esc(dollars(r.effortPerYear)) + small(esc(num(c.upkeepHoursPerMonth)) + xp + esc(upkeepRate)),
+      ex: exAt('effort', esc(dollars(p.upkeepAYear)) + small(esc(num(c.upkeepHoursPerMonth || 0)) + xp + esc(upkeepRate))),
       cells: three(splitBox({ r: 'hours' }, { l: '$' }))
     }) +
-    row({ op: '=', t: 'left over a year', fine: 'Return' + minus + 'cost' + minus + 'upkeep. None left: it never pays back.', ex: esc(dollars(r.yearlyNetBeforeBuild)), unit: { l: '$' } }) +
     row({
-      t: 'Payback, in weeks', last: true,
-      fine: 'One-time cost divided by (left over divided by 52).',
-      ex: esc(String(r.gates.effort.metricText).replace(/ to pay back$/, '')), unit: { r: 'weeks' }
+      op: '=', t: 'left over a year', fine: 'Return' + minus + 'cost' + minus + 'upkeep. None left: NO.',
+      ex: exAt('effort', esc(dollars(p.leftOver))), unit: { l: '$' }
+    }) +
+    row({
+      t: half ? 'Payback test: half of left over' : 'Payback test: left over' + x + d(num(f.rules.maxPaybackWeeks)) + div + '52', last: true,
+      fine: 'One-time cost bigger than this? NO.<br>In weeks: one-time cost' + x + '52' + div + 'left over.',
+      ex: exAt('effort', paybackEx), unit: { l: '$' }
     }) +
 
     /* ---- gate 4: potential ---- */
     blockHead({ gate: true, kicker: 'Gate ' + gateById.potential.n, name: gateById.potential.label, voice: gateById.potential.question, note: ruleHtml('potential', f.ruleText.potential) }) +
-    row({ t: 'How many times bigger in a year?', fine: '1 = the same size' + esc(DOT) + '1.5 = half again' + esc(DOT) + '2 = double', ex: esc(CM.ratio(c.growth)), unit: { r: 'times bigger' } }) +
-    row({ t: 'Who owns the freed time?', fine: 'A named person who decides what it becomes.', ex: c.ownerNamed ? 'named' : 'nobody', unit: { r: 'a name' }, last: true }) +
+    row({ t: 'How many times bigger in a year?', fine: '1 = the same size' + esc(DOT) + '1.5 = half again' + esc(DOT) + '2 = double', ex: exAt('potential', esc(CM.ratio(c.growth))), unit: { r: 'times bigger' } }) +
+    row({ t: 'Who owns the freed time?', fine: 'A named person who decides what it becomes.', ex: exAt('potential', c.ownerNamed ? 'named' : 'nobody'), unit: { r: 'a name' }, last: true }) +
 
     /* ---- the verdict ---- */
     '<tr class="is-verdict">' +
       '<td class="lab"><span class="gate-name">Verdict</span>' +
-      '<span class="fine">Circle PASS or NO at each gate. Any NO and it is out: stop there, and leave the gates after it empty.</span></td>' +
+      '<span class="fine">' + f.gates.map((g, i) => '<b>' + (i + 1) + '</b> ' + esc(g.label)).join(esc(DOT)) + '. Circle PASS or NO at each gate. After a NO, stop.</span></td>' +
       '<td class="ex"><span class="dock-s">' + exGates + '</span>' + small(esc(exVerdict)) + '</td>' +
       three(dock) +
     '</tr>' +
-    '<tr class="is-pick"><td class="lab"><span class="gate-name">The math picks</span>' +
-      '<span class="fine">More than one left? The highest two-year value wins: (return' + minus + 'cost)' + x + '(1 ' + o('+') + ' growth)' + minus + 'one-time' + minus + '2' + x + 'upkeep.</span></td>' +
-      '<td class="ex">' + (r.verdict === 'YES' ? esc(dollars(r.twoYearValue)) + small('two-year value') : 'out' + small('a NO ends it')) + '</td>' +
-      '<td class="w" colspan="3" data-write></td></tr>' +
+    row({
+      t: 'Two-year value',
+      fine: 'If more than one passed: (return' + minus + 'cost)' + x + '<span class="nw">(1 ' + o('+') + ' times bigger)</span>' + minus + 'one-time' + minus + '2' + x + 'upkeep.',
+      ex: r.verdict === 'YES' ? esc(dollars(r.twoYearValue)) : 'out' + small('a NO ends it'),
+      unit: { l: '$', r: 'two years' }
+    }) +
+    '<tr class="is-pick"><td class="lab"><span class="gate-name">The math picks</span></td>' +
+      '<td class="w" colspan="4" data-write><i class="u is-r">The highest two-year value: its letter and name</i></td></tr>' +
     '</tbody></table>' +
-    '<p class="fine star">* List prices for one run of ' + esc(num(f.tokens.in)) + ' tokens in and ' + esc(num(f.tokens.out)) + ' out (' + esc(COPY.taskSize) + '). ' +
-      'Small model: ' + esc(f.smallModel) + '. Frontier model: ' + esc(f.frontierModel) + '. ' + esc(f.source) + '. ' +
-      'The example column is made up, to show the sums.</p>';
+    '<p class="fine star">* List prices, for runs of ' + esc(num(f.tokens.in)) + ' tokens in and ' + esc(num(f.tokens.out)) + ' out each' +
+      (f.tokens.in === COPY.taskSize.in && f.tokens.out === COPY.taskSize.out ? ' (' + esc(COPY.taskSize.text) + ')' : '') + '. ' +
+      'Small model: ' + esc(f.smallModel) + '. Frontier model: ' + esc(f.frontierModel) + '. ' +
+      tools.filter((t) => TOOLS.indexOf(t) < 0).map((t) => esc(t.name) + ': ' + esc(CM.tier(t.tier, f.tokens).modelName) + '. ').join('') +
+      esc(f.source) + '. The example column is made up, to show the sums.' + (linkWords ? ' ' + linkWords.trim() : '') + '</p>';
 
   const side2 =
     '<section class="sheet side-2">' +
     '<section class="ex ex-3">' +
       '<div class="ex-head"><div class="what"><span class="label">' + esc(COPY.ex3.kicker) + '</span>' +
       '<h2 class="headline">' + esc(COPY.ex3.headline) + '</h2></div>' +
-      '<div class="how"><p class="voice">' + esc(COPY.ex3.voice) + '</p>' +
-      '<p class="body">Start with the minutes, then take the gates in order. Stop at the first NO.</p></div></div>' +
+      '<p class="body how">' + esc(COPY.ex3.how) + '</p></div>' +
       card +
     '</section>' +
     '<footer class="foot-2">' +
       '<div class="foot-main">' +
-        '<div class="rungs"><span class="label is-tight">The ladder of tools</span>' +
+        '<div class="rungs"><p class="rungs-head"><span class="label is-tight">The ladder of tools</span><span class="voice">' + esc(COPY.ladderLine) + '</span></p>' +
         '<ol class="ladder">' + COPY.ladder.map((rung, i) => '<li style="--i:' + i + '">' + esc(rung) + '</li>').join('') + '</ol></div>' +
         '<div class="standard"><span class="label is-tight">' + esc(COPY.standardLabel) + '</span>' +
         '<p class="voice">' + esc(COPY.standard) + '</p></div>' +
       '</div>' +
-      '<p class="sign-off"><span class="voice">' + esc(COPY.ladderLine) + '</span>' +
-      '<span class="label is-tight">' + esc(signOff) + '</span></p>' +
     '</footer>' +
     '</section>';
 
@@ -815,13 +897,13 @@ async function checkPage(page) {
       if (foot && before) {
         const slack = foot.getBoundingClientRect().top - before.getBoundingClientRect().bottom;
         notes.push(side + ': ' + mm(slack) + ' mm of air above the foot');
-        if (slack < 2) { problems.push(side + ' is full: ' + mm(slack) + ' mm between the content and the foot'); }
+        if (slack * MM_PER_PX < 2) { problems.push(side + ' is full: ' + mm(slack) + ' mm between the content and the foot'); }
       } else {
         problems.push(side + ' has no foot');
       }
 
       // nothing is squeezed out of its own box
-      sheet.querySelectorAll('td, th, .blk-head, .col-head, .prompts > li, .picks > li, .mast-side, .credit, .mast-top, .foot, .foot-main, .bay, .bay-n, .say, .tools, .how, .ladder, .standard, .sign-off, .split > span').forEach((el) => {
+      sheet.querySelectorAll('td, th, .blk-head, .col-head, .prompts > li, .picks > li, .mast-side, .credit, .mast-top, .foot, .foot-main, .bay, .bay-n, .say, .price-list, .how, .ladder, .rungs-head, .standard, .links, .split > span').forEach((el) => {
         if (el.scrollWidth > el.clientWidth + 1.5 || el.scrollHeight > el.clientHeight + 1.5) {
           problems.push(side + ': the content of ' + name(el) + ' does not fit (' + el.scrollWidth + 'x' + el.scrollHeight + ' in ' + el.clientWidth + 'x' + el.clientHeight + ') "' + (el.textContent || '').trim().slice(0, 40) + '"');
         }
@@ -921,17 +1003,35 @@ function have(cmd) {
 
     if (checkOnly) {
       const onDisk = fs.existsSync(OUT_HTML) ? fs.readFileSync(OUT_HTML, 'utf8') : null;
-      if (onDisk === html) { console.log('ok    handouts/worksheet.html is up to date'); }
-      else { console.error('FAIL  handouts/worksheet.html is ' + (onDisk === null ? 'missing' : 'stale') + '. Run: node tools/build-handouts.js'); exitCode = 1; }
+      if (onDisk === html) { console.log('ok    ' + path.relative(ROOT, OUT_HTML) + ' is up to date'); }
+      else { console.error('FAIL  ' + path.relative(ROOT, OUT_HTML) + ' is ' + (onDisk === null ? 'missing' : 'stale') + '. Run: node tools/build-handouts.js'); exitCode = 1; }
+      // The PDF is printed from the HTML and the stylesheets: it must be newer than all of them.
+      if (!fs.existsSync(OUT_PDF)) {
+        console.error('FAIL  ' + path.relative(ROOT, OUT_PDF) + ' is missing. Run: node tools/build-handouts.js'); exitCode = 1;
+      } else {
+        const pdfTime = fs.statSync(OUT_PDF).mtimeMs;
+        const newer = [OUT_HTML, CSS_HANDOUT, CSS_TOKENS, CSS_FONTS].filter((file) => fs.existsSync(file) && fs.statSync(file).mtimeMs > pdfTime + 1);
+        if (newer.length) {
+          console.error('FAIL  ' + path.relative(ROOT, OUT_PDF) + ' is older than ' + newer.map((file) => path.relative(ROOT, file)).join(', ') + '. Run: node tools/build-handouts.js');
+          exitCode = 1;
+        } else if (onDisk === html) {
+          console.log('ok    ' + path.relative(ROOT, OUT_PDF) + ' is newer than the page and its stylesheets');
+        }
+      }
       return;
     }
 
-    fs.mkdirSync(path.dirname(OUT_HTML), { recursive: true });
-    fs.writeFileSync(OUT_HTML, html);
-    console.log('wrote ' + path.relative(ROOT, OUT_HTML) + ' (' + html.length + ' bytes)');
+    /* Everything is written under temporary names next to the real files (so the
+       stylesheet links resolve the same way) and renamed only when every check
+       passes. A build that fails leaves the last good handout untouched. */
+    const TMP_HTML = path.join(OUT_DIR, 'worksheet.tmp.html');
+    const TMP_PDF = path.join(OUT_DIR, 'worksheet.tmp.pdf');
+    const cleanUp = () => [TMP_HTML, TMP_PDF].forEach((file) => { try { fs.unlinkSync(file); } catch (e) { /* not there */ } });
+    fs.mkdirSync(OUT_DIR, { recursive: true });
+    fs.writeFileSync(TMP_HTML, html);
 
     /* ---- look at the real page the way the printer will ---- */
-    await page.goto(pathToFileURL(OUT_HTML).href);
+    await page.goto(pathToFileURL(TMP_HTML).href);
     await page.emulateMedia({ media: 'print' });
     await page.evaluate(async () => {
       await Promise.all([document.fonts.load('900 40px Archivo'), document.fonts.load('italic 600 20px Fraunces')]);
@@ -943,23 +1043,23 @@ function have(cmd) {
 
     /* ---- the PDF ---- */
     await page.pdf({
-      path: OUT_PDF,
+      path: TMP_PDF,
       width: '8.5in',
       height: '11in',
       margin: { top: '0.4in', right: '0.4in', bottom: '0.4in', left: '0.4in' },
       printBackground: true,
       preferCSSPageSize: true
     });
-    const pages = pdfPageCount(OUT_PDF);
+    const pages = pdfPageCount(TMP_PDF);
     if (pages !== 2) { problems.push('the PDF has ' + pages + ' pages; it must have exactly 2'); }
-    console.log('wrote ' + path.relative(ROOT, OUT_PDF) + ' (' + pages + ' pages, ' + fs.statSync(OUT_PDF).size + ' bytes)');
 
-    /* ---- pictures of the pages, to look at ---- */
-    if (shots) {
+    /* ---- pictures of the pages, to look at (also of a failed build, to see why) ---- */
+    const takeShots = async (pdfFile) => {
+      if (!shots) { return; }
       fs.mkdirSync(shots, { recursive: true });
       if (have('pdftoppm')) {
-        execFileSync('pdftoppm', ['-r', '110', '-png', OUT_PDF, path.join(shots, 'page')]);
-        execFileSync('pdftoppm', ['-r', '110', '-gray', '-png', OUT_PDF, path.join(shots, 'page-grey')]);
+        execFileSync('pdftoppm', ['-r', '110', '-png', pdfFile, path.join(shots, 'page')]);
+        execFileSync('pdftoppm', ['-r', '110', '-gray', '-png', pdfFile, path.join(shots, 'page-grey')]);
         console.log('wrote ' + path.relative(ROOT, shots) + path.sep + 'page-N.png and page-grey-N.png (from the PDF, 110 dpi)');
       } else {
         const sides = await page.$$('.sheet');
@@ -972,14 +1072,24 @@ function have(cmd) {
         }
         console.log('wrote ' + path.relative(ROOT, shots) + path.sep + 'page-N.png and page-grey-N.png (from the HTML: pdftoppm is not installed)');
       }
-    }
+    };
 
     if (problems.length) {
       problems.forEach((line) => console.error('FAIL  ' + line));
+      console.error('FAIL  nothing was written: ' + path.relative(ROOT, OUT_HTML) + ' and ' + path.relative(ROOT, OUT_PDF) + ' are the last good build');
+      await takeShots(TMP_PDF);
+      cleanUp();
       exitCode = 1;
-    } else {
-      console.log('ok    two pages, nothing clipped, every writing box at least ' + MIN_WRITE_MM + ' mm tall');
+      return;
     }
+    fs.renameSync(TMP_HTML, OUT_HTML);
+    fs.renameSync(TMP_PDF, OUT_PDF);
+    console.log('wrote ' + path.relative(ROOT, OUT_HTML) + ' (' + html.length + ' bytes)');
+    console.log('wrote ' + path.relative(ROOT, OUT_PDF) + ' (' + pages + ' pages, ' + fs.statSync(OUT_PDF).size + ' bytes)');
+
+    await takeShots(OUT_PDF);
+
+    console.log('ok    two pages, nothing clipped, every writing box at least ' + MIN_WRITE_MM + ' mm tall');
   } finally {
     await browser.close();
   }

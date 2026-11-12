@@ -331,6 +331,7 @@
     minutes: 2.5,
     layout: 'quote',
     steps: 2,
+    printSteps: [1, 2],   // the PDF gets the marked edit, and the second Shannon line
     html:
       '<h2 class="headline is-hero bw-year" data-step="2" style="--delay: 1000ms">1956.</h2>' +
       '<div class="bw-quotes">' +

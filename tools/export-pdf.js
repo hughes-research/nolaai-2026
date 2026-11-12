@@ -70,6 +70,9 @@ const ROOT = path.resolve(__dirname, '..');
   const settled = await page.evaluate(() => window.__deck.settle());
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   const slideCount = await page.evaluate(() => window.__deck.count());
+  // A slide may ask for more than one page (printSteps), so the right number of
+  // pages is the number of print pages the deck laid out, not the slide count.
+  const expectedPages = (await page.evaluate(() => document.querySelectorAll('.deck-print-page').length)) || slideCount;
   const caught = await page.evaluate(() => window.__deck.errors().filter((e) => !e.expected));
   caught.forEach((e) => problems.push((e.slide ? '[' + e.slide + '] ' : '') + e.where + ': ' + e.message));
 
@@ -84,8 +87,8 @@ const ROOT = path.resolve(__dirname, '..');
   console.log((rel && !rel.startsWith('..') ? rel : out) + '  ' + pageCount + ' pages, ' + mb + ' MB' + (settled ? '' : '  (some animation was still running after 5 s)'));
 
   let bad = false;
-  if (pageCount !== slideCount) {
-    console.error('Page count is wrong: ' + pageCount + ' pages for ' + slideCount + ' slides.');
+  if (pageCount !== expectedPages) {
+    console.error('Page count is wrong: ' + pageCount + ' pages, expected ' + expectedPages + ' (' + slideCount + ' slides).');
     bad = true;
   }
   if (problems.length) {

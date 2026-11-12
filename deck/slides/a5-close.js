@@ -136,8 +136,10 @@
    * on the wall reads as the same gap. fitStack measures the line after these
    * are applied, so both edges stay flush. One entry per space, line by line. */
   var WALL_SPACES = [[0, 0], [0.045], [0.03, 0], [0]];
-  function wallLine(text, lineIndex) {
-    var spaces = WALL_SPACES[lineIndex] || [];
+  // the PDF's smaller stack has the same SAY YES meeting, at the start of its second line
+  var REPRISE_SPACES = [[], [0.05]];
+  function wallLine(text, spaces) {
+    spaces = spaces || [];
     return text.split(' ').map(esc).reduce(function (html, word, i) {
       var extra = spaces[i - 1] || 0;
       return html + (extra ? '<span style="word-spacing: ' + extra + 'em"> </span>' : ' ') + word;
@@ -582,7 +584,7 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
   align-self: flex-start;
   margin-top: 36px;
   margin-left: -0.05em;                  /* the italic Q's bowl overhangs: bring it onto the grid line */
-  font-size: 184px;
+  font-size: 160px;
   line-height: 1;
   letter-spacing: -0.012em;
   white-space: nowrap;
@@ -668,12 +670,12 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
       <i hidden data-scene="a5-cue" data-opts='{"at": 1, "for": ${seconds(NOTE.drop + NOTE.jolt + NOTE.beat)}}'></i>
     `,
     notes: `
-      SAY: “My people will just waste the time.” It's a fair worry. I'm not making fun of it.
-      But the sentence isn't about the tool. The tool did its job. It handed back minutes.
-      What the minutes turn into is our call. Freed time is a management decision.
-      If nobody decides, the time leaks away. That isn't the AI failing. That's us not managing.
+      SAY: “My people will just waste the time.” A fair worry.
+      But the tool did its job. It handed back minutes.
+      What they turn into is a management decision.
+      If nobody decides, the time leaks away. That's on us, not the AI.
 
-      DO: Read the objection out loud. Click. Let the answer land before you speak.
+      DO: Read the objection out loud. Click. Let the answer land, then speak.
 
       NEXT: So what does managing it look like? Three things. My view, not a study.
     `
@@ -700,17 +702,17 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
       <i hidden data-scene="a5-cue" data-opts='{"at": 3, "for": ${seconds(NOTE.drop + NOTE.beat)}}'></i>
     `,
     notes: `
-      SAY: This is my view, not a study. Freed time is a management decision.
-      One. Name the goal. Decide what the hours are for before the tool ships.
+      SAY: My view, not a study.
+      One. Name the goal: decide what the freed hours are for.
       Two. Measure it, the way we measured the minutes.
-      Three. Share the upside: income, a bonus, or an ownership stake, tied to growth.
+      Three. Share the upside: income, a bonus or an ownership stake, tied to growth.
       People content with the status quo are not who you build around.
 
-      DO: One click per beat. One more for the last line: read it off the screen.
+      DO: One click per beat, one more for the last line.
 
-      YOUR STORY: how the gain is shared where you work.
+      YOUR STORY: how you share the gain at work.
 
-      NEXT: To share a gain you have to prove it. Back to Waypoint.
+      NEXT: A shared gain needs proof. Back to Waypoint.
     `
   });
 
@@ -794,7 +796,7 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
     half.forEach(function (text, i) {
       var isLast = h === LAST.length - 1 && i === half.length - 1;
       wallLines.push('<span class="ln' + (isLast ? ' a5-math' : '') + '" data-step="' + (2 + h) + '" style="--a5-at: ' + (i === 0 ? clock.line1 : clock.line2) + 'ms">' +
-        wallLine(text, wallLines.length) + '</span>');
+        wallLine(text, WALL_SPACES[wallLines.length]) + '</span>');
     });
   });
 
@@ -816,23 +818,23 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
       </div>
       <div class="a5-reprise">
         <p class="stack" data-fit data-fit-size="${REPRISE.size}" data-fit-h="${REPRISE.fitH}">
-          <span class="ln">${esc(LAST_HALVES[0])}</span>
-          <span class="ln a5-math">${esc(LAST_HALVES[1])}</span>
+          <span class="ln">${wallLine(LAST_HALVES[0], REPRISE_SPACES[0])}</span>
+          <span class="ln a5-math">${wallLine(LAST_HALVES[1], REPRISE_SPACES[1])}</span>
         </p>
       </div>
       <i hidden data-scene="a5-cue" data-opts='{"at": [2, 3], "for": [${CLOCK.no.cue}, ${CLOCK.yes.cue}]}'></i>
     `,
     notes: `
-      SAY: Shannon again. Same page, 1956. His sentence, as he wrote it.
-      (click) The same swap we made at the start. Our edit, not his.
+      SAY: Shannon again. His sentence, as he wrote it.
+      (click) The swap we made at the start. Our edit, not his.
       He said it in 1956. Find the few.
       (click) ${LAST_HALVES[0]}
       (click) ${LAST_HALVES[1]}
 
       DO: Read his sentence.
-      Click: our edit. Read it again with the swap.
-      Click: say line one. The screen goes black for ${NOTE.hold === 1000 ? 'one second' : seconds(NOTE.hold) + ' seconds'}. Say nothing.
-      Click: say line two. Hands off the clicker until THE MATH lands.
+      Click: our edit.
+      Click: line one. The stage flips to black for ${NOTE.hold === 1000 ? 'one second' : seconds(NOTE.hold) + ' seconds'}. Say nothing.
+      Click: line two. Hands off the clicker until THE MATH lands.
 
       NEXT: Thank you.
     `

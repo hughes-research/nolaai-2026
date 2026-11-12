@@ -31,6 +31,10 @@
  *   kit-motion     (plain)           the five reveals, a counter, and how a NO lands
  *   kit-ink        layout-statement on-ink   a Lampblack slide (rationed)
  *
+ * Kit notes are builder documentation (what the slide shows and how), except
+ * kit-gates, whose note also models the speaker-note form every talk slide
+ * uses: SAY / DO / NEXT (docs/BUILDERS.md).
+ *
  * The rules in one breath: Card is the ground. Flare is the point of the
  * slide, once, always a block with Lampblack type on it. NO and PASS are
  * shapes and words. Running text 36px or more, labels 32, source lines 28.
@@ -82,7 +86,8 @@ window.DECK_DEMO = false;
   var premium = tiers.length ? tiers[tiers.length - 1] : null;      // the dearest tier
   var VOLUME = 100000;                                             // the brief's "100,000 records"
   var assumption = 'assumes ' + (CM ? CM.number(tokensIn) : tokensIn) + ' tokens in / ' + (CM ? CM.number(tokensOut) : tokensOut) + ' out per run';
-  var SOURCE = 'Source: BenchLM leaderboard export, Nov 2026';
+  var BMETA = (window.BENCHLM && window.BENCHLM.meta) || {};       // the source line is read, as the scenes do
+  var SOURCE = 'Source: ' + (BMETA.source || 'BenchLM leaderboard export') + (BMETA.retrieved ? ', ' + BMETA.retrieved : '');
 
   /* ---- the kit's own few styles: scoped to kit slides, tokens only ---- */
 
@@ -300,13 +305,13 @@ window.DECK_DEMO = false;
     layout: 'list',
     html:
       '<p class="kicker">Kit · layout-list · .list</p>' +
-      '<h2 class="headline">Monday morning.</h2>' +
-      '<ol class="list is-l">' +
+      '<h2 class="headline is-s">Monday morning.</h2>' +
+      '<ol class="list">' +
         '<li>Inventory two weeks.</li>' +
         '<li data-step="1">Run three through the gates.</li>' +
         '<li data-step="2">Say no twice.</li>' +
       '</ol>',
-    notes: 'Three lines at most. Rows cut in: small type never animates.'
+    notes: 'The quiet body archetype: a small headline (.headline.is-s) and three lines of .list at 44px. Three lines at most. Rows cut in: small type never animates. (.list.is-l sets the lines at 56px for a list that is the point of a loud slide.)'
   });
 
   /* ======================================================================
@@ -399,15 +404,40 @@ window.DECK_DEMO = false;
     ['is-pass', 'is-no', '', ''],
     ['is-pass', 'is-no is-flare', '', '']
   ];
-  var GATE_WHY = { 'is-pass': 'carried forward', 'is-no': 'Example: never pays back' };
+  /* the fine print: "carried forward" under a PASS, the reason under a NO.
+     The NO is on Gate 2, Return, so the reason is Return's own test, read
+     from the house rules (Gates), not typed. */
+  var RULES = (G && G.defaultAssumptions ? G.defaultAssumptions().houseRules : null) || {};
+  var GATE_WHY = {
+    'is-pass': 'carried forward',
+    'is-no': 'Example: under ' + (CM && RULES.minReturnPerYear != null ? CM.money(RULES.minReturnPerYear) : '') + ' a year'
+  };
 
-  function setGates(el, step) {
+  /* Put the dock in the state of a step. moving: true lets the component play
+     its moves. Only the gates whose state changes are touched, so a gate that
+     stays put never replays its move. Stepping back (and arriving at a later
+     step, or from the slide after) is a cut: those gates get is-still.
+     THEME marks a gate that goes from is-shut to is-no, so its shutter stays
+     down through the hold and punches through the floor. */
+  function setGates(el, step, moving) {
     var states = GATE_STEPS[Math.max(0, Math.min(GATE_STEPS.length - 1, step))];
     Array.prototype.forEach.call(el.querySelectorAll('.gate'), function (gate, i) {
       var want = states[i] ? states[i].split(' ') : [];
-      ['is-shut', 'is-pass', 'is-no', 'is-flare'].forEach(function (c) { gate.classList.toggle(c, want.indexOf(c) !== -1); });
+      var STATE = ['is-shut', 'is-pass', 'is-no', 'is-flare'];
+      var same = STATE.every(function (c) { return gate.classList.contains(c) === (want.indexOf(c) !== -1); });
+      if (same) { return; }
+      // is-flare only recolours a NO that is already down: it is not a move,
+      // so it leaves is-still as it is (removing it would replay the drop)
+      var moves = ['is-shut', 'is-pass', 'is-no'].some(function (c) { return gate.classList.contains(c) !== (want.indexOf(c) !== -1); });
+      if (moves) { gate.classList.toggle('is-still', !moving); }
+      STATE.forEach(function (c) { gate.classList.toggle(c, want.indexOf(c) !== -1); });
       gate.querySelector('.gate-why').textContent = GATE_WHY[want[0]] || '';
     });
+  }
+
+  function arrivingBack() {
+    var stage = document.querySelector('.deck-stage');
+    return !!stage && stage.getAttribute('data-dir') === 'back';
   }
 
   kit({
@@ -420,9 +450,17 @@ window.DECK_DEMO = false;
       '<div class="dock bleed-l bleed-r bleed-b" style="--gh: 800px">' +
         [0, 1, 2, 3].map(gateHtml).join('') +
       '</div>',
-    enter: function (ctx) { setGates(ctx.el, ctx.step); },
-    step: function (ctx, n) { setGates(ctx.el, n); },
-    notes: 'Step 1: the first gate shuts (it is being examined). Step 2: it lifts, PASS, and the next one shuts. Step 3: NO. The bay is held vacant for 0.8s, the shutter drops through the floor, and the reason cuts in 0.9s later. Gates 3 and 4 stay NOT YET. Step 4 adds is-flare: only for a NO that is the point of its slide.'
+    enter: function (ctx) { setGates(ctx.el, ctx.step, ctx.step === 0 && !arrivingBack()); },
+    step: function (ctx, n, dir) { setGates(ctx.el, n, dir > 0); },
+    notes: [
+      'SAY: Four gates. Cost, return, effort, potential.',
+      'Every idea goes through all four, in that order.',
+      'Any no ends it. That is the skill.',
+      'DO: Press → once per gate. On the NO, stop talking and let it sit.',
+      'NEXT: So, the first gate. What does it cost to run?',
+      '',
+      'BUILDER: Step 1: the first gate shuts (it is being examined). Step 2: it lifts, PASS, and the next one shuts. Step 3: NO. The shutter that is already down stays down for 0.8s, then punches through the floor; the word NO lands with it and the reason cuts in 0.9s later. Gates 3 and 4 stay NOT YET. Step 4 adds is-flare: only for a NO that is the point of its slide. Stepping back is a cut (setGates puts is-still on the gates it changes).'
+    ].join('\n')
   });
 
   /* ======================================================================
@@ -508,13 +546,22 @@ window.DECK_DEMO = false;
       T.draw.axis(ctx, L.axisX, 0, L.axisX, fit.height, { gap: [0, (L.top + L.rowH + 10) / fit.height] });
       if (allDone) {
         var y0 = L.top + L.rowH / 2;
-        var yN = L.top + (rows.length - 1) * L.pitch - 18;
         var sliver = min / max * L.maxW;
         // the deadpan line, pointing at the sliver
         T.draw.callout(ctx, 'the whole bar.', L.axisX + 330, y0, L.axisX + 3 + sliver + 180, y0, { size: 54 });
         // the multiple, tied to the two bars it compares
+        // the bracket runs from the $45 row to the middle of the $15,000 bar;
+        // where it crosses that bar it is drawn in Card, so it visibly lands on it
         var bx = fit.width - 56;
-        T.draw.bracket(ctx, bx - 520, y0, yN, { depth: -30 });
+        var lastTop = L.top + (rows.length - 1) * L.pitch;
+        var yLast = lastTop + L.rowH / 2;
+        T.draw.bracket(ctx, bx - 520, y0, yLast, { depth: -30 });
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(L.axisX + 3, lastTop, L.maxW, L.rowH);
+        ctx.clip();
+        T.draw.bracket(ctx, bx - 520, y0, yLast, { depth: -30, ground: 'ink' });
+        ctx.restore();
         T.draw.label(ctx, CM.money(max) + ' ÷ ' + CM.money(min) + ' =', bx, L.top + L.pitch - 8, { align: 'right', baseline: 'top' });
         T.draw.label(ctx, CM.ratio(max / min), bx, L.top + L.pitch + 52, { kind: 'num', size: 230, align: 'right', baseline: 'top' });
       }
@@ -621,7 +668,7 @@ window.DECK_DEMO = false;
       d.bar(ctx, bx + (bw + gap), py + ph - ph * 0.62, bw, ph * 0.62, { pattern: 'hatch' });
       d.bar(ctx, bx + (bw + gap) * 2, py + ph - ph * 0.36, bw, ph * 0.36);
       d.axis(ctx, px, py + ph, px + pw, py + ph, {
-        tickSize: 28, tickKind: 'small',
+        tickSize: 32, tickKind: 'label',
         ticks: [{ at: (30 + bw / 2) / pw, label: 'hollow' }, { at: (30 + bw + gap + bw / 2) / pw, label: 'hatch' }, { at: (30 + (bw + gap) * 2 + bw / 2) / pw, label: 'solid' }]
       });
       d.callout(ctx, 'Drawn to scale.', px + pw - 4, py + ph * 0.2, bx + (bw + gap) * 2 + bw / 2, py + ph - ph * 0.36 - 12, { align: 'right', elbow: true });
@@ -680,8 +727,9 @@ window.DECK_DEMO = false;
         '<thead><tr><th>Tier</th><th>Stands in for it</th><th class="is-num">Overall score</th><th class="is-num">Per run</th><th class="is-num">Per ' + esc(CM ? CM.number(VOLUME) : VOLUME) + '</th></tr></thead>' +
         '<tbody>' + tiers.filter(function (t) { return !t.missing; }).map(tierRow).join('') + '</tbody>' +
       '</table>' +
+      '<p class="deadpan">Same task. Every row.</p>' +
       '<p class="source-line">' + SOURCE + ' · ' + esc(assumption) + ' · model names are data, not endorsements</p>',
-    notes: 'A table has one 6px rule under the head and 3px rules between rows. The row that is the point takes the Flare band. Figures are CostMath.tiers().'
+    notes: 'A table has one 6px rule under the head and 3px rules between rows. The row that is the point takes the Flare band. Figures are CostMath.tiers(). The deadpan line sits in its default slot (a .deadpan straight inside the slide: bottom right, above the source line); one per data slide, true and dry, never a claim.'
   });
 
   /* ======================================================================
@@ -693,11 +741,13 @@ window.DECK_DEMO = false;
   var R = (Y.slotting && Y.slotting.results) || {};
 
   function pair(what, before, after, unit, note, point) {
+    // a percent sign belongs to the figure: small.is-tight sets it close
+    var u = '<small' + (unit === '%' ? ' class="is-tight"' : '') + '>' + unit + '</small>';
     return '<div class="pair' + (point ? ' is-point' : '') + '">' +
       '<p class="pair-what">' + what + '</p>' +
-      '<p class="pair-v is-before"><span class="label">As-is move</span><b>' + esc(before) + '</b><small>' + unit + '</small></p>' +
+      '<p class="pair-v is-before"><span class="label">As-is move</span><b>' + esc(before) + '</b>' + u + '</p>' +
       '<i class="pair-arrow"></i>' +
-      '<p class="pair-v is-after"><span class="label">Optimized</span><b>' + esc(after) + '</b><small>' + unit + '</small></p>' +
+      '<p class="pair-v is-after"><span class="label">Optimized</span><b>' + esc(after) + '</b>' + u + '</p>' +
       (note ? '<p class="pair-note">' + note + '</p>' : '') +
     '</div>';
   }
@@ -828,6 +878,11 @@ window.DECK_DEMO = false;
    * kit-motion · the five reveals, a counter, and how a NO lands
    * ==================================================================== */
 
+  function kitMotionHalt(ctx) {
+    if (ctx.wait) { ctx.wait.cancel(); ctx.wait = null; }
+    if (ctx.landing) { ctx.landing.cancel(); ctx.landing = null; }
+  }
+
   kit({
     id: 'kit-motion',
     title: 'Kit: motion',
@@ -844,12 +899,19 @@ window.DECK_DEMO = false;
       '</div>' +
       '<div class="kit-no no-jolt" data-step="6" data-anim="stamp"><b>No</b></div>',
     step: function (ctx, n, dir) {
+      // Keep a handle on everything that runs later, and cancel it when the
+      // slide steps back or leaves: a NO that is no longer on screen must not land.
+      kitMotionHalt(ctx);
       // the NO has finished dropping three sixteenths after the step: that is the impact
       if (n === 6 && dir > 0) {
-        M.tween({ from: 0, to: 1, duration: T.motion.dur.drop, onDone: function () { T.landNo(ctx.el); } });
+        ctx.wait = M.tween({
+          from: 0, to: 1, duration: T.motion.dur.drop,
+          onDone: function () { ctx.wait = null; if (ctx.step === 6) { ctx.landing = T.landNo(ctx.el); } }
+        });
       }
     },
-    notes: 'One step per move. Step 6 drops the NO: on impact the slide recoils 14px and prints in negative for two beats (THEME.landNo), then cuts back.'
+    exit: function (ctx) { kitMotionHalt(ctx); },
+    notes: 'One step per move. Step 6 drops the NO: on impact the slide recoils 14px and prints in negative for two beats (THEME.landNo), then cuts back. The step() keeps the tween and the landNo handle and cancels both on a step back and in exit(): copy that pattern.'
   });
 
   /* ======================================================================
