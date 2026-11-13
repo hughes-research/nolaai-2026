@@ -80,7 +80,7 @@ Nothing on screen is typed by hand except the real project results, which live i
 ## Other pieces
 
 - **`screener/index.html`**: the four-gate screener as a stand-alone page that works on a phone.
-- **`video/title-sequence.mp4`**: a 46-second title film with an original synthesized soundtrack: three ideas run the four gates, two get NO, the boring one passes. `title-square.mp4` is the square cut and `title-silent.mp4` has no audio, for rooms without sound.
+- **`video/title-sequence.mp4`**: a 46-second title film: three ideas run the four gates, two get NO, the boring one passes. Its score is an original cool-jazz trio played by recorded instruments (credits in `tools/score/SAMPLE-LICENSES.md`; `tools/score/README.md` has the alternates and how to rebuild). `title-square.mp4` is the square cut and `title-silent.mp4` has no audio, for rooms without sound.
 - **`handouts/worksheet.pdf`**: the two-sided attendee worksheet.
 
 ## For anyone changing the deck

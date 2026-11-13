@@ -12,7 +12,7 @@
  *   --poster-at 41.5      which second the poster is taken from
  *   --crf 14              x264 quality; lower is better and bigger (default 14)
  *   --preset slow         x264 preset (default slow)
- *   --audio file.wav      mux this WAV into the file as its sound (AAC, 192 kb/s, 48 kHz stereo).
+ *   --audio file.wav      mux this WAV into the file as its sound (AAC, 256 kb/s, 48 kHz stereo).
  *                         The title film's sound is made by tools/build-audio.js.
  *   --audio silent        add a silent stereo AAC track instead.
  *                         Default: no audio track at all (the silent cut).
@@ -359,7 +359,7 @@ function moovFirst(file) {
         '-g', String(Math.round(o.fps * 2)), '-r', String(o.fps), '-movflags', '+faststart');
       if (info.title) { args.push('-metadata', 'title=' + info.title); }
       if (o.audio === 'silent') { args.push('-c:a', 'aac', '-b:a', '96k', '-shortest'); }
-      else if (audioFile) { args.push('-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-ac', '2'); }
+      else if (audioFile) { args.push('-c:a', 'aac', '-b:a', '256k', '-ar', '48000', '-ac', '2'); }
       else { args.push('-an'); }
       args.push(out);
 

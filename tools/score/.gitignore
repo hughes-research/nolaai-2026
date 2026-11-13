@@ -1,0 +1,21 @@
+# Everything a build writes. The sources (build.js, chart.js, the kit) are tracked; the sound is rebuilt.
+*/final.wav
+*/stems/
+*/analysis/
+*/analysis-kit/
+*/arrangement.json
+*/tmp/
+*/look/
+*/*.mp4
+*/build-numbers.json
+*/check-results.json
+*/chart-check.json
+lib/demo/
+lib/audition/png/
+lib/audition/data.json
+lib/example/final.wav
+lib/example/stems/
+lib/example/analysis/
+lib/example/arrangement.json
+lib/example/report.md
+__pycache__/
