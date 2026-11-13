@@ -38,9 +38,9 @@ A mouse click on a slide does not advance it, because several slides have live c
 - [ ] In the room: check the coral ink (Flare) on the projector, and check you can read the screener slide (slide 23, the densest) from the back row.
 - [ ] If you show the title film, run it once this way on the laptop you will use (it was tried in Chrome on one machine and nowhere else):
   - Open `video/play.html` in Chrome, shortly before you want it. If Chrome shows a strip of its own under the address bar, close it first: in a test a strip of that kind stayed on screen in full screen and pushed the picture down.
-  - Press **F** for full screen. Chrome shows its own notice about the Esc key at the top of the screen for about five seconds. Wait until it has gone (the page asks you to), then tap **Space** once. Check the room's sound.
+  - Press **F** for full screen. Chrome shows its own notice about the Esc key at the top of the screen for about five seconds. Wait until it has gone (the page asks you to, and Space does nothing until then), then tap **Space** once. Check the room's sound.
   - The film plays with no player controls on screen and holds the title card when it ends, until you switch to the deck. Once it has ended, only **R** starts it again.
-  - A click does not start or stop the film. If F or Space seem to do nothing, click once on the page to give it the keyboard, then press the key again.
+  - A click does not start or stop the film. If F or Space seem to do nothing, click once on the page to give it the keyboard, then press the key again. Leave the trackpad alone while the film is up: a pointer that touches the top edge of the screen brings down a round close button of Chrome's own for a few seconds.
   - Do not open the MP4 itself for the room: Chrome's own player keeps its control bar across the bottom of the title card once the film has ended or is paused. Do not play it from a USB stick in the projector either: a built-in player may refuse the file.
   - `video/play.html?film=title-silent.mp4` is the same film with no sound.
 

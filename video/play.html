@@ -9,7 +9,8 @@
 
   Open it in Chrome (double-click). F goes full screen. Chrome then shows its
   own notice about the Esc key at the top of the screen for about five
-  seconds: when it has gone, tap Space once to start the film.
+  seconds: when it has gone, tap Space once to start the film. Until then the
+  page asks for patience and Space, Enter and R do nothing.
   It plays once, with its sound, and holds the title card at the end with
   nothing over it, so the card can stay on screen until you switch to the deck.
   Go full screen shortly before the film, not long in advance.
@@ -88,6 +89,7 @@
     if (!k) { return; }
     e.preventDefault();
     if (e.repeat) { return; }                   // a key held down counts once
+    if (patience && k !== 'full') { return; }   // the browser's notice is still up: the film must not start under it
     if (k === 'play') { toggle(); } else if (k === 'full') { fullScreen(); } else { restart(); }
   });
   /* A click does nothing on purpose: a click that only wakes the window must not start or stop the film. */
@@ -97,11 +99,11 @@
   var hintHome = hint.innerHTML;
   var patience = null;
   document.addEventListener('fullscreenchange', function () {
-    clearTimeout(patience);
+    clearTimeout(patience); patience = null;
     if (body.classList.contains('problem')) { return; }
     if (document.fullscreenElement && !body.classList.contains('started')) {
       hint.innerHTML = 'Wait for the browser\'s notice above to clear &nbsp;&middot;&nbsp; then <b>Space</b>';
-      patience = setTimeout(function () { hint.innerHTML = hintHome; }, 5000);
+      patience = setTimeout(function () { patience = null; hint.innerHTML = hintHome; }, 5000);
     } else { hint.innerHTML = hintHome; }
   });
 

@@ -83,14 +83,17 @@ should be confirmed by ear.
 - **With sound:** open `play.html` in Chrome, shortly before you want it.
   Press F for full screen, wait about five seconds until Chrome's own notice
   about the Esc key has gone from the top of the screen (the page asks you
-  to), then tap Space once. It plays `title-sequence.mp4` once, with no player
-  controls on screen, and holds the title card when the film ends (the last
-  chord has faded by 46 s), so the card can stay up until you switch to the
-  deck. Space pauses and resumes; a key held down counts once. A click does
-  not start or stop the film: if F or Space seem to do nothing, click once on
-  the page to give it the keyboard, then press the key again. Once the film
-  has ended, Space does nothing, so a stray key cannot start it again; R plays
-  it from the start.
+  to, and Space does nothing until then), then tap Space once. It plays
+  `title-sequence.mp4` once, with no player controls on screen, and holds the
+  title card when the film ends (the last chord has faded by 46 s), so the
+  card can stay up until you switch to the deck. Space pauses and resumes; a
+  key held down counts once. A click does not start or stop the film: if F or
+  Space seem to do nothing, click once on the page to give it the keyboard,
+  then press the key again. Leave the trackpad alone while the film is up: a
+  pointer that touches the top edge of the screen brings down a round close
+  button of Chrome's own for a few seconds. Once the film has ended, Space
+  does nothing, so a stray key cannot start it again; R plays it from the
+  start.
 - **Before you go full screen:** if Chrome shows a strip of its own under the
   address bar, close it. In a test a strip of that kind stayed on screen in
   full screen and pushed the picture down.
