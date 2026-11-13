@@ -1,5 +1,7 @@
 # Scratch output from the tools (screenshots, review captures)
 out/
+# A film being written beside the one it will replace (tools/score/lib/mux.js removes it itself)
+video/*.new.mp4
 # Dependencies are never installed into this repo
 node_modules/
 # OS and editor noise

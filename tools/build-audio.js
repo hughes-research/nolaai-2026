@@ -21,11 +21,16 @@
  * loudness -16 LUFS and true peak under -2 dBTP, no clipping, no DC, no clicks.
  *
  * The recorded-instrument scores need fluidsynth and two free sound libraries
- * (both MIT licensed; credits in tools/score/README.md):
+ * (both MIT licensed; credits in tools/score/README.md). The chosen score and
+ * "vibes" also measure themselves with ffmpeg and draw their analysis pictures
+ * with Python 3, numpy and Pillow:
  *
  *   apt-get install fluidsynth fluid-soundfont-gm musescore-general-soundfont-small
+ *   apt-get install ffmpeg python3-numpy python3-pil
  *
- * The fully synthesized score ("modelled") needs nothing but Node.
+ * SCORE_FAST=1 in front skips the chosen score's pictures (the sound is the
+ * same bytes). What is missing is said before the build starts, with exit
+ * code 2. The fully synthesized score ("modelled") needs nothing but Node.
  */
 'use strict';
 
@@ -47,6 +52,7 @@ function usesSampler(name) {
   return /require\(\s*['"]\.\.\/lib['"]\s*\)/.test(fs.readFileSync(path.join(SCORES, name, 'build.js'), 'utf8'));
 }
 function fail(message, code) { console.error('build-audio: ' + message); process.exit(code || 1); }
+function works(command, args) { const r = spawnSync(command, args, { encoding: 'utf8' }); return !r.error && r.status === 0; }
 
 const args = process.argv.slice(2);
 let score = CHOSEN, out = OUT_DEFAULT, mux = false;
@@ -77,11 +83,31 @@ if (usesSampler(score)) {
   }
 }
 
+/* A build that ends with the kit's analysis measures the mix with ffmpeg and draws its
+ * spectrograms with Python. Asked for here, so a missing piece is one line before the
+ * build starts and not a crash after every check has passed. */
+const buildText = fs.readFileSync(path.join(SCORES, score, 'build.js'), 'utf8');
+const again = 'node tools/build-audio.js' + (score === CHOSEN ? '' : ' --score ' + score) + (mux ? ' --mux' : '');
+if (/analyze\.run\(/.test(buildText)) {
+  if (!works('ffmpeg', ['-version'])) {
+    fail('the score "' + score + '" measures its mix with ffmpeg, which was not found.\n  install:  apt-get install ffmpeg', 2);
+  }
+  const canSkip = /SCORE_FAST/.test(buildText);
+  if (!(canSkip && process.env.SCORE_FAST) && !works('python3', ['-c', 'import numpy, PIL'])) {
+    fail('the score "' + score + '" draws its analysis pictures with Python 3, numpy and Pillow, which were not found.\n' +
+      '  install:  apt-get install python3-numpy python3-pil   (or: pip install numpy pillow)' +
+      (canSkip ? '\n  or skip the pictures (the sound is the same bytes):  SCORE_FAST=1 ' + again : ''), 2);
+  }
+}
+if (mux && !(works('ffmpeg', ['-version']) && works('ffprobe', ['-version']))) {
+  fail('--mux puts the sound on the films with ffmpeg and ffprobe, which were not found.\n  install:  apt-get install ffmpeg', 2);
+}
+
 const dir = path.join(SCORES, score);
 console.log('Building the score "' + score + '" (' + path.relative(ROOT, dir) + '/build.js) ...\n');
 const run = spawnSync(process.execPath, [path.join(dir, 'build.js')], { stdio: 'inherit', cwd: dir });
 if (run.error) { fail('could not run the build: ' + run.error.message); }
-if (run.status !== 0) { fail('the build of "' + score + '" failed its self-checks (exit ' + run.status + '); nothing was copied.', run.status); }
+if (run.status !== 0) { fail('the build of "' + score + '" did not finish (exit ' + run.status + ': a failed self-check or a crash, see above); nothing was copied.', run.status || 1); }
 
 const wav = path.join(dir, 'final.wav');
 if (!fs.existsSync(wav)) { fail('the build wrote no ' + path.relative(ROOT, wav)); }
