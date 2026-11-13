@@ -30,8 +30,9 @@
   var label = esc(R.label || (T && T.tags.laborde) || '');      // on the Oct 27–28 run figure (the 23%)
 
   /* On minutes alone slotting does not pass the screen (slotting-scorecard),
-     so it is only called the winner once the speaker has supplied the bigger
-     return in your-numbers.js. Until then it is the one we built. */
+     so it is only called the winner once the bigger return is filled in
+     your-numbers.js (today with made-up figures, tagged on the scorecard).
+     Until then it is the one we built. */
   var won = P.supplied ? P.supplied().filled : false;
   var winnerHead = won ? 'The winner:' : 'The one we built:';
 
@@ -58,7 +59,20 @@
       </div>
       ${P.driver('winner')}
     `,
-    notes: `
+    notes: won ? `
+      SAY: Here's the winner at my place: warehouse slotting. Nobody pitches this.
+      Slotting is deciding which shelf each part lives on.
+      On minutes alone it fails my own screen. It wins on the move. I'll show you both at the end.
+
+      YOUR STORY: how slotting came up, and who brought it up.
+
+      DO: Click once for the number.
+
+      SAY: ${parts} parts were moving to a new building. Every one needed a new address.
+      Somebody was going to decide where each one went. The only question was how.
+
+      NEXT: Here is what that decision looks like on one rack.
+    ` : `
       SAY: Here is the one we built at my place: warehouse slotting.
       Slotting is deciding which shelf each part lives on. Nobody pitches this.
       I'll run it through my own gates at the end, and it doesn't pass the way you'd expect.

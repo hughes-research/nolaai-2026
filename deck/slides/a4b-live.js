@@ -74,7 +74,7 @@
     steps: captions.length - 1,
     html: html,
     notes: [
-      'SAY: This is not our building. It is a made-up warehouse running the same method, live in this browser.\n' +
+      'SAY: This is not our building. It’s a made-up warehouse running the same method, live in this browser.\n' +
       'Every dot is a part. Big dot, fast mover. Speck, slow.\n' +
       'All synthetic. Ours comes after.',
 

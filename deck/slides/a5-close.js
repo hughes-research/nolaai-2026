@@ -687,7 +687,7 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
 
       DO: Click once for the question. Then stop. Count to three before you say anything.
 
-      NEXT: If you're already thinking the objection, I'll say it for you.
+      NEXT: Some of you are already thinking the objection. I'll say it for you.
     `
   });
 
@@ -714,14 +714,15 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
       <i hidden data-scene="a5-cue" data-opts='{"at": 1, "for": ${seconds(NOTE.drop + NOTE.jolt + NOTE.beat)}}'></i>
     `,
     notes: `
-      SAY: “My people will just waste the time.” A fair worry.
-      But the tool did its job. It handed back minutes.
-      What they turn into is a management decision.
-      If nobody decides, the time leaks away. That's on us, not the AI.
+      SAY: “My people will just waste the time.” Fair worry. Wrong place to look.
+      (click) The tool did its job. It handed back minutes.
+      What those minutes turn into is a management decision.
+      If the freed time gets wasted, in my eyes that's a lack of proper management. Not an AI problem. Not a people problem.
+      Nobody decided what the time was for. That's on us.
 
       DO: Read the objection out loud. Click. Let the answer land, then speak.
 
-      NEXT: So what does managing it look like? Three things. My view, not a study.
+      NEXT: So what does managing it look like? Three things.
     `
   });
 
@@ -746,11 +747,15 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
       <i hidden data-scene="a5-cue" data-opts='{"at": 3, "for": ${seconds(NOTE.drop + NOTE.beat)}}'></i>
     `,
     notes: `
-      SAY: Name the goal for the freed hours. That's a leader's call. Measure it.
-      Share the upside: income, a bonus or an ownership stake, tied to growth.
+      SAY: Share the gain. My view, not a study.
+      (click) Name the goal for the freed hours. That's a leader's call, not the tool's.
+      (click) Measure it.
+      (click) Share the upside: income, a bonus or an ownership stake, tied to growth.
+      (click) People hide time savings that threaten them. They report the ones they share in.
+      Some leaders are happy with the status quo. Those are not the leaders you want.
       Build around people who want a piece. Make sure there's one to want.
 
-      DO: A click per beat, one for the line. Read it.
+      DO: A click per beat, one for the line. Read the line off the screen.
 
       YOUR STORY: how the gain is shared at your place, if it is; if not, say what you would do.
 
@@ -785,7 +790,7 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
 
       DO: Point at the boxes, left to right. Click for the line.
 
-      NEXT: So here is what I'm asking you to do on Monday.
+      NEXT: So here's what I'm asking you to do on Monday.
     `
   });
 
@@ -947,8 +952,11 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
     out.push('Q5 “How do I keep my numbers honest?” Set house rules before you score.',
       'Then hold every win to all four Waypoint boxes.');
     out.push('Q6 “So what was the bigger return on the warehouse project?”',
-      'YOUR STORY: the bigger return, in one sentence you can defend. If you have not put a number on it yet, say so: ' +
-      '"I haven\'t put a number on it that I can show you all four Waypoint boxes for. The move had to happen; the question was guess or calculate."');
+      'Not the minutes. On minutes alone it fails my own screen. The return was the move: every part was going to a new building anyway, ' +
+      'so putting each one in the right slot cost nothing extra. Ladder picks went from 23% to 0.6%. That number is real. ' +
+      'The dollar figures on the scorecard were changed to protect company data. They show how I ran it, not what we made. ' +
+      'The move was free. The build was not.',
+      'YOUR STORY: one sentence on what the real return looked like, in words, no figures.');
     return out.join('\n      ');
   }
 

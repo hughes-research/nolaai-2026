@@ -171,20 +171,98 @@
    * potential. An entry of the bigger return counts only once it has a value:
    * nothing the speaker has left empty is ever drawn for the audience.
    */
+  /** The loaded hourly rate the minutes are valued at (the same one Gates uses). */
+  function loadedRate() {
+    var G = window.Gates;
+    try { if (G) { return Number(G.defaultAssumptions().rates.loadedHourly); } } catch (e) { /* fall through */ }
+    return Number((Y.rates || {}).loadedHourly);
+  }
+
+  /**
+   * One line of the bigger return, made ready to show. A line is either typed
+   * as words ({ label, value, note }) or worked out by the deck
+   * ({ label, count, minutesEach, per, note }): count x minutes each, valued at
+   * the loaded hourly rate. count may be the words 'every part', which is the
+   * real part count in results. Only a worked-out line can feed the gates.
+   */
+  function biggerLine(b) {
+    if (!b || typeof b !== 'object') { return null; }
+    var minutes = Number(b.minutesEach);
+    var count = (typeof b.count === 'string' && /^\s*every part\s*$/i.test(b.count)) ? Number(R.parts) : Number(b.count);
+    var hasCalc = b.minutesEach != null && b.count != null && b.count !== '';
+    if (hasCalc) {
+      var rate = loadedRate();
+      if (!(minutes > 0) || !(count > 0) || !(rate > 0)) {
+        if (window.console && console.error) {
+          console.error('[slotting-scorecard] A "bigger return" line cannot be worked out (count ' + JSON.stringify(b.count) +
+            ', minutesEach ' + JSON.stringify(b.minutesEach) + '). Fix it in deck/content/your-numbers.js.');
+        }
+        return null;
+      }
+      var hours = tidy(count * minutes / 60);
+      var dollars = tidy(hours * rate);
+      var yearly = String(b.per || '').toLowerCase() === 'year';
+      return {
+        label: b.label, note: b.note, computed: true, yearly: yearly,
+        count: count, minutesEach: minutes, rate: rate, hours: hours, dollars: dollars,
+        value: money(dollars), per: yearly ? 'a year' : 'once'
+      };
+    }
+    if (!isFilled(b.value)) { return null; }
+    return { label: b.label, value: b.value, note: b.note, computed: false };
+  }
+
   function supplied() {
-    var list = (Array.isArray(SL.biggerReturn) ? SL.biggerReturn : []).filter(function (b) {
-      return b && isFilled(b.value);
-    });
+    var list = (Array.isArray(SL.biggerReturn) ? SL.biggerReturn : []).map(biggerLine).filter(Boolean);
     var effort = SL.effort || {};
     var potential = SL.potential || {};
     return {
       bigger: list,
       filled: list.length > 0,
+      illustrative: SL.illustrative === true,
       buildHours: isFilled(effort.buildHours) ? effort.buildHours : null,
       upkeepHoursPerMonth: isFilled(effort.upkeepHoursPerMonth) ? effort.upkeepHoursPerMonth : null,
       growth: isFilled(potential.growth) ? potential.growth : null,
-      potentialNote: isFilled(potential.note) ? potential.note : null
+      potentialNote: isFilled(potential.note) ? potential.note : null,
+      ownerNamed: potential.ownerNamed === true
     };
+  }
+
+  /**
+   * The second run: the same four gates (Gates.evaluate, live rate, live house
+   * rules), now with every YEARLY dollar of the bigger return added to the
+   * minutes, and the speaker's build hours, upkeep and growth. A 'once' line is
+   * never counted: the RETURN rule is a yearly rule. The run only happens when
+   * every number it needs is a worked-out number; otherwise it returns null and
+   * the slide raises no verdict beyond the NO on minutes.
+   */
+  function secondRun() {
+    var sup = supplied();
+    var G = window.Gates;
+    var yearly = sup.bigger.filter(function (b) { return b.computed && b.yearly; });
+    var onceLines = sup.bigger.filter(function (b) { return b.computed && !b.yearly; });
+    var allComputed = sup.bigger.every(function (b) { return b.computed; });
+    var ma = minutesAlone();
+    if (!G || !ma.ok || !yearly.length || !allComputed ||
+        typeof sup.buildHours !== 'number' || typeof sup.upkeepHoursPerMonth !== 'number' || typeof sup.growth !== 'number') { return null; }
+    try {
+      var A = G.defaultAssumptions();
+      var weeks = Number(A.rates.workWeeks) || 50;
+      var hours = yearly.reduce(function (sum, b) { return tidy(sum + b.hours); }, ma.hours);
+      var ev = G.evaluate({
+        id: 'slotting-whole', name: 'Warehouse slotting, with the whole yearly return', lens: 'product',
+        minutesPerRun: tidy(hours * 60 / weeks), runsPerWeek: 1,
+        tier: 'code', toolsPerMonth: 0,
+        buildHours: sup.buildHours, rolloutHours: 0, upkeepHoursPerMonth: sup.upkeepHoursPerMonth,
+        growth: sup.growth, touchesCashPath: true, daysOffCashCycle: DAYS_OFF_CASH_CYCLE, ownerNamed: sup.ownerNamed
+      }, A);
+      return {
+        ev: ev, hours: hours, value: ev.returnPerYear, yearly: yearly, once: onceLines,
+        onceDollars: onceLines.reduce(function (sum, b) { return tidy(sum + b.dollars); }, 0),
+        pass: { cost: !!ev.gates.cost.pass, 'return': !!ev.gates['return'].pass, effort: !!ev.gates.effort.pass, potential: !!ev.gates.potential.pass },
+        firstNo: ev.firstNo, verdict: ev.verdict
+      };
+    } catch (e) { return null; }
   }
 
   /**
@@ -230,6 +308,8 @@
     tidy: tidy,
     minutesAlone: minutesAlone,
     supplied: supplied,
+    secondRun: secondRun,
+    loadedRate: loadedRate,
     modelCalls: modelCalls,
     driver: function (kind, extra) {
       var opts = { kind: kind };
@@ -448,6 +528,8 @@
     '.px-br-item + .px-br-item { padding-top: 16px; border-top: var(--w-rule) solid var(--c-accent-ink); }',
     '.px-br-item.is-cut { display: none; }',
     '.px-br-v { max-width: 100%; font-size: var(--brv, 96px); line-height: 0.84; overflow-wrap: anywhere; }',
+    '.px-br-vrow { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 12px; row-gap: 2px; max-width: 100%; }',
+    '.px-br-per { font-size: 36px; font-weight: 800; line-height: 1; white-space: nowrap; }',
     '.px-br-l { font-size: 36px; font-weight: 700; line-height: 1.08; text-wrap: balance; }',
     '.px-br-n { font-size: 36px; font-weight: var(--wght-text); line-height: 1.1; text-wrap: balance; }',
     '.px-br.is-tight .px-br-n { display: none; }',
@@ -463,6 +545,19 @@
     '.px-br.is-three .px-br-item + .px-br-item { padding-top: 10px; }',
     '.px-br.is-three .px-br-l { line-height: 1.04; font-stretch: var(--wdth-tight); }',
     '.px-brx:has(> .px-br.is-three) { padding-top: 12px; padding-bottom: 10px; }',
+    /* the second run: its RETURN figure is printed directly under the first
+       run's, a ledger of two runs of one rule (NO on minutes, then the run
+       with every yearly dollar in) */
+    '.px-sc-dock .px-find.px-run2 { top: calc(var(--gh) + var(--gcap)); height: 64px; left: calc(var(--gl) * 2); right: auto; flex-direction: row; align-items: center; }',
+    /* the honesty tag for made-up figures: bottom left, clear of the closing line */
+    '.px-sc-tag { position: absolute; left: var(--m-x); top: 1004px; margin: 0; line-height: 1; }',
+    /* static copies at the second run: RETURN shows the PASS the scene raises */
+    '.slide.is-static .px-sc-dock .px-g-return.has-run2:has(> .px-run2.is-pass.is-visible) > .gate-shutter { height: var(--graised) !important; background: var(--c-pass); color: var(--c-pass-ink); }',
+    '.slide.is-static .px-sc-dock .px-g-return.has-run2:has(> .px-run2.is-pass.is-visible) > .gate-shutter::after { content: "Pass"; left: var(--gpad); bottom: auto; top: calc((var(--graised) - var(--gw) * 0.254 * var(--cap)) / 2); font-size: calc(var(--gw) * 0.254); letter-spacing: 0.01em; }',
+    /* a gate the second run reaches gives up its NOT YET once its finding is printed */
+    '.slide.is-static .px-sc-dock .gate.px-r2:has(> .px-find.is-visible) > .px-notyet { visibility: hidden; }',
+    /* a NO on the second run holds its bay vacant, like any NO: the finding goes */
+    '.px-sc-dock .gate.px-r2.is-no > .px-find { visibility: hidden; }',
     '.px-kv { align-self: stretch; display: flex; flex-direction: column; align-items: flex-start; }',
     '.px-kv + .px-kv { margin-top: 26px; padding-top: 22px; border-top: var(--w-hair) solid var(--c-line); }',
     /* a long figure pushes its unit onto the next line instead of through the gate wall */
@@ -470,6 +565,7 @@
     '.px-kv-v > .num { font-size: 96px; }',
     '.px-kv-v > span { font-size: var(--t-body); font-weight: 700; line-height: 1; }',
     '.px-kv-note { margin-top: 14px; font-size: 36px; font-weight: 600; line-height: 1.14; }',
+    '.px-kv-note.is-lines { font-stretch: var(--wdth-tight); white-space: nowrap; }',
 
     /* ---- how-we-built-it ---- */
     '.px-how.is-many > li { min-height: 104px; font-size: var(--t-body); }'
@@ -1010,21 +1106,79 @@
     }
     seq.cut(t, qa('.px-find-rec2 [data-px="rec"]'));
     var brx = q('.px-brx');
+    var brxAt = t + BEAT * 3;
     if (brx) {
       // it comes up from the floor, where the NO went down
-      seq.lift(t + BEAT * 3, brx, D_LIFT);
+      seq.lift(brxAt, brx, D_LIFT);
       var fitState = { warned: false };
       c.fit.push(function () { fitBigger(brx, fitState); });
     }
-    seq.cut(t + BEAT * 5 + SWING, qa('.px-g-effort .px-find [data-px]'));
-    seq.cut(t + BEAT * 7, qa('.px-g-potential .px-find [data-px]'));
+    // made-up figures never reach the screen without their tag: it cuts in
+    // the moment the block starts to rise
+    seq.cut(brxAt, q('.px-sc-tag'));
     var close = q('.px-sc-close:not(.px-sc-reslot)');
-    if (close) {
-      // the closing line takes the re-slot line's place
-      if (reslot) { seq.hide(t + BEAT * 10, reslot); }
-      seq.wipe(t + BEAT * 10, close, BEAT);
+
+    if (!c.opts.run2) {
+      // no second run (the speaker typed his figures as words): his values
+      // appear, no verdict is raised on them
+      seq.cut(t + BEAT * 5 + SWING, qa('.px-g-effort .px-find [data-px]'));
+      seq.cut(t + BEAT * 7, qa('.px-g-potential .px-find [data-px]'));
+      if (close) {
+        // the closing line takes the re-slot line's place
+        if (reslot) { seq.hide(t + BEAT * 10, reslot); }
+        seq.wipe(t + BEAT * 10, close, BEAT);
+      }
+      seq.end(t + BEAT * (close ? 11 : 7) + EPS);
+      return;
     }
-    seq.end(t + BEAT * (close ? 11 : 7) + EPS);
+    seq.end(brxAt + D_LIFT + EPS);
+
+    // step 4: the second run. The same rule, asked again with every yearly
+    // dollar in. Each gate is run in order and stops at the first NO, like any
+    // candidate: RETURN, then EFFORT, then POTENTIAL. Nothing is Flare here:
+    // the bigger return is the point, and it is already on screen.
+    b = seq.base() + SIXTEENTH;
+    t = b;
+    var o = c.opts;
+    function run(gate, pass, at) {
+      seq.at(at, function () {
+        setGate(gate, pass ? ['is-pass'].concat(gate === gRet ? ['has-tell'] : []) : ['is-no'], seq.animated);
+      }, function () {
+        if (gate === gRet) { setGate(gRet, ['has-tell'], false); } else { setGate(gate, [], false); }
+      });
+      return at + (pass ? D_LIFT : HOLD_BEFORE + D_DROP + HOLD_AFTER);
+    }
+    // RETURN answers first; its second-run figure is printed under the first
+    // run's the moment the shutter has settled (the verdict is in that line).
+    // A second NO at RETURN is only printed in that line: the bay already
+    // carries the first NO's tell-tale, and a shutter would bury both records.
+    if (o.r2Return) {
+      t = run(gRet, true, t + BEAT);
+      seq.cut(t, qa('.px-run2 [data-px]'));
+    } else {
+      seq.cut(t + HOLD_BEFORE, qa('.px-run2 [data-px]'));
+      t += HOLD_BEFORE + HOLD_AFTER;
+    }
+    if (o.r2Effort) {
+      t += BEAT;
+      seq.cut(t, qa('.px-g-effort .px-find [data-px]'));
+      seq.hide(t + BEAT * 2, qa('.px-g-effort .px-notyet'));
+      t = run(gEff, o.r2EffortPass, t + BEAT * 2);
+    }
+    if (o.r2Potential) {
+      t += BEAT;
+      seq.cut(t, qa('.px-g-potential .px-find [data-px]'));
+      seq.hide(t + BEAT * 2, qa('.px-g-potential .px-notyet'));
+      t = run(gPot, o.r2PotentialPass, t + BEAT * 2);
+    }
+    if (close) {
+      // one full beat of nothing, then the closing line takes the re-slot line's place
+      t += BEAT * 2;
+      if (reslot) { seq.hide(t, reslot); }
+      seq.wipe(t, close, BEAT);
+      t += BEAT;
+    }
+    seq.end(t + EPS);
   };
 
   /* ======================================================================

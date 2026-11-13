@@ -1,0 +1,398 @@
+{
+ "bpm": 120,
+ "beat": 0.5,
+ "bar": 2,
+ "fps": 30,
+ "duration": 46,
+ "bars": 23,
+ "events": [
+  {
+   "t": 0,
+   "what": "the floor line starts to draw",
+   "frame": 0,
+   "where": "bar 1, beat 1"
+  },
+  {
+   "t": 0.5,
+   "what": "bay 1 (COST) stands up; its sign cuts in",
+   "frame": 15,
+   "where": "bar 1, beat 2"
+  },
+  {
+   "t": 1,
+   "what": "bay 2 (RETURN) stands up; its sign cuts in",
+   "frame": 30,
+   "where": "bar 1, beat 3"
+  },
+  {
+   "t": 1.5,
+   "what": "bay 3 (EFFORT) stands up; its sign cuts in",
+   "frame": 45,
+   "where": "bar 1, beat 4"
+  },
+  {
+   "t": 2,
+   "what": "bay 4 (POTENTIAL) stands up; its sign cuts in",
+   "frame": 60,
+   "where": "bar 2, beat 1"
+  },
+  {
+   "t": 2.5,
+   "what": "kicker text: \"Three ideas · Four gates\"",
+   "frame": 75,
+   "where": "bar 2, beat 2"
+  },
+  {
+   "t": 4,
+   "what": "idea 1 kicker: \"Idea 1 · The exciting one\" (register: loud, block size: big)",
+   "frame": 120,
+   "where": "bar 3, beat 1"
+  },
+  {
+   "t": 4.333,
+   "what": "idea 1 title line 1: \"A chatbot\"",
+   "frame": 129.99,
+   "where": "bar 3, beat 1.666"
+  },
+  {
+   "t": 4.833,
+   "what": "idea 1 title line 2: \"for everything\"",
+   "frame": 144.99,
+   "where": "bar 3, beat 2.666"
+  },
+  {
+   "t": 6,
+   "what": "idea 1 block enters the dock (arrives 6.5 s)",
+   "frame": 180,
+   "where": "bar 4, beat 1"
+  },
+  {
+   "t": 7.625,
+   "what": "idea 1: the COST shutter lets go (falls for 0.375 s)",
+   "frame": 228.75,
+   "where": "bar 4, beat 4.25"
+  },
+  {
+   "t": 8,
+   "sync": "HARD",
+   "what": "idea 1: NO. The COST shutter LANDS, through the floor. Bay held until 9 s",
+   "frame": 240,
+   "where": "bar 5, beat 1"
+  },
+  {
+   "t": 9,
+   "what": "idea 1: the reason cuts in (\"Too costly to run\"), its title is struck through",
+   "frame": 270,
+   "where": "bar 5, beat 3"
+  },
+  {
+   "t": 9.5,
+   "what": "on-screen line (no voice-over): \"Your best AI idea is probably wrong.\"",
+   "frame": 285,
+   "where": "bar 5, beat 4"
+  },
+  {
+   "t": 12,
+   "what": "idea 1 is wiped; the stage resets",
+   "frame": 360,
+   "where": "bar 7, beat 1"
+  },
+  {
+   "t": 12.375,
+   "what": "idea 2 kicker: \"Idea 2 · The easy one\" (register: mid, block size: mid)",
+   "frame": 371.25,
+   "where": "bar 7, beat 1.75"
+  },
+  {
+   "t": 12.5,
+   "what": "idea 2 title line 1: \"Meeting notes\"",
+   "frame": 375,
+   "where": "bar 7, beat 2"
+  },
+  {
+   "t": 12.833,
+   "what": "idea 2 title line 2: \"for managers\"",
+   "frame": 384.99,
+   "where": "bar 7, beat 2.666"
+  },
+  {
+   "t": 13,
+   "what": "idea 2 block enters the dock (arrives 13.25 s)",
+   "frame": 390,
+   "where": "bar 7, beat 3"
+  },
+  {
+   "t": 13.625,
+   "what": "idea 2: the COST shutter comes down to check",
+   "frame": 408.75,
+   "where": "bar 7, beat 4.25"
+  },
+  {
+   "t": 14,
+   "what": "idea 2: COST shutter touches the floor (the check, soft)",
+   "frame": 420,
+   "where": "bar 8, beat 1"
+  },
+  {
+   "t": 14.5,
+   "what": "idea 2: COST shutter LIFTS: PASS",
+   "frame": 435,
+   "where": "bar 8, beat 2"
+  },
+  {
+   "t": 15,
+   "what": "idea 2: the word PASS is on COST; the idea moves on to the next bay (arrives 15.5 s)",
+   "frame": 450,
+   "where": "bar 8, beat 3"
+  },
+  {
+   "t": 16.625,
+   "what": "idea 2: the RETURN shutter lets go (falls for 0.375 s)",
+   "frame": 498.75,
+   "where": "bar 9, beat 2.25"
+  },
+  {
+   "t": 17,
+   "sync": "HARD",
+   "what": "idea 2: NO. The RETURN shutter LANDS, through the floor. Bay held until 18 s",
+   "frame": 510,
+   "where": "bar 9, beat 3"
+  },
+  {
+   "t": 18,
+   "what": "idea 2: the reason cuts in (\"Nothing comes back\"), its title is struck through",
+   "frame": 540,
+   "where": "bar 10, beat 1"
+  },
+  {
+   "t": 18.5,
+   "what": "on-screen line (no voice-over): \"Easy is not the same as worth it.\"",
+   "frame": 555,
+   "where": "bar 10, beat 2"
+  },
+  {
+   "t": 20,
+   "what": "idea 2 is wiped; the stage resets",
+   "frame": 600,
+   "where": "bar 11, beat 1"
+  },
+  {
+   "t": 20.375,
+   "what": "idea 3 kicker: \"Idea 3 · Nobody pitched it\" (register: quiet, block size: small)",
+   "frame": 611.25,
+   "where": "bar 11, beat 1.75"
+  },
+  {
+   "t": 20.5,
+   "what": "idea 3 title: \"Invoice follow-up reminders\"",
+   "frame": 615,
+   "where": "bar 11, beat 2"
+  },
+  {
+   "t": 21,
+   "what": "idea 3 block enters the dock (arrives 21.25 s)",
+   "frame": 630,
+   "where": "bar 11, beat 3"
+  },
+  {
+   "t": 21.625,
+   "what": "idea 3: the COST shutter comes down to check",
+   "frame": 648.75,
+   "where": "bar 11, beat 4.25"
+  },
+  {
+   "t": 22,
+   "what": "idea 3: COST shutter touches the floor (the check, soft)",
+   "frame": 660,
+   "where": "bar 12, beat 1"
+  },
+  {
+   "t": 22.5,
+   "sync": "SOFT",
+   "what": "idea 3: COST shutter LIFTS: PASS (one of the four rising PASSes)",
+   "frame": 675,
+   "where": "bar 12, beat 2"
+  },
+  {
+   "t": 23,
+   "what": "idea 3: the word PASS is on COST; the idea moves on to the next bay (arrives 23.5 s)",
+   "frame": 690,
+   "where": "bar 12, beat 3"
+  },
+  {
+   "t": 23.625,
+   "what": "idea 3: the RETURN shutter comes down to check",
+   "frame": 708.75,
+   "where": "bar 12, beat 4.25"
+  },
+  {
+   "t": 24,
+   "what": "idea 3: RETURN shutter touches the floor (the check, soft)",
+   "frame": 720,
+   "where": "bar 13, beat 1"
+  },
+  {
+   "t": 24.5,
+   "sync": "SOFT",
+   "what": "idea 3: RETURN shutter LIFTS: PASS (one of the four rising PASSes)",
+   "frame": 735,
+   "where": "bar 13, beat 2"
+  },
+  {
+   "t": 25,
+   "what": "idea 3: the word PASS is on RETURN; the idea moves on to the next bay (arrives 25.5 s)",
+   "frame": 750,
+   "where": "bar 13, beat 3"
+  },
+  {
+   "t": 25.625,
+   "what": "idea 3: the EFFORT shutter comes down to check",
+   "frame": 768.75,
+   "where": "bar 13, beat 4.25"
+  },
+  {
+   "t": 26,
+   "what": "idea 3: EFFORT shutter touches the floor (the check, soft)",
+   "frame": 780,
+   "where": "bar 14, beat 1"
+  },
+  {
+   "t": 26.5,
+   "sync": "SOFT",
+   "what": "idea 3: EFFORT shutter LIFTS: PASS (one of the four rising PASSes)",
+   "frame": 795,
+   "where": "bar 14, beat 2"
+  },
+  {
+   "t": 27,
+   "what": "idea 3: the word PASS is on EFFORT; the idea moves on to the next bay (arrives 27.5 s)",
+   "frame": 810,
+   "where": "bar 14, beat 3"
+  },
+  {
+   "t": 27.625,
+   "what": "idea 3: the POTENTIAL shutter comes down to check",
+   "frame": 828.75,
+   "where": "bar 14, beat 4.25"
+  },
+  {
+   "t": 28,
+   "what": "idea 3: POTENTIAL shutter touches the floor (the check, soft)",
+   "frame": 840,
+   "where": "bar 15, beat 1"
+  },
+  {
+   "t": 28.5,
+   "sync": "SOFT",
+   "what": "idea 3: POTENTIAL shutter LIFTS: PASS (one of the four rising PASSes)",
+   "frame": 855,
+   "where": "bar 15, beat 2"
+  },
+  {
+   "t": 29,
+   "what": "idea 3: the word PASS is on POTENTIAL; the idea moves on to the next bay (arrives 29.5 s)",
+   "frame": 870,
+   "where": "bar 15, beat 3"
+  },
+  {
+   "t": 29,
+   "what": "idea 3 leaves through the last bay to the far side (until 29.5 s)",
+   "frame": 870,
+   "where": "bar 15, beat 3"
+  },
+  {
+   "t": 30,
+   "sync": "SOFT",
+   "what": "idea 3 becomes the point: it turns Flare (the winner)",
+   "frame": 900,
+   "where": "bar 16, beat 1"
+  },
+  {
+   "t": 30.5,
+   "what": "on-screen line (no voice-over): \"The boring one you didn’t pitch is probably worth thousands.\"",
+   "frame": 915,
+   "where": "bar 16, beat 2"
+  },
+  {
+   "t": 32,
+   "what": "idea 3 is wiped; the stage resets",
+   "frame": 960,
+   "where": "bar 17, beat 1"
+  },
+  {
+   "t": 32,
+   "sync": "SOFT",
+   "what": "TITLE: a black sleeve covers the stage, then pulls back to the spine (32.25 s)",
+   "frame": 960,
+   "where": "bar 17, beat 1"
+  },
+  {
+   "t": 32.75,
+   "what": "title kicker: \"A 90-minute workshop\"",
+   "frame": 982.5,
+   "where": "bar 17, beat 2.5"
+  },
+  {
+   "t": 33,
+   "what": "title line 1 cuts in (\"THE MOST / VALUABLE / AI SKILL / IS SAYING\")",
+   "frame": 990,
+   "where": "bar 17, beat 3"
+  },
+  {
+   "t": 33.333,
+   "what": "title line 2 cuts in (\"THE MOST / VALUABLE / AI SKILL / IS SAYING\")",
+   "frame": 999.99,
+   "where": "bar 17, beat 3.666"
+  },
+  {
+   "t": 33.5,
+   "what": "title line 3 cuts in (\"THE MOST / VALUABLE / AI SKILL / IS SAYING\")",
+   "frame": 1005,
+   "where": "bar 17, beat 4"
+  },
+  {
+   "t": 33.833,
+   "what": "title line 4 cuts in (\"THE MOST / VALUABLE / AI SKILL / IS SAYING\")",
+   "frame": 1014.99,
+   "where": "bar 17, beat 4.666"
+  },
+  {
+   "t": 34.5,
+   "what": "subtitle: \"Screening AI use cases for real return.\"",
+   "frame": 1035,
+   "where": "bar 18, beat 2"
+  },
+  {
+   "t": 35,
+   "what": "speaker name, then role (35.167) and venue (35.333)",
+   "frame": 1050,
+   "where": "bar 18, beat 3"
+  },
+  {
+   "t": 36.625,
+   "what": "the Flare slab lets go (falls for 0.375 s)",
+   "frame": 1098.75,
+   "where": "bar 19, beat 2.25"
+  },
+  {
+   "t": 37,
+   "sync": "HARD",
+   "what": "THE SLAB LANDS: the giant \"NO\" completes the title. Two beats shown in negative",
+   "frame": 1110,
+   "where": "bar 19, beat 3"
+  },
+  {
+   "t": 38,
+   "sync": "SOFT",
+   "what": "back to positive; when / time / room cut in. The card then HOLDS still until 46.0 s (walk-in card)",
+   "frame": 1140,
+   "where": "bar 20, beat 1"
+  },
+  {
+   "t": 46,
+   "what": "end of film",
+   "frame": 1380,
+   "where": "bar 24, beat 1"
+  }
+ ]
+}

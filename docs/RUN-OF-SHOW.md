@@ -63,14 +63,14 @@ Generated from the deck by `node tools/build-run-of-show.js`. Do not edit by han
 
 | # | Clock | Slide | Time | Clicks |
 |---|---|---|---|---|
-| 25 | 3:30 | The one we built: where the parts live | 1 min | 1 |
+| 25 | 3:30 | The winner: where the parts live | 1 min | 1 |
 | 26 | 3:31 | 6,493 parts. 7,110 slots. | 1.5 min | 1 |
 | 27 | 3:32:30 | The method, live (synthetic re-creation) | 5 min | 6 |
 | 28 | 3:37:30 | The real numbers | 2.5 min | 2 |
 | 29 | 3:40 | Seven attempts | 2.5 min | 3 |
 | 30 | 3:42:30 | What we said no to | 2 min | 4 |
 | 31 | 3:44:30 | What it costs to run: nothing | 2 min | 2 |
-| 32 | 3:46:30 | My own project, through my own gates | 2.5 min | 2 |
+| 32 | 3:46:30 | My own project, through my own gates | 2.5 min | 4 |
 
 ## Act 5: Who Owns the Minutes? (11 min, starts 3:49)
 
@@ -101,10 +101,6 @@ To skip a slide on the day, type the number of the slide you want next and press
 
 ## Still to fill in (`deck/content/your-numbers.js`)
 
-- `slotting.biggerReturn (the return beyond the walking minutes)`
-- `slotting.effort.buildHours`
-- `slotting.effort.upkeepHoursPerMonth`
-- `slotting.potential.growth`
 - `story.howWeBuiltIt (optional; the slide is skipped while empty)`
 - `links.screenerUrl (optional)`
 - `links.repoUrl (optional)`

@@ -9089,8 +9089,10 @@ var YOUR = {
    * are made up. Swap in your real three if you have them.
    *
    * None of the three is the warehouse-slotting project. That one is real, so
-   * its numbers are never made up: they live in the WAREHOUSE SLOTTING section
-   * at the bottom of this file and are shown in Act 4.
+   * its results are never made up: they live in the WAREHOUSE SLOTTING section
+   * at the bottom of this file and are shown in Act 4. (Its "bigger return",
+   * effort and potential are the exception: made up on purpose to protect
+   * company data, and tagged as illustrative on screen.)
    *
    * Type the numbers plain: 240, not '$240 a month'. If a value cannot be read
    * as a number, the deck does not guess: that candidate gets a NO with a
@@ -9243,8 +9245,9 @@ var YOUR = {
    * the ONLY place these numbers are typed; every slide reads them from here.
    * Check them before the talk and correct any that have moved.
    *
-   * A value of null means "not filled in". The deck shows a visible
-   * "YOUR NUMBER" slot for it and never makes a figure up.
+   * A value of null means "not filled in". The deck shows nothing for it and
+   * never makes a figure up. (The bigger return, effort and potential further
+   * down are the one exception: they are made up on purpose, and say so.)
    * ------------------------------------------------------------------------ */
   slotting: {
     results: {
@@ -9322,26 +9325,69 @@ var YOUR = {
       run: { starts: 10, stepsPerStart: 1000000, minutes: 3.5, cores: 10 }
     },
 
-    // "The bigger return": the value beyond the walking minutes. YOURS TO FILL
-    // IN. Each line is { label, value, note }. `value` is what is printed large
-    // (for example '$48,000' or '6 weeks'); `note` is one short line under it.
-    // While the list is empty the slide shows a "YOUR NUMBER" slot.
+    // =======================================================================
+    // !!  THE FIGURES BELOW ARE MADE UP.  !!
+    // biggerReturn, effort and potential are NOT Laborde numbers. They were
+    // invented to protect company data, and built only from things the real
+    // results above already show (every part was moving anyway; ladder picks
+    // went from 23% to 0.6%). The dollars, the counts, the minutes, the build
+    // hours, the upkeep and the growth are all examples.
     //
-    //   biggerReturn: [
-    //     { label: 'Planning time not spent', value: '6 weeks', note: 'placing 6,493 parts by hand' }
-    //   ],
-    biggerReturn: [],
+    // While `illustrative` is true, slide 32 shows the tag
+    // "ILLUSTRATIVE · CHANGED TO PROTECT COMPANY DATA" next to them.
+    // EITHER replace them with your real figures and set illustrative to
+    // false, OR leave them and keep illustrative true. Never set it to false
+    // while any made-up figure is left here.
+    //
+    // To empty the slide again (it then stops at the NO on minutes), set
+    // biggerReturn to []  and the effort and potential values to null.
+    // =======================================================================
+    illustrative: true,            // true while ANY figure below is made up
 
-    // What the project took to build and keep alive. YOURS TO FILL IN.
+    // "The bigger return": the value beyond the walking minutes. Each line can
+    // be written two ways.
+    //
+    //   WORKED OUT BY THE DECK (what is used now): count x minutes each, at the
+    //   loaded hourly rate in RATES above. count is a number, or the words
+    //   'every part' for the real part count in results (6,493). per is 'once'
+    //   or 'year'. Only 'year' lines count toward the yearly return the gates
+    //   test; a 'once' line is shown, but the yearly rule never counts it.
+    //
+    //   TYPED AS WORDS: { label, value, note }, for example
+    //     { label: 'Planning time not spent', value: '6 weeks', note: 'placing 6,493 parts by hand' }
+    //   A typed line is shown as it is, but the gates cannot run on it.
+    //
+    // Do not count the same minutes twice: the 15.4 pick hours above already
+    // include the ladder on a pick. The ladder line here is the climbs to put
+    // stock away, which the pick hours do not count.
+    biggerReturn: [
+      {
+        label: 'The one free re-slot',          // MADE UP (the mechanism is real)
+        count: 'every part',                    // the real 6,493: every part was moving anyway
+        minutesEach: 6,                         // MADE UP: minutes to re-slot one part later, as its own job
+        per: 'once',
+        note: 'every part was moving anyway; re-slotting later would be its own job'
+      },
+      {
+        label: 'Ladder climbs avoided',         // MADE UP (ladder picks 23% to 0.6% is real)
+        count: 2500,                            // MADE UP: ladder climbs to restock, avoided each year
+        minutesEach: 6,                         // MADE UP: minutes per climb (fetch, climb, put away)
+        per: 'year',
+        note: 'restocking climbs a year; ladder picks went from 23% to 0.6%'
+      }
+    ],
+
+    // What the project took to build and keep alive.
     effort: {
-      buildHours: null,            // total hours across everyone, start to now
-      upkeepHoursPerMonth: null    // hours a month to keep it running
+      buildHours: 40,              // MADE UP: total hours across everyone, start to now
+      upkeepHoursPerMonth: 1       // MADE UP: hours a month to keep it running
     },
 
-    // How far it grows from here. YOURS TO FILL IN.
+    // How far it grows from here.
     potential: {
-      growth: null,                // a multiple, for example 3 for "three locations"
-      note: null                   // one short line, for example 'the other two locations'
+      growth: 2,                   // MADE UP: a multiple, for example 3 for "three locations"
+      note: 'every future re-slot, every building',   // MADE UP
+      ownerNamed: true             // MADE UP: true if a named person owns the time it frees
     },
 
     // Settings of the animated re-creation (synthetic data). Leave empty to use
@@ -20169,20 +20215,98 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
    * potential. An entry of the bigger return counts only once it has a value:
    * nothing the speaker has left empty is ever drawn for the audience.
    */
+  /** The loaded hourly rate the minutes are valued at (the same one Gates uses). */
+  function loadedRate() {
+    var G = window.Gates;
+    try { if (G) { return Number(G.defaultAssumptions().rates.loadedHourly); } } catch (e) { /* fall through */ }
+    return Number((Y.rates || {}).loadedHourly);
+  }
+
+  /**
+   * One line of the bigger return, made ready to show. A line is either typed
+   * as words ({ label, value, note }) or worked out by the deck
+   * ({ label, count, minutesEach, per, note }): count x minutes each, valued at
+   * the loaded hourly rate. count may be the words 'every part', which is the
+   * real part count in results. Only a worked-out line can feed the gates.
+   */
+  function biggerLine(b) {
+    if (!b || typeof b !== 'object') { return null; }
+    var minutes = Number(b.minutesEach);
+    var count = (typeof b.count === 'string' && /^\s*every part\s*$/i.test(b.count)) ? Number(R.parts) : Number(b.count);
+    var hasCalc = b.minutesEach != null && b.count != null && b.count !== '';
+    if (hasCalc) {
+      var rate = loadedRate();
+      if (!(minutes > 0) || !(count > 0) || !(rate > 0)) {
+        if (window.console && console.error) {
+          console.error('[slotting-scorecard] A "bigger return" line cannot be worked out (count ' + JSON.stringify(b.count) +
+            ', minutesEach ' + JSON.stringify(b.minutesEach) + '). Fix it in deck/content/your-numbers.js.');
+        }
+        return null;
+      }
+      var hours = tidy(count * minutes / 60);
+      var dollars = tidy(hours * rate);
+      var yearly = String(b.per || '').toLowerCase() === 'year';
+      return {
+        label: b.label, note: b.note, computed: true, yearly: yearly,
+        count: count, minutesEach: minutes, rate: rate, hours: hours, dollars: dollars,
+        value: money(dollars), per: yearly ? 'a year' : 'once'
+      };
+    }
+    if (!isFilled(b.value)) { return null; }
+    return { label: b.label, value: b.value, note: b.note, computed: false };
+  }
+
   function supplied() {
-    var list = (Array.isArray(SL.biggerReturn) ? SL.biggerReturn : []).filter(function (b) {
-      return b && isFilled(b.value);
-    });
+    var list = (Array.isArray(SL.biggerReturn) ? SL.biggerReturn : []).map(biggerLine).filter(Boolean);
     var effort = SL.effort || {};
     var potential = SL.potential || {};
     return {
       bigger: list,
       filled: list.length > 0,
+      illustrative: SL.illustrative === true,
       buildHours: isFilled(effort.buildHours) ? effort.buildHours : null,
       upkeepHoursPerMonth: isFilled(effort.upkeepHoursPerMonth) ? effort.upkeepHoursPerMonth : null,
       growth: isFilled(potential.growth) ? potential.growth : null,
-      potentialNote: isFilled(potential.note) ? potential.note : null
+      potentialNote: isFilled(potential.note) ? potential.note : null,
+      ownerNamed: potential.ownerNamed === true
     };
+  }
+
+  /**
+   * The second run: the same four gates (Gates.evaluate, live rate, live house
+   * rules), now with every YEARLY dollar of the bigger return added to the
+   * minutes, and the speaker's build hours, upkeep and growth. A 'once' line is
+   * never counted: the RETURN rule is a yearly rule. The run only happens when
+   * every number it needs is a worked-out number; otherwise it returns null and
+   * the slide raises no verdict beyond the NO on minutes.
+   */
+  function secondRun() {
+    var sup = supplied();
+    var G = window.Gates;
+    var yearly = sup.bigger.filter(function (b) { return b.computed && b.yearly; });
+    var onceLines = sup.bigger.filter(function (b) { return b.computed && !b.yearly; });
+    var allComputed = sup.bigger.every(function (b) { return b.computed; });
+    var ma = minutesAlone();
+    if (!G || !ma.ok || !yearly.length || !allComputed ||
+        typeof sup.buildHours !== 'number' || typeof sup.upkeepHoursPerMonth !== 'number' || typeof sup.growth !== 'number') { return null; }
+    try {
+      var A = G.defaultAssumptions();
+      var weeks = Number(A.rates.workWeeks) || 50;
+      var hours = yearly.reduce(function (sum, b) { return tidy(sum + b.hours); }, ma.hours);
+      var ev = G.evaluate({
+        id: 'slotting-whole', name: 'Warehouse slotting, with the whole yearly return', lens: 'product',
+        minutesPerRun: tidy(hours * 60 / weeks), runsPerWeek: 1,
+        tier: 'code', toolsPerMonth: 0,
+        buildHours: sup.buildHours, rolloutHours: 0, upkeepHoursPerMonth: sup.upkeepHoursPerMonth,
+        growth: sup.growth, touchesCashPath: true, daysOffCashCycle: DAYS_OFF_CASH_CYCLE, ownerNamed: sup.ownerNamed
+      }, A);
+      return {
+        ev: ev, hours: hours, value: ev.returnPerYear, yearly: yearly, once: onceLines,
+        onceDollars: onceLines.reduce(function (sum, b) { return tidy(sum + b.dollars); }, 0),
+        pass: { cost: !!ev.gates.cost.pass, 'return': !!ev.gates['return'].pass, effort: !!ev.gates.effort.pass, potential: !!ev.gates.potential.pass },
+        firstNo: ev.firstNo, verdict: ev.verdict
+      };
+    } catch (e) { return null; }
   }
 
   /**
@@ -20228,6 +20352,8 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
     tidy: tidy,
     minutesAlone: minutesAlone,
     supplied: supplied,
+    secondRun: secondRun,
+    loadedRate: loadedRate,
     modelCalls: modelCalls,
     driver: function (kind, extra) {
       var opts = { kind: kind };
@@ -20446,6 +20572,8 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
     '.px-br-item + .px-br-item { padding-top: 16px; border-top: var(--w-rule) solid var(--c-accent-ink); }',
     '.px-br-item.is-cut { display: none; }',
     '.px-br-v { max-width: 100%; font-size: var(--brv, 96px); line-height: 0.84; overflow-wrap: anywhere; }',
+    '.px-br-vrow { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 12px; row-gap: 2px; max-width: 100%; }',
+    '.px-br-per { font-size: 36px; font-weight: 800; line-height: 1; white-space: nowrap; }',
     '.px-br-l { font-size: 36px; font-weight: 700; line-height: 1.08; text-wrap: balance; }',
     '.px-br-n { font-size: 36px; font-weight: var(--wght-text); line-height: 1.1; text-wrap: balance; }',
     '.px-br.is-tight .px-br-n { display: none; }',
@@ -20461,6 +20589,19 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
     '.px-br.is-three .px-br-item + .px-br-item { padding-top: 10px; }',
     '.px-br.is-three .px-br-l { line-height: 1.04; font-stretch: var(--wdth-tight); }',
     '.px-brx:has(> .px-br.is-three) { padding-top: 12px; padding-bottom: 10px; }',
+    /* the second run: its RETURN figure is printed directly under the first
+       run's, a ledger of two runs of one rule (NO on minutes, then the run
+       with every yearly dollar in) */
+    '.px-sc-dock .px-find.px-run2 { top: calc(var(--gh) + var(--gcap)); height: 64px; left: calc(var(--gl) * 2); right: auto; flex-direction: row; align-items: center; }',
+    /* the honesty tag for made-up figures: bottom left, clear of the closing line */
+    '.px-sc-tag { position: absolute; left: var(--m-x); top: 1004px; margin: 0; line-height: 1; }',
+    /* static copies at the second run: RETURN shows the PASS the scene raises */
+    '.slide.is-static .px-sc-dock .px-g-return.has-run2:has(> .px-run2.is-pass.is-visible) > .gate-shutter { height: var(--graised) !important; background: var(--c-pass); color: var(--c-pass-ink); }',
+    '.slide.is-static .px-sc-dock .px-g-return.has-run2:has(> .px-run2.is-pass.is-visible) > .gate-shutter::after { content: "Pass"; left: var(--gpad); bottom: auto; top: calc((var(--graised) - var(--gw) * 0.254 * var(--cap)) / 2); font-size: calc(var(--gw) * 0.254); letter-spacing: 0.01em; }',
+    /* a gate the second run reaches gives up its NOT YET once its finding is printed */
+    '.slide.is-static .px-sc-dock .gate.px-r2:has(> .px-find.is-visible) > .px-notyet { visibility: hidden; }',
+    /* a NO on the second run holds its bay vacant, like any NO: the finding goes */
+    '.px-sc-dock .gate.px-r2.is-no > .px-find { visibility: hidden; }',
     '.px-kv { align-self: stretch; display: flex; flex-direction: column; align-items: flex-start; }',
     '.px-kv + .px-kv { margin-top: 26px; padding-top: 22px; border-top: var(--w-hair) solid var(--c-line); }',
     /* a long figure pushes its unit onto the next line instead of through the gate wall */
@@ -20468,6 +20609,7 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
     '.px-kv-v > .num { font-size: 96px; }',
     '.px-kv-v > span { font-size: var(--t-body); font-weight: 700; line-height: 1; }',
     '.px-kv-note { margin-top: 14px; font-size: 36px; font-weight: 600; line-height: 1.14; }',
+    '.px-kv-note.is-lines { font-stretch: var(--wdth-tight); white-space: nowrap; }',
 
     /* ---- how-we-built-it ---- */
     '.px-how.is-many > li { min-height: 104px; font-size: var(--t-body); }'
@@ -21008,21 +21150,79 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
     }
     seq.cut(t, qa('.px-find-rec2 [data-px="rec"]'));
     var brx = q('.px-brx');
+    var brxAt = t + BEAT * 3;
     if (brx) {
       // it comes up from the floor, where the NO went down
-      seq.lift(t + BEAT * 3, brx, D_LIFT);
+      seq.lift(brxAt, brx, D_LIFT);
       var fitState = { warned: false };
       c.fit.push(function () { fitBigger(brx, fitState); });
     }
-    seq.cut(t + BEAT * 5 + SWING, qa('.px-g-effort .px-find [data-px]'));
-    seq.cut(t + BEAT * 7, qa('.px-g-potential .px-find [data-px]'));
+    // made-up figures never reach the screen without their tag: it cuts in
+    // the moment the block starts to rise
+    seq.cut(brxAt, q('.px-sc-tag'));
     var close = q('.px-sc-close:not(.px-sc-reslot)');
-    if (close) {
-      // the closing line takes the re-slot line's place
-      if (reslot) { seq.hide(t + BEAT * 10, reslot); }
-      seq.wipe(t + BEAT * 10, close, BEAT);
+
+    if (!c.opts.run2) {
+      // no second run (the speaker typed his figures as words): his values
+      // appear, no verdict is raised on them
+      seq.cut(t + BEAT * 5 + SWING, qa('.px-g-effort .px-find [data-px]'));
+      seq.cut(t + BEAT * 7, qa('.px-g-potential .px-find [data-px]'));
+      if (close) {
+        // the closing line takes the re-slot line's place
+        if (reslot) { seq.hide(t + BEAT * 10, reslot); }
+        seq.wipe(t + BEAT * 10, close, BEAT);
+      }
+      seq.end(t + BEAT * (close ? 11 : 7) + EPS);
+      return;
     }
-    seq.end(t + BEAT * (close ? 11 : 7) + EPS);
+    seq.end(brxAt + D_LIFT + EPS);
+
+    // step 4: the second run. The same rule, asked again with every yearly
+    // dollar in. Each gate is run in order and stops at the first NO, like any
+    // candidate: RETURN, then EFFORT, then POTENTIAL. Nothing is Flare here:
+    // the bigger return is the point, and it is already on screen.
+    b = seq.base() + SIXTEENTH;
+    t = b;
+    var o = c.opts;
+    function run(gate, pass, at) {
+      seq.at(at, function () {
+        setGate(gate, pass ? ['is-pass'].concat(gate === gRet ? ['has-tell'] : []) : ['is-no'], seq.animated);
+      }, function () {
+        if (gate === gRet) { setGate(gRet, ['has-tell'], false); } else { setGate(gate, [], false); }
+      });
+      return at + (pass ? D_LIFT : HOLD_BEFORE + D_DROP + HOLD_AFTER);
+    }
+    // RETURN answers first; its second-run figure is printed under the first
+    // run's the moment the shutter has settled (the verdict is in that line).
+    // A second NO at RETURN is only printed in that line: the bay already
+    // carries the first NO's tell-tale, and a shutter would bury both records.
+    if (o.r2Return) {
+      t = run(gRet, true, t + BEAT);
+      seq.cut(t, qa('.px-run2 [data-px]'));
+    } else {
+      seq.cut(t + HOLD_BEFORE, qa('.px-run2 [data-px]'));
+      t += HOLD_BEFORE + HOLD_AFTER;
+    }
+    if (o.r2Effort) {
+      t += BEAT;
+      seq.cut(t, qa('.px-g-effort .px-find [data-px]'));
+      seq.hide(t + BEAT * 2, qa('.px-g-effort .px-notyet'));
+      t = run(gEff, o.r2EffortPass, t + BEAT * 2);
+    }
+    if (o.r2Potential) {
+      t += BEAT;
+      seq.cut(t, qa('.px-g-potential .px-find [data-px]'));
+      seq.hide(t + BEAT * 2, qa('.px-g-potential .px-notyet'));
+      t = run(gPot, o.r2PotentialPass, t + BEAT * 2);
+    }
+    if (close) {
+      // one full beat of nothing, then the closing line takes the re-slot line's place
+      t += BEAT * 2;
+      if (reslot) { seq.hide(t, reslot); }
+      seq.wipe(t, close, BEAT);
+      t += BEAT;
+    }
+    seq.end(t + EPS);
   };
 
   /* ======================================================================
@@ -21484,7 +21684,7 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
       'Today is about telling which is which.'
     ],
       'One click for the second line. Do not rush the first.',
-      '(click to the title) "So, who is asking."'
+      '(click to the title) "So who’s asking?"'
     ),
     enter: function (ctx) {
       if (!FX || !FX.shouldPlay(ctx)) { return; }
@@ -21524,10 +21724,10 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
     notes: notes([
       'I’m ' + spokenName + '. ' + (sp.role || 'VP of Technology') + ' at ' + company + '.',
       'This is a workshop, not a demo. You do the work, on paper.',
-      'You will run three of your own ideas through four gates, and say no to at least two of them.'
+      'Three of your own ideas go through four gates. At least two of them get a no.'
     ],
       'The card builds itself in about eight seconds. Talk over it. Nothing to click.',
-      '"First, some homework. I did not pick it."'
+      '"First, some homework. I didn’t pick it."'
     )
   });
 
@@ -21569,9 +21769,9 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
       '<p class="attribution">' + esc(SHANNON) + '</p>',
     notes: notes([
       'The organizers assigned one page of reading: Claude Shannon, 1956, "The Bandwagon."',
-      'Shannon founded information theory. He still wrote this, to say his own field was being oversold.',
+      'Shannon founded information theory. And he still wrote this, to say his own field was being oversold.',
       '(click) The assignment: swap two words. Read it again.',
-      '(click) And this is the line today is built around. A few secrets give way at a time. The skill is picking which few.'
+      '(click) This is the line today is built around. A few secrets give way at a time. The skill is picking which few.'
     ],
       'Click one makes the edit. It is flagged "our edit" so nobody thinks Shannon wrote "AI". Click two brings his second sentence and the year.',
       '"So who am I to tell you which few?"'
@@ -21642,14 +21842,14 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
         '<p class="sub wt-line" data-step="3" data-anim="wipe">A win only counts with all four.</p>' +
       '</div>',
     notes: notes([
-      'I say no for a living. That is the job: deciding what we do not build.',
-      '(click) ' + company + ' is a marine diesel distributor. ' + BIO.people + ' people, ' + BIO.locations + ' locations, a small technology team. Parts on one side, service techs on the other: a product business and a service business under one roof.',
+      'I say no for a living. My job is deciding what we don’t build.',
+      '(click) ' + company + ' is a marine diesel distributor. ' + BIO.people + ' people, ' + BIO.locations + ' locations, a small technology team. Parts on one side, service techs on the other. A product business and a service business under one roof.',
       BIO.yearsBuilding + ' years building software. Working with AI since ' + BIO.aiSince + '.',
-      '(click) I lead Waypoint, our company-wide AI program. It has one rule. A win only counts with the task, the prompt, the output and the time saved.',
-      '(click) All four, or it does not count.'
+      '(click) I lead Waypoint, our company-wide AI program. One rule: a win only counts with the task, the prompt, the output and the time saved.',
+      '(click) All four, or it doesn’t count.'
     ],
       'Three clicks: the facts, the four boxes, the line. The facts arrive whole; nothing counts.',
-      '"Here is why I am that strict."',
+      '"Here’s why I’m that strict."',
       'one Waypoint win with all four boxes filled, and one thing you turned down.'
     )
   });
@@ -21898,11 +22098,11 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
       'This is a drawing, not data. I made the dots up to show a pattern.',
       'Across: how exciting an idea sounds in the meeting. Up: what it returns.',
       'What gets pitched lives down here. Exciting, low return.',
-      '(click) And up here is the one nobody brought to the meeting, because it is dull.',
-      'Sounding good and paying back are two different axes. A pitch only tests the first one.'
+      '(click) Up here is the one nobody brought to the meeting, because it’s dull.',
+      'Sounding good and paying back are two different things. A pitch only tests the first one.'
     ],
       'One click singles out the dull dot.',
-      '"So today we only test the second one. Here is how."'
+      '"Today we only test the second one. Here’s how."'
     )
   });
 
@@ -21939,13 +22139,14 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
       '</ol>' +
       '<p class="sub pr-foot" data-step="1" data-anim="wipe">You leave with one use case worth doing,<br>and two you can stop thinking about.</p>',
     notes: notes([
+      'Most sessions promise what AI can do. This one shows you what yours should.',
       'The next ' + minutes + ' minutes, in five steps.',
-      'You inventory two weeks of real work. Not ideas. Work. You pick three. Each one goes through four gates, and the math picks, not the loudest voice in the room.',
+      'You inventory two weeks of real work. Not ideas. Work. You pick three. Each one goes through four gates, and the math picks. Not the loudest voice in the room.',
       'Then I show you one from my own shop being built: the real numbers, and the method running on made-up data, because I can’t show you our building.',
       '(click) You leave with one use case worth doing, and two you can stop thinking about. The two you drop are worth as much as the one you keep.'
     ],
       'Hold up the worksheet. Check everyone has one and a pen. One click for the last line.',
-      '"Before you write anything, here is the screen."'
+      '"Before you write anything, here’s the screen."'
     ),
     enter: function (ctx) {
       if (!FX || !FX.shouldPlay(ctx)) { return; }
@@ -22146,7 +22347,7 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
       'DO: One click per gate, and read the question off the gate. The fifth click runs an example: Cost passes, Return says no. Let the NO land. Do not talk over it.',
       '',
       'SAY: Any no ends it. Effort and Potential never get asked.',
-      'That is not the screen failing. That is the screen working. Saying no early is the skill.',
+      'That’s not the screen failing. That’s the screen working. Saying no early is the skill.',
       '',
       'NEXT: Before the first gate, one thing about minutes.'
     ].join('\n')
@@ -22181,13 +22382,13 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
     enter: S.arrive,
     step: S.moved,
     notes: [
-      'SAY: At work we count wins in minutes. Waypoint, our AI program, does not count a win without the time saved.',
+      'SAY: At work we count wins in minutes. Waypoint doesn’t count a win without the time saved.',
       'But you count cash.',
       '',
       'DO: Click. The minutes run into two channels.',
       '',
-      'SAY: Either way, an hour saved is worth what an hour costs you. That is plain ROI.',
-      'Then it depends on the business. Product side: cash in sooner. Service side: the same crew does more paid work. We have both.',
+      'SAY: Either way, an hour saved is worth what an hour costs you. That’s plain ROI.',
+      'Then it depends on the business. Product side: cash comes in sooner. Service side: the same crew does more paid work. We have both.',
       '',
       'NEXT: Four gates turn those minutes into a yes or a no. First, the one everybody asks about.'
     ].join('\n')
@@ -22315,12 +22516,11 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
       '<div class="plot is-full scene cg-host cg-ladder" data-scene="cost-ladder">' + poster('ladder') + '</div>' +
       '<p class="source-line">' + esc(copy.ladderSource) + '</p>',
     notes: [
-      'SAY: Every dot is a model, one AI engine you pay by the use: ' + n.priced + ' of the ' + n.rows + ' in the BenchLM leaderboard file.',
+      'SAY: I build a cost and return analysis before I even start a project. You look this up before you start. Not after.',
+      'Every dot is a model, one AI engine you pay by the use: ' + n.priced + ' of the ' + n.rows + ' in the BenchLM leaderboard file.',
       'Same task for every one: ' + n.task + '. The file counts that in tokens, pieces of words: ' + n.tokens + '.',
-      'The price is per run. One go at that task.',
-      'The cheapest does it for ' + n.cheapest + '. The dearest for ' + n.dearest + '.',
-      'It is a log scale: each step along is ten times the last.',
-      'You look this up before you start. Not after.',
+      'Price is per run, one go at that task. Cheapest: ' + n.cheapest + '. Dearest: ' + n.dearest + '.',
+      'Log scale: each step along is ten times the last.',
       '',
       'DO: Click once for the spread: ' + n.spread + ' between the cheapest and the dearest.' +
         (n.tiesBoth ? ' Two models share the top price and two share the bottom one; the source line names them.' : '') +
@@ -22350,11 +22550,11 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
     notes: [
       'SAY: Take ' + n.dearestPhrase + '. ' + n.dearest + ' a run.',
       'At ' + n.rate + ' an hour it pays for itself if it saves ' + n.secDear + '. Once.',
-      'LESSON ONE: at people scale, cost rarely says no. Effort and return decide. Those gates are coming.',
+      'LESSON ONE: at people scale, cost rarely says no. Effort and return decide.',
       '',
       'DO: The ' + n.rate + ' is an example rate. If the room pays more, drag the slider and the number follows. Click once for the other two tiers: the frontier model needs ' + n.secFrontier + ', the small one ' + n.secSmall + '. If asked: frontier is the top-scoring tier; premium is the "pro" tier, priced highest.',
       '',
-      'NEXT: That is one person, once. Now hand the same job to a machine, over and over.'
+      'NEXT: That’s one person, once. Now hand the same job to a machine, over and over.'
     ].join('\n')
   });
 
@@ -22382,6 +22582,7 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
       'SAY: ' + n.volume + ' records. Each record is one run of that same task.',
       'Small model: ' + n.small100k + '. Premium: ' + n.premium100k + '. Drawn to scale.',
       'LESSON TWO: at record scale, the tool you pick is the whole game. And plain code wins.',
+      'Just using a model alone may not be the most cost-effective answer.',
       '',
       'DO: Volume buttons if there is time.',
       'Click 1: plain code. About zero. No bar to draw.',
@@ -22688,15 +22889,15 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
     step: moved,
     notes: [
       'SAY: Climb only as far as the task makes you.',
-      'Bottom rung: do not automate it. Then a spreadsheet formula, then plain code. A model only when the task needs judgment. An agent last.',
+      'Bottom rung: don’t automate it. Then a spreadsheet formula, then plain code. A model only when the task needs judgment. An agent last.',
       'Every rung up costs more to run and more to keep alive.',
       '',
       'DO: Click. Frontier model and plain code light up.',
       '',
       'SAY: Use the expensive model once, to write the tool. Then the tool runs for free.',
-      'You will see it in my own project.',
+      'You’ll see it in my own project.',
       '',
-      'NEXT: Cost is one side. Gate two asks what comes back, starting with a business that sells parts.'
+      'NEXT: Cost is one side. Gate two asks what comes back. Start with a business that sells parts.'
     ].join('\n')
   });
 
@@ -22791,7 +22992,7 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
       'SAY: For this example company, about ' + perDayText + '. One day of sales, freed once, not every year. Cash, not profit.',
       'Where to look: inventory, invoicing, collections.',
       '',
-      'NEXT: That is a business that sells parts. A business that sells hours gets paid differently.'
+      'NEXT: That’s a business that sells parts. A business that sells hours gets paid differently.'
     ].join('\n')
   });
 
@@ -22831,14 +23032,15 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
       '',
       'DO: Click. The slider runs up to 100 percent. (You can also drag it with the mouse.)',
       '',
-      'SAY: Bill every freed hour and it is ' + (capFull.ok ? capFull.valueText : 'real money') + ' a year in this example. More time, more work done, more money.',
+      'SAY: Bill every freed hour and it’s ' + (capFull.ok ? capFull.valueText : 'real money') + ' a year in this example.',
+      'In a service business, time is truly money. More time, more work done, more money.',
       '',
       'DO: Click. The slider runs back to zero.',
       '',
-      'SAY: At zero percent it is zero dollars. The tool worked, the hours came back, and nothing happened with them.',
+      'SAY: At zero percent it’s zero dollars. The tool worked, the hours came back, and nothing happened with them.',
       'Zero is also a decision. Hold on to that. It comes back at the end.',
       '',
-      'NEXT: So which ideas count for more? There is a first question to ask, and a real test behind it.'
+      'NEXT: So which minutes count for more? Start with one question.'
     ].join('\n')
   });
 
@@ -22907,7 +23109,7 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
       '',
       'DO: If asked: the house rule waves a small return through only when it takes days off the cash cycle. On the path with zero days, it counts once, like the memo.',
       '',
-      'NEXT: That is what comes back. Now what it costs you to keep it coming.'
+      'NEXT: That’s what comes back. Now what it costs you to keep it coming.'
     ].join('\n')
   });
 
@@ -22945,7 +23147,7 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
     enter: arrive,
     step: moved,
     notes: [
-      'SAY: The demo is the cheap part. It is that sliver on the left.',
+      'SAY: The demo is the cheap part. It’s that sliver on the left.',
       '',
       'DO: Click. Build and roll out.',
       '',
@@ -23015,13 +23217,13 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
       '',
       'DO: Click. Every team.',
       '',
-      'SAY: Every team. Growth multiplies the return, not the build. It is a projection, so write down a number you would defend.',
+      'SAY: Every team. Growth multiplies the return, not the build. It’s a projection. Write down a number you’d defend.',
       '',
       'DO: Click. The question.',
       '',
       'SAY: One check before this gate opens: who owns the freed time? I want a name. No owner, no growth.',
       '',
-      'NEXT: That is all four gates. Here is how they add up.'
+      'NEXT: That’s all four gates. Here’s how they add up.'
     ].join('\n')
   });
 
@@ -23090,9 +23292,9 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
       '',
       'DO: Click. The house rules. (The worksheet does this arithmetic for them.)',
       '',
-      'SAY: This is where each gate says no. My defaults. Change them, but before you score your favorite, not after.',
+      'SAY: This is where each gate says no. My defaults. Change them if you want. Before you score your favorite, not after.',
       '',
-      'NEXT: That is the whole method. Now your own work goes on the table.'
+      'NEXT: That’s the whole method. Now your own work goes on the table.'
     ].join('\n')
   });
 }());
@@ -23213,7 +23415,7 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
   var exampleOutcome = '';
   var survivorLine = '';
   var riggedLine = '';
-  var shareFallback = 'If no hand goes up, ask: who kept all three? Then: which gate would you check first?';
+  var shareFallback = 'Ask: who kept all three? Then: which gate would you check first?';
   if (G && S) {
     try {
       var names = [];      // "the exciting one", or "A" when a candidate has no pitch
@@ -23250,15 +23452,15 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
         var tierInfo = usesModel ? CM.tier(tierId) : null;
         var what = tierInfo ? String(tierInfo.label).replace(/\s*"pro"/i, '').toLowerCase() : '';
         survivorLine = usesModel
-          ? 'Yes, the winner uses a model, right after the tool ladder: ' +
+          ? 'Yes, the winner uses a model, after all that about the ladder: ' +
             (survivor.candidate.id === 'reminders' ? 'a ' + what + ' drafts each reminder' : 'it runs on a ' + what) +
             ', and it costs ' + CM.money(survivor.costPerYear) + ' a year.'
           : '';
         riggedLine = killed.length
-          ? 'And yes, I chose these three so you would see ' + say(killed) + (killed.length > 1 ? ' each' : '') + ' say no.'
+          ? 'And yes, I chose these three so you’d see ' + say(killed) + (killed.length > 1 ? ' each' : '') + ' say no.'
           : 'And yes, I chose these three.';
       }
-      if (firstOut) { shareFallback = 'If no hand goes up, use the worked example: ' + firstOut.name + ' died at ' + firstOut.gate + '. Ask: whose died at the same gate?'; }
+      if (firstOut) { shareFallback = 'Use the worked example: ' + firstOut.name + ' died at ' + firstOut.gate + '. Ask: whose died at the same gate?'; }
       exampleOutcome = !left.length ? 'All three are out.'
         : !out.length ? 'All three pass. Then the math picks the one worth most over two years.'
         : say(out) + (out.length === 1 ? ' is' : ' are') + ' out. ' + say(left) + (left.length === 1 ? ' is' : ' are') + ' what is left.';
@@ -23296,14 +23498,14 @@ if (typeof module === 'object' && module && module.exports) module.exports = YOU
       '</div>',
     notes: `
 SAY: Exercise one. Worksheet and pen.
-Write down what you actually did in the last two weeks. Not your job description. What you did.
-Four questions to jog it. They stay up the whole time. Boring is good.
+Write down what you actually did the last two weeks. Not your job description. What you did.
+The four questions stay up the whole time. Boring is good.
 
-DO: Press T to start the ten minutes. Leave the laptop and walk the room. Read over shoulders.
-AT 5:00 LEFT, say: "Five minutes. If you have fewer than six things, look at question two: what did you copy from one place to another?"
-AT 1:00 LEFT (the clock turns orange), say: "One minute. Finish the line you're on."
-STUCK: a list that is all strategy and no chores. Point at question two.
-EARLY: if most pens are down before the orange, say "Thirty seconds" and move on.
+DO: START: press T (ten minutes). Leave the laptop. Walk the room, read over shoulders.
+5:00 LEFT: "Five minutes. Fewer than six things? Look at question two: what did you copy from one place to another?"
+1:00 LEFT (clock turns orange): "One minute. Finish the line you're on."
+STUCK (all strategy, no chores): point at question two.
+EARLY (most pens down before orange): "Thirty seconds." Then move on.
 
 NEXT: Pens down. However long your list is, it's about to get short.
 `
@@ -23335,11 +23537,11 @@ SAY: Exercise two. From your list, pick three.
 One you'd love to pitch. One that's boring. One you'd be embarrassed to bring up.
 The embarrassing one is often the winner.
 
-DO: Press T for the five minutes. Keep walking.
-AT 2:30 LEFT, say: "Halfway. If all three of yours are exciting, swap one for a boring one."
-AT 1:00 LEFT (orange), say: "One minute. Circle your three."
-STUCK on the third: ask what they do every week that they would never put in a status report.
-EARLY: when most people have circled three, move on. Don't wait for the clock.
+DO: START: press T (five minutes). Keep walking.
+2:30 LEFT: "Halfway. All three exciting? Swap one for a boring one."
+1:00 LEFT (orange): "One minute. Circle your three."
+STUCK ON THE THIRD: "What do you do every week that you'd never put in a status report?"
+EARLY (most have circled three): move on. Don't wait for the clock.
 
 NEXT: Hold on to your three. First, watch the gates work on someone else's.
 `
@@ -23360,15 +23562,15 @@ NEXT: Hold on to your three. First, watch the gates work on someone else's.
       '<span class="tag is-example yt-tag">' + exampleTag + '</span>' +
       '<div class="yt-stage scene" data-scene="screener" data-opts=\'{"mode": "walkthrough"}\'></div>',
     notes: `
-SAY: Three candidates. They are made up. None of them is a Laborde project.
+SAY: Three candidates, all made up. None of them is a Laborde project.
 Each one goes through the gates in order and stops at its first no.
 ${exampleLines}
 ${exampleOutcome}
 ${survivorLine} ${riggedLine}
 
-DO: ${walkSteps} clicks. The first click on each candidate puts its numbers in the gates. Each click after that is one gate.
-Read the sentence under the gates out loud: that is the gate's reason.
-When a NO lands the screen goes black for a second. Let it. Do not talk over it.
+DO: ${walkSteps} clicks. The first click on a candidate puts its numbers in the gates. Each click after that is one gate.
+Read the sentence under the gates out loud: that's the gate's reason.
+When a NO lands the screen goes black for a second. Let it. Don't talk over it.
 The last click shows what the survivor is worth.
 
 YOUR STORY: swap in your real three if you have them. Change the three candidates in content/your-numbers.js and this slide follows. It will still say "Example candidates", so say out loud that yours are real.
@@ -23424,17 +23626,17 @@ NEXT: Those numbers were mine to pick. Now use yours.
     },
     notes: `
 SAY: Exercise three. Run your three through the gates, in order. Stop at the first no.
-The four questions are on the screen. On your worksheet: a minute a week is ${minuteRule} a year, at ${hourly} an hour.
-Most of you will kill two of your three. That is the exercise working.
+On your worksheet: a minute a week is ${minuteRule} a year, at ${hourly} an hour.
+Most of you will kill two of your three. That's the exercise working.
 
-DO: Press T for the ten minutes. Leave the four questions up and walk the room.${screenerUrl ? ' The QR code opens the same screener on a phone.' : ''}
-AT 5:00 LEFT, say: "Halfway. Still on your first one? Skip to Return: what comes back?"
-Then ask: "Who has a favorite they suspect is going to die?" Take the first hand near an aisle. One candidate, their favorite. Not all three.
-Press the right arrow: the screener comes up, the clock keeps running at the top. Click A, then A's name box. Type their candidate, press Enter.
-Ask for each number out loud and set it in column A (minus and plus, or click and type, Enter to leave the box): minutes saved, times a week, what runs it, tools a month (0 if nothing to pay), build and rollout hours, upkeep hours a month, growth, owner yes or no, cash path yes or no. Leave the rest.
-Read A down from Cost and stop at its first NO. RULES opens the thresholds if the room argues with one.
-IF NOBODY VOLUNTEERS: screen the example yourself. Press the right arrow, click C and ask: "How many minutes would one reminder really save?" Type what the room calls out and read where it stops. Then try 1.
-AT 1:00 LEFT, press the left arrow to bring the four questions back, and say: "One minute. Circle the one still standing."
+DO: START: press T (ten minutes). Leave the four questions up. Walk the room.${screenerUrl ? ' The QR code opens the same screener on a phone.' : ''}
+5:00 LEFT: "Halfway. Still on your first one? Skip to Return: what comes back?"
+VOLUNTEER: "Who has a favorite they suspect is going to die?" First hand near an aisle. Their favorite only, not all three.
+ON SCREEN: right arrow brings up the screener; the clock keeps running at the top. Click A, then A's name box. Type their candidate, Enter.
+Ask each number out loud, set it in column A (minus and plus, or click and type, Enter to leave the box): minutes saved, times a week, what runs it, tools a month (0 if nothing to pay), build and rollout hours, upkeep hours a month, growth, owner yes or no, cash path yes or no. Leave the rest.
+Read A down from Cost. Stop at its first NO. RULES opens the thresholds if the room argues with one.
+NOBODY VOLUNTEERS: screen the example yourself. Right arrow, click C, ask: "How many minutes would one reminder really save?" Type what the room calls out, read where it stops. Then try 1.
+1:00 LEFT: left arrow brings the four questions back. "One minute. Circle the one still standing."
 
 NEXT: Pens down. Count what's still standing on your sheet.
 `
@@ -23461,11 +23663,11 @@ SAY: Who killed their favorite? Hands up. Keep them up.
 Pick one hand. Which gate killed it? Repeat the answer into the microphone.
 Then: who's keeping the boring one? Three hands, one sentence each.
 
-DO: The right arrow brings up the second question. T starts the five minutes if you want the clock.
-${shareFallback}
-At 1:00 left, take one last answer and move on.
+DO: START: right arrow brings up the second question. T starts the five minutes if you want the clock.
+NOBODY VOLUNTEERS: ${shareFallback}
+1:00 LEFT: take one last answer and move on.
 
-NEXT: You've screened made-up ones and your own. Now one that's real.
+NEXT: You've screened made-up ones and your own. Now one of mine.
 `
   });
 }());
@@ -23504,8 +23706,9 @@ NEXT: You've screened made-up ones and your own. Now one that's real.
   var label = esc(R.label || (T && T.tags.laborde) || '');      // on the Oct 27–28 run figure (the 23%)
 
   /* On minutes alone slotting does not pass the screen (slotting-scorecard),
-     so it is only called the winner once the speaker has supplied the bigger
-     return in your-numbers.js. Until then it is the one we built. */
+     so it is only called the winner once the bigger return is filled in
+     your-numbers.js (today with made-up figures, tagged on the scorecard).
+     Until then it is the one we built. */
   var won = P.supplied ? P.supplied().filled : false;
   var winnerHead = won ? 'The winner:' : 'The one we built:';
 
@@ -23532,7 +23735,20 @@ NEXT: You've screened made-up ones and your own. Now one that's real.
       </div>
       ${P.driver('winner')}
     `,
-    notes: `
+    notes: won ? `
+      SAY: Here's the winner at my place: warehouse slotting. Nobody pitches this.
+      Slotting is deciding which shelf each part lives on.
+      On minutes alone it fails my own screen. It wins on the move. I'll show you both at the end.
+
+      YOUR STORY: how slotting came up, and who brought it up.
+
+      DO: Click once for the number.
+
+      SAY: ${parts} parts were moving to a new building. Every one needed a new address.
+      Somebody was going to decide where each one went. The only question was how.
+
+      NEXT: Here is what that decision looks like on one rack.
+    ` : `
       SAY: Here is the one we built at my place: warehouse slotting.
       Slotting is deciding which shelf each part lives on. Nobody pitches this.
       I'll run it through my own gates at the end, and it doesn't pass the way you'd expect.
@@ -23704,7 +23920,7 @@ NEXT: You've screened made-up ones and your own. Now one that's real.
     steps: captions.length - 1,
     html: html,
     notes: [
-      'SAY: This is not our building. It is a made-up warehouse running the same method, live in this browser.\n' +
+      'SAY: This is not our building. It’s a made-up warehouse running the same method, live in this browser.\n' +
       'Every dot is a part. Big dot, fast mover. Speck, slow.\n' +
       'All synthetic. Ours comes after.',
 
@@ -23739,7 +23955,7 @@ NEXT: You've screened made-up ones and your own. Now one that's real.
  *   seven-attempts       2.5 min   seven bars from a zero line, then the experiment log
  *   said-no              2 min     the four refusals: the title of the talk
  *   slotting-cost        2 min     three facts, then "if every try were a model call"
- *   slotting-scorecard   2 min     the project through its owner's own four gates
+ *   slotting-scorecard   2 min     the project through its owner's own four gates, run twice
  *   how-we-built-it      0.5 min   the speaker's own list; skipped while it is empty
  *
  * WHERE THE NUMBERS COME FROM
@@ -23749,15 +23965,21 @@ NEXT: You've screened made-up ones and your own. Now one that's real.
  *   BenchLM file, the "minutes alone" screen by Gates.evaluate with the live
  *   rate and house rules. Nothing here is typed but copy.
  *
- * WHAT THE SPEAKER HAS NOT SUPPLIED
- *   YOUR.slotting.biggerReturn, .effort and .potential start empty. Nothing
- *   empty is ever drawn for the audience: while the bigger return has no
- *   value the scorecard stops at the NO on minutes (two steps, and the notes
- *   open with a NOT FILLED IN line and give the speaker his words). Once it
- *   has one, a third step adds it, any effort and potential values he has
- *   given (each simply absent while empty), and the closing line. Nothing is
- *   ever invented in their place, and no PASS is raised that the deck cannot
- *   compute.
+ * THE BIGGER RETURN, THE EFFORT AND THE POTENTIAL
+ *   YOUR.slotting.biggerReturn, .effort and .potential are the speaker's.
+ *   They are currently MADE-UP figures (YOUR.slotting.illustrative is true),
+ *   chosen to protect company data, and the scorecard tags them on screen
+ *   whenever they show. Nothing empty is ever drawn for the audience:
+ *     - empty: the scorecard stops at the NO on minutes (two steps; the notes
+ *       open with a NOT FILLED IN line and give the speaker his words);
+ *     - typed as words: a third step shows them and the closing line, and
+ *       raises no verdict on them;
+ *     - worked out by the deck (count x minutes x rate): a third step shows
+ *       the bigger return, and a fourth runs the SAME four gates again through
+ *       Gates.evaluate with every yearly dollar added. Every PASS on that run
+ *       is Gates' own verdict; a 'once' figure is never counted, because the
+ *       RETURN rule is yearly.
+ *   No PASS is ever raised that the deck cannot compute.
  *
  * The motion lives in scenes/project.js; the html below is the finished
  * picture of each slide.
@@ -23853,7 +24075,7 @@ NEXT: You've screened made-up ones and your own. Now one that's real.
         ${P.driver('results')}
       `,
       notes: `
-        SAY: That was a re-creation on made-up data. These are the real numbers, from the runs of ${R.asOf}.
+        SAY: These are the real numbers, from the runs of ${R.asOf}.
         Left: the as-is move, every part carried across in today's order. Right: the layout the tool chose.
 
         DO: Click once. Read each result as it lands.
@@ -24155,7 +24377,16 @@ NEXT: You've screened made-up ones and your own. Now one that's real.
     var filled = sup.filled;
     var returnPass = ma.pass === true;
     var costPass = ma.costPass !== false;
-    var showClose = filled && ma.pass === false;
+    /* The second run (Gates, with every yearly dollar added): only when the
+       minutes said NO and every number it needs was worked out by the deck. */
+    var run2 = (filled && !returnPass && P.secondRun) ? P.secondRun() : null;
+    var r2 = run2 ? run2.pass : null;
+    var r2Effort = run2 && r2['return'];                     // Effort is asked only if Return passed
+    var r2Potential = r2Effort && r2.effort;                 // Potential only if Effort passed
+    var lastStep = filled ? (run2 ? 4 : 3) : 2;
+    var showClose = filled && ma.pass === false && (!run2 || run2.verdict === 'YES');
+    var showTag = filled && sup.illustrative;
+    var TAG_TEXT = 'Illustrative · changed to protect company data';
     var costText = (ma.ok && M) ? M.formatNumber(ma.costPerYear, '$,d') : money(0);
     var minutesMoney = ma.ok ? money(ma.value) : '';
     var floorMoney = ma.ok ? money(ma.limit) : '';
@@ -24187,10 +24418,12 @@ NEXT: You've screened made-up ones and your own. Now one that's real.
       var cls = n === 1 ? 'is-one' : (n === 2 ? 'is-many' : 'is-many is-three');
       return '<div class="px-br ' + cls + '">' + bigger.map(function (b, i) {
         var text = typeof b.value === 'number' ? num(b.value) : String(b.value);
-        var cap = n === 1 ? 104 : (i === 0 && n === 2 ? 72 : 56);
+        var cap = n === 1 ? 104 : (i === 0 && n === 2 ? 88 : 56);
         var size = Math.max(48, Math.min(cap, Math.floor(362 / (0.46 * Math.max(1, text.length)))));
-        return '<div class="px-br-item">' +
-          '<b class="num px-br-v" data-brv="' + size + '" style="--brv:' + size + 'px">' + esc(text) + '</b>' +
+        var fig = '<b class="num px-br-v" data-brv="' + size + '" style="--brv:' + size + 'px">' + esc(text) + '</b>';
+        // a worked-out line says beside its figure whether it comes once or every year
+        if (b.computed) { fig = '<span class="px-br-vrow">' + fig + '<span class="px-br-per">' + esc(b.per) + '</span></span>'; }
+        return '<div class="px-br-item">' + fig +
           (isFilled(b.label) ? '<span class="px-br-l">' + esc(b.label) + '</span>' : '') +
           // with more than one entry the notes go to the speaker notes, not the bay
           (n === 1 && isFilled(b.note) ? '<span class="px-br-n">' + esc(b.note) + '</span>' : '') +
@@ -24207,7 +24440,13 @@ NEXT: You've screened made-up ones and your own. Now one that's real.
     }
 
     var verdictMark = function (pass) { return T ? T.verdict(pass ? 'pass' : 'no') : (pass ? 'Pass' : 'No'); };
-    var notYet = (!returnPass && T) ? '<p class="px-notyet" data-step="2" data-px>' + T.verdict('notyet') + '</p>' : '';
+    /* NOT YET under a gate the first run never asked. It gives way at the
+       second run's step to the gate's own verdict, if that run reaches it. */
+    function notYetHtml(judgedInRun2) {
+      if (returnPass || !T) { return ''; }
+      // (static copies hide it once the gate's second-run finding is printed: see .px-r2)
+      return '<p class="px-notyet" data-step="2" data-px>' + T.verdict('notyet') + '</p>';
+    }
     // the reason, in the rule's own two parts: under the floor, and cash comes in no sooner
     var returnWhy = returnPass ? 'carried forward'
       : esc('under ' + floorMoney + ',') + '<br>and no cash sooner';
@@ -24222,6 +24461,56 @@ NEXT: You've screened made-up ones and your own. Now one that's real.
       sup.upkeepHoursPerMonth != null ? (typeof sup.upkeepHoursPerMonth === 'number' ? num(sup.upkeepHoursPerMonth) + ' hours a month to keep alive' : 'Upkeep: ' + sup.upkeepHoursPerMonth) : ''
     ].filter(Boolean).join(', ');
     var potentialSay = [growthText != null ? 'Growth: ' + growthText : '', sup.potentialNote != null ? String(sup.potentialNote) : ''].filter(Boolean).join(', ');
+
+    /* ---- the second run, as the slide prints it ---- */
+    var run2Money = run2 ? money(run2.value) : '';
+    var effortGate = run2 ? run2.ev.gates.effort : null;
+    var paybackText = effortGate ? String(effortGate.metricText).replace(/ to pay back$/, '') : '';
+    var payback = (function () {
+      var m = /^(about |just over |just under )?([\d.,]+) (weeks?)$/.exec(paybackText);
+      return m ? { lead: 'Pays back in', pre: m[1] ? m[1].trim() : '', n: m[2], unit: m[3] } : { lead: 'Payback', pre: '', n: paybackText, unit: '' };
+    }());
+    function hoursWords(h, one, many) { return num(h) + ' ' + (h === 1 ? one : many); }
+    var effortParts = [
+      sup.buildHours != null ? hoursWords(sup.buildHours, 'hour', 'hours') + ' to build' : '',
+      sup.upkeepHoursPerMonth != null ? hoursWords(sup.upkeepHoursPerMonth, 'hour', 'hours') + ' a month upkeep' : ''
+    ].filter(Boolean);
+    var effortNote = effortParts.join(', ');
+    function run2Why(id) {
+      if (!run2) { return ''; }
+      if (run2.pass[id]) { return 'carried forward'; }
+      if (id === 'effort') { return 'pays back too slowly'; }
+      return sup.ownerNamed ? 'it does not grow' : 'nobody owns the time';
+    }
+    function gateClass(id, judged) {
+      if (!run2 || !judged) { return ''; }
+      return 'px-r2 ' + (run2.pass[id] ? 'is-pass' : 'is-no');
+    }
+
+    var effortFind = '';
+    if (filled && run2 && r2Effort) {
+      effortFind = '<div class="px-find" data-step="4">' +
+        '<div class="px-kv" data-px><p class="label">' + esc(payback.lead) + '</p>' +
+        '<p class="px-kv-v">' + (payback.pre ? '<span>' + esc(payback.pre) + '</span>' : '') + '<b class="num">' + esc(payback.n) + '</b>' + (payback.unit ? '<span>' + esc(payback.unit) + '</span>' : '') + '</p></div>' +
+        (effortParts.length ? '<p class="px-kv-note is-lines" data-px>' + effortParts.map(esc).join('<br>') + '</p>' : '') +
+        '</div>';
+    } else if (filled && !run2 && hasEffort) {
+      effortFind = '<div class="px-find" data-step="3">' + kv('Build', sup.buildHours, 'hours') + kv('Upkeep', sup.upkeepHoursPerMonth, 'hours a month') + '</div>';
+    }
+    var potentialFind = '';
+    if (filled && hasPotential && (run2 ? r2Potential : true)) {
+      potentialFind = '<div class="px-find" data-step="' + (run2 ? 4 : 3) + '">' +
+        kv('Growth', growthText, '') +
+        (sup.potentialNote != null ? '<p class="px-kv-note" data-px>' + esc(sup.potentialNote) + '</p>' : '') +
+        '</div>';
+    }
+
+    /* ---- the notes ---- */
+    var onceLine = bigger.filter(function (b) { return b.computed && !b.yearly; })[0] || null;
+    var yearLines = sup.bigger.filter(function (b) { return b.computed && b.yearly; });
+    function workedOut(b) {
+      return num(b.count) + ' × ' + num(b.minutesEach) + ' min × ' + money(b.rate) + '/h = ' + b.value + (b.yearly ? ' a year' : ' once');
+    }
 
     var notesHead = `
         ${empty.length ? 'NOT FILLED IN: ' + andList(empty) + (empty.length > 1 ? ' are' : ' is') + ' empty in your-numbers.js' + (filled ? '. Nothing empty is shown.' : ', so this slide stops at the NO.') : ''}
@@ -24266,6 +24555,35 @@ NEXT: You've screened made-up ones and your own. Now one that's real.
         YOUR STORY: the bigger return, in a sentence or two.
 ${later}`;
 
+    /* The turn: the NO on minutes, then the bigger return, then the same gates
+       run a second time. About 90 words of SAY. */
+    var run2Verdicts = run2 ? ['return', 'effort', 'potential'].filter(function (id) {
+      return id === 'return' || (id === 'effort' ? r2Effort : r2Potential);
+    }).map(function (id) { return run2.pass[id] ? 'pass' : 'no'; }).join(', ') : '';
+    run2Verdicts = P.upperFirst(run2Verdicts);
+    var notesRun2 = run2 ? `
+        SAY: My own project. My own four gates.
+
+        DO: Click: Cost.
+
+        SAY: ${costText} to run. Pass.
+
+        DO: Click: Return. Let the NO land before you speak.
+
+        SAY: On minutes alone my own project fails my own screen. ${minutesMoney} a year, and no cash sooner. No.
+
+        DO: Click: the bigger return.${showTag ? ' Point at the tag, bottom left.' : ''}
+
+        SAY: ${sup.illustrative ? "The dollar figures you're about to see are changed to protect company data. The percentages are real.\n        " : ''}Every part was moving anyway, so the choice was guess or calculate. Calculate, and the re-slot is free. Ladder picks: ${ladderFrom} to ${ladderTo}.
+
+        DO: Click: run it again. Let all three gates land.
+
+        SAY: Same rule, run again with every yearly dollar: ${run2Money}.${onceLine ? " The re-slot doesn't even count; it's once." : ''}${run2.verdict === 'YES' ? ' Pays back in ' + paybackText + '.' : ''} ${run2Verdicts}.
+        ${run2.verdict === 'YES' ? 'The move was free. The build was not.' : sentence(run2.ev.gates[run2.firstNo].reason) + ' So it stays a no.'}
+
+        IF ASKED HOW: ${[onceLine ? workedOut(onceLine) + '.' : '', yearLines.map(function (b) { return workedOut(b) + '.'; }).join(' '), [minutesMoney].concat(yearLines.map(function (b) { return b.value; })).join(' + ') + ' = ' + run2Money + '.'].filter(Boolean).join(' ')}${sup.illustrative ? ' Dollars made up; percentages and parts real.' : ''}
+` : '';
+
     Deck.slide({
       id: 'slotting-scorecard',
       act: 4,
@@ -24273,7 +24591,7 @@ ${later}`;
       // how-we-built-it carries half a minute only while it is in the running order
       minutes: storyLines.length ? 2 : 2.5,
       layout: 'px-score-slide',
-      steps: filled ? 3 : 2,
+      steps: lastStep,
       html: `
         <h2 class="headline px-h4 px-sc-head">My own project,<br>through my own gates.</h2>
         <p class="source-line px-sc-src">${label}<br>${num(ma.hours)} hours = ${num(R.pickHoursAsIs)} − ${num(R.pickHoursOptimized)} pick hours a year${ma.ok ? '<br>valued at ' + money(ma.rate) + ' an hour, an example rate' : ''}</p>
@@ -24286,7 +24604,7 @@ ${later}`;
             </div>
             <p class="gate-why">${costPass ? 'carried forward' : 'over the cost limit'}</p>
           </article>
-          <article class="gate px-g-return is-still ${returnPass ? 'is-pass is-minutes-pass' : 'is-no is-flare has-tell'}">
+          <article class="gate px-g-return is-still ${returnPass ? 'is-pass is-minutes-pass' : 'is-no is-flare has-tell'}${run2 ? ' has-run2' : ''}">
             <i class="gate-shutter"></i>
             <h3 class="gate-name">Return</h3>
             <div class="px-find px-find-min${returnPass ? ' is-blend' : ''}" data-step="2">
@@ -24296,38 +24614,45 @@ ${later}`;
             </div>
             ${filled ? `
             <div class="px-find px-find-rec2" data-step="3">
-              <p class="px-find-rec" data-px="rec"><b class="num">${minutesMoney}</b><span class="px-per">on minutes alone</span>${verdictMark(returnPass)}</p>
+              <p class="px-find-rec" data-px="rec">${verdictMark(returnPass)}<b class="num">${minutesMoney}</b><span class="px-per">on minutes alone</span></p>
             </div>
             <div class="px-brx is-point" data-step="3" data-px>
               <p class="label">The bigger return</p>
               ${biggerHtml()}
             </div>` : ''}
+            ${run2 ? `
+            <div class="px-find px-run2${r2['return'] ? ' is-pass' : ''}" data-step="4">
+              <p class="px-find-rec" data-px="run2">${verdictMark(r2['return'])}<b class="num">${run2Money}</b><span class="px-per">a year, second run</span></p>
+            </div>` : ''}
             <p class="gate-why">${returnWhy}</p>
           </article>
-          <article class="gate px-g-effort is-still">
+          <article class="gate px-g-effort is-still ${gateClass('effort', r2Effort)}">
             <i class="gate-shutter"></i>
             <h3 class="gate-name">Effort</h3>
-            ${filled && hasEffort ? `<div class="px-find" data-step="3">
-              ${kv('Build', sup.buildHours, 'hours')}
-              ${kv('Upkeep', sup.upkeepHoursPerMonth, 'hours a month')}
-            </div>` : ''}
-            ${notYet}
+            ${effortFind}
+            ${run2 && r2Effort ? '<p class="gate-why">' + run2Why('effort') + '</p>' : ''}
+            ${notYetHtml(!!(run2 && r2Effort))}
           </article>
-          <article class="gate px-g-potential is-still">
+          <article class="gate px-g-potential is-still ${gateClass('potential', r2Potential)}">
             <i class="gate-shutter"></i>
             <h3 class="gate-name">Potential</h3>
-            ${filled && hasPotential ? `<div class="px-find" data-step="3">
-              ${kv('Growth', growthText, '')}
-              ${sup.potentialNote != null ? '<p class="px-kv-note" data-px>' + esc(sup.potentialNote) + '</p>' : ''}
-            </div>` : ''}
-            ${notYet}
+            ${potentialFind}
+            ${run2 && r2Potential ? '<p class="gate-why">' + run2Why('potential') + '</p>' : ''}
+            ${notYetHtml(!!(run2 && r2Potential))}
           </article>
         </div>
+        ${showTag ? '<p class="px-sc-tag" data-step="3" data-px><span class="tag is-example is-s">' + esc(TAG_TEXT) + '</span></p>' : ''}
         <p class="voice is-l px-sc-close px-sc-reslot" data-step="2" data-px>The move was the<br>one free re-slot.</p>
-        ${showClose ? '<p class="voice is-l px-sc-close" data-step="3" data-px>The minutes said no.<br>The move said yes.</p>' : ''}
-        ${P.driver('scorecard', { costPass: costPass, returnPass: returnPass, filled: filled })}
+        ${showClose ? '<p class="voice is-l px-sc-close" data-step="' + lastStep + '" data-px>The minutes said no.<br>The move said yes.</p>' : ''}
+        ${P.driver('scorecard', {
+          costPass: costPass, returnPass: returnPass, filled: filled,
+          run2: !!run2, r2Return: !!(run2 && r2['return']), r2Effort: !!r2Effort, r2EffortPass: !!(r2Effort && run2.pass.effort),
+          r2Potential: !!r2Potential, r2PotentialPass: !!(r2Potential && run2.pass.potential)
+        })}
       `,
-      notes: notesHead + '\n' + (filled ? notesFilled : notesEmpty) + `
+      notes: (run2
+        ? notesRun2
+        : notesHead + '\n' + (filled ? notesFilled : notesEmpty)) + `
         NEXT: ${nextAfterScorecard}
       `
     });
@@ -25057,7 +25382,7 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
 
       DO: Click once for the question. Then stop. Count to three before you say anything.
 
-      NEXT: If you're already thinking the objection, I'll say it for you.
+      NEXT: Some of you are already thinking the objection. I'll say it for you.
     `
   });
 
@@ -25084,14 +25409,15 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
       <i hidden data-scene="a5-cue" data-opts='{"at": 1, "for": ${seconds(NOTE.drop + NOTE.jolt + NOTE.beat)}}'></i>
     `,
     notes: `
-      SAY: “My people will just waste the time.” A fair worry.
-      But the tool did its job. It handed back minutes.
-      What they turn into is a management decision.
-      If nobody decides, the time leaks away. That's on us, not the AI.
+      SAY: “My people will just waste the time.” Fair worry. Wrong place to look.
+      (click) The tool did its job. It handed back minutes.
+      What those minutes turn into is a management decision.
+      If the freed time gets wasted, in my eyes that's a lack of proper management. Not an AI problem. Not a people problem.
+      Nobody decided what the time was for. That's on us.
 
       DO: Read the objection out loud. Click. Let the answer land, then speak.
 
-      NEXT: So what does managing it look like? Three things. My view, not a study.
+      NEXT: So what does managing it look like? Three things.
     `
   });
 
@@ -25116,11 +25442,15 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
       <i hidden data-scene="a5-cue" data-opts='{"at": 3, "for": ${seconds(NOTE.drop + NOTE.beat)}}'></i>
     `,
     notes: `
-      SAY: Name the goal for the freed hours. That's a leader's call. Measure it.
-      Share the upside: income, a bonus or an ownership stake, tied to growth.
+      SAY: Share the gain. My view, not a study.
+      (click) Name the goal for the freed hours. That's a leader's call, not the tool's.
+      (click) Measure it.
+      (click) Share the upside: income, a bonus or an ownership stake, tied to growth.
+      (click) People hide time savings that threaten them. They report the ones they share in.
+      Some leaders are happy with the status quo. Those are not the leaders you want.
       Build around people who want a piece. Make sure there's one to want.
 
-      DO: A click per beat, one for the line. Read it.
+      DO: A click per beat, one for the line. Read the line off the screen.
 
       YOUR STORY: how the gain is shared at your place, if it is; if not, say what you would do.
 
@@ -25155,7 +25485,7 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
 
       DO: Point at the boxes, left to right. Click for the line.
 
-      NEXT: So here is what I'm asking you to do on Monday.
+      NEXT: So here's what I'm asking you to do on Monday.
     `
   });
 
@@ -25317,8 +25647,11 @@ html.mode-print .slide .a5-reprise .ln.a5-math { margin-top: ${REPRISE.before}px
     out.push('Q5 “How do I keep my numbers honest?” Set house rules before you score.',
       'Then hold every win to all four Waypoint boxes.');
     out.push('Q6 “So what was the bigger return on the warehouse project?”',
-      'YOUR STORY: the bigger return, in one sentence you can defend. If you have not put a number on it yet, say so: ' +
-      '"I haven\'t put a number on it that I can show you all four Waypoint boxes for. The move had to happen; the question was guess or calculate."');
+      'Not the minutes. On minutes alone it fails my own screen. The return was the move: every part was going to a new building anyway, ' +
+      'so putting each one in the right slot cost nothing extra. Ladder picks went from 23% to 0.6%. That number is real. ' +
+      'The dollar figures on the scorecard were changed to protect company data. They show how I ran it, not what we made. ' +
+      'The move was free. The build was not.',
+      'YOUR STORY: one sentence on what the real return looked like, in words, no figures.');
     return out.join('\n      ');
   }
 

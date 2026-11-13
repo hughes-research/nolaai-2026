@@ -71,7 +71,7 @@ The speaker approved showing **results and counts only**. See the confidentialit
 - **What a run costs:** one optimization is 10 starts × 1,000,000 annealing steps = 10 million candidate swaps, in about 3.5 minutes on a 10-core machine.
 - **What it produces besides the layout:** a move list for every part, a floor map, rack-end signs, printable bin labels with barcodes, and a location file ready to import into the business system.
 
-We do **not** know the project's dollar return, build hours or business case beyond the above. The speaker says there is a bigger return than the walking minutes and will supply it; until then those values are marked slots in `deck/content/your-numbers.js` (`YOUR.slotting.biggerReturn`, `YOUR.slotting.effort`) and render as visibly unfilled. Never invent them. Where the real story belongs the speaker notes say `YOUR STORY:`.
+We do **not** know the project's dollar return, build hours or business case beyond the above. The speaker says there is a bigger return than the walking minutes and will supply it; until then those values are marked slots in `deck/content/your-numbers.js` (`YOUR.slotting.biggerReturn`, `YOUR.slotting.effort`) and render as visibly unfilled. Update (Nov 12): the speaker asked for made-up dollar figures here to protect company data. They are flagged `slotting.illustrative: true` and the slide shows an "ILLUSTRATIVE · CHANGED TO PROTECT COMPANY DATA" tag wherever they appear; real results stay real. Where the real story belongs the speaker notes say `YOUR STORY:`.
 
 ## 3. Honesty rules (non-negotiable)
 

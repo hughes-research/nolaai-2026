@@ -12,8 +12,10 @@
  *   --poster-at 41.5      which second the poster is taken from
  *   --crf 14              x264 quality; lower is better and bigger (default 14)
  *   --preset slow         x264 preset (default slow)
- *   --audio silent        add a silent stereo AAC track (default: no audio track at all).
- *                         Only for an upload form that refuses a file with no audio.
+ *   --audio file.wav      mux this WAV into the file as its sound (AAC, 256 kb/s, 48 kHz stereo).
+ *                         The title film's sound is made by tools/build-audio.js.
+ *   --audio silent        add a silent stereo AAC track instead.
+ *                         Default: no audio track at all (the silent cut).
  *   --from 10 --to 20     render only this stretch of the film, in seconds
  *
  *   Looking instead of rendering (no MP4 is written unless --out is also given):
@@ -79,7 +81,7 @@ function requirePlaywright() {
 
 function usage(code) {
   console.log('Usage: node tools/render-video.js <page.html> [--fps 30] [--size 1920x1080] [--out file.mp4]\n' +
-    '       [--poster file.png] [--poster-at s] [--crf 14] [--preset slow] [--audio silent]\n' +
+    '       [--poster file.png] [--poster-at s] [--crf 14] [--preset slow] [--audio file.wav|silent]\n' +
     '       [--from s] [--to s] [--stills s,s,...|marks] [--strip from:to:count]');
   process.exit(code);
 }
@@ -131,7 +133,10 @@ function parseArgs(argv) {
   if (!(o.fps > 0 && o.fps <= 120)) { fail('--fps must be between 1 and 120'); }
   if (o.width % 2 || o.height % 2) { fail('--size must be even in both directions (H.264 with yuv420p needs it)'); }
   if (!(o.crf >= 0 && o.crf <= 51)) { fail('--crf must be between 0 and 51'); }
-  if (o.audio !== 'none' && o.audio !== 'silent') { fail('--audio is "silent" or left out'); }
+  if (o.audio !== 'none' && o.audio !== 'silent') {
+    o.audio = path.resolve(o.audio);
+    if (!fs.existsSync(o.audio)) { console.error('--audio: not found: ' + o.audio + '\n(build the title sound first: node tools/build-audio.js)'); process.exit(2); }
+  }
   return o;
 }
 
@@ -213,8 +218,9 @@ function probe(file) {
     '-of', 'json', file], { encoding: 'utf8' });
   if (r.status !== 0) { throw new Error('ffprobe failed: ' + (r.stderr || '').trim()); }
   const j = JSON.parse(r.stdout);
-  const audio = spawnSync('ffprobe', ['-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=codec_name', '-of', 'csv=p=0', file], { encoding: 'utf8' });
-  return { video: j.streams[0], format: j.format, audio: (audio.stdout || '').trim() };
+  const a = spawnSync('ffprobe', ['-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=codec_name,channels,sample_rate,duration', '-of', 'json', file], { encoding: 'utf8' });
+  const as = a.status === 0 ? (JSON.parse(a.stdout).streams || [])[0] : null;
+  return { video: j.streams[0], format: j.format, audio: as ? as.codec_name : '', audioInfo: as };
 }
 
 /* How alike are two PNGs? Infinity when every pixel is equal, otherwise the PSNR in dB. */
@@ -337,7 +343,13 @@ function moovFirst(file) {
       fs.mkdirSync(path.dirname(out), { recursive: true });
 
       const args = ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(o.fps), '-c:v', 'png', '-i', '-'];
+      const audioFile = o.audio !== 'none' && o.audio !== 'silent';
       if (o.audio === 'silent') { args.push('-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=48000'); }
+      if (audioFile) {
+        // only the stretch being rendered, so a --from/--to render keeps its sound in sync
+        args.push('-ss', String(from), '-t', String(frames / o.fps), '-i', o.audio);
+      }
+      if (o.audio !== 'none') { args.push('-map', '0:v', '-map', '1:a'); }
       args.push(
         // sRGB screenshots to BT.709 video, limited range, so every player shows the same Flare
         '-vf', 'scale=in_range=full:out_range=tv:out_color_matrix=bt709:flags=lanczos+accurate_rnd+full_chroma_int,format=yuv420p',
@@ -346,7 +358,9 @@ function moovFirst(file) {
         // a keyframe every two seconds, so dragging the playhead lands cleanly
         '-g', String(Math.round(o.fps * 2)), '-r', String(o.fps), '-movflags', '+faststart');
       if (info.title) { args.push('-metadata', 'title=' + info.title); }
-      if (o.audio === 'silent') { args.push('-c:a', 'aac', '-b:a', '96k', '-shortest'); } else { args.push('-an'); }
+      if (o.audio === 'silent') { args.push('-c:a', 'aac', '-b:a', '96k', '-shortest'); }
+      else if (audioFile) { args.push('-c:a', 'aac', '-b:a', '256k', '-ar', '48000', '-ac', '2'); }
+      else { args.push('-an'); }
       args.push(out);
 
       const ff = spawn('ffmpeg', args, { stdio: ['pipe', 'inherit', 'pipe'] });
@@ -393,6 +407,16 @@ function moovFirst(file) {
       if (!moovFirst(out)) { bad.push('the moov atom is not at the front (no faststart)'); }
       if (o.audio === 'none' && p.audio) { bad.push('there is an audio track (' + p.audio + ') and there should be none'); }
       if (o.audio === 'silent' && !p.audio) { bad.push('the silent audio track is missing'); }
+      if (audioFile) {
+        const ai = p.audioInfo;
+        if (!ai) { bad.push('the audio track is missing'); }
+        else {
+          if (ai.codec_name !== 'aac') { bad.push('audio codec is ' + ai.codec_name + ', not aac'); }
+          if (Number(ai.channels) !== 2) { bad.push('audio has ' + ai.channels + ' channels, not 2'); }
+          if (Number(ai.sample_rate) !== 48000) { bad.push('audio sample rate is ' + ai.sample_rate + ', not 48000'); }
+          if (Math.abs(Number(ai.duration) - frames / o.fps) > 0.05) { bad.push('audio lasts ' + Number(ai.duration).toFixed(3) + ' s, the picture ' + (frames / o.fps).toFixed(3) + ' s'); }
+        }
+      }
 
       // the same frames, drawn again in another order, must be the same pictures
       const order = Array.from(kept.keys()).sort((a, b) => a - b);
@@ -419,7 +443,7 @@ function moovFirst(file) {
       const mb = (Number(p.format.size) / 1048576).toFixed(2);
       console.log(relative(out));
       console.log('  ' + v.codec_name + ' ' + v.profile + ', ' + v.pix_fmt + ', ' + v.width + 'x' + v.height + ', ' + v.r_frame_rate + ' fps, ' +
-        v.nb_read_frames + ' frames, ' + duration.toFixed(3) + ' s, ' + mb + ' MB, ' + (p.audio ? 'audio: ' + p.audio + ' (silence)' : 'no audio track (silent)') +
+        v.nb_read_frames + ' frames, ' + duration.toFixed(3) + ' s, ' + mb + ' MB, ' + (p.audio ? 'audio: ' + p.audio + (o.audio === 'silent' ? ' (silence)' : ' ' + p.audioInfo.channels + 'ch ' + p.audioInfo.sample_rate + ' Hz, ' + Number(p.audioInfo.duration).toFixed(3) + ' s, from ' + relative(o.audio)) : 'no audio track (silent)') +
         ', faststart ' + (moovFirst(out) ? 'yes' : 'NO'));
       console.log('  ' + repeat);
       console.log(relative(sheet) + '   (12 frames: look at it)');

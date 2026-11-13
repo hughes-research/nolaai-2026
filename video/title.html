@@ -5,161 +5,119 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Most Valuable AI Skill Is Saying No</title>
 <!--
-  THE TITLE FILM. 42 seconds, silent. Double-click this file: it plays from
-  disk in real time and holds its last frame. Move the mouse for the replay
-  control.
+  THE TITLE FILM: "Four gates". 46 seconds. The MP4s carry its sound; this
+  page is the picture only (the sound is built by tools/build-audio.js from
+  the same score, video/score.js).
 
     title.html                     1920 x 1080
     title.html?size=1080x1080      the square re-layout, for social posts
     title.html?t=12.5              frozen on the frame at 12.5 seconds
 
   Space pauses, R replays, the arrow keys step one beat.
+  Render:  node tools/render-video.js video/title.html   (see video/README.md)
 
-  To render it to video:   node tools/render-video.js video/title.html
-  (see video/README.md)
-
-  Same rules as the deck: classic scripts, relative paths, no network.
-  The film draws itself in title-sequence.js. This page is its stylesheet:
-  the deck's tokens and fonts, and a handful of classes built from them.
+  Everything the film needs is in this folder (fonts.css is a copy of the
+  deck's), except the speaker's details, read from deck/content/your-numbers.js
+  when it is there. Classic scripts, relative paths, no network.
 -->
-<link rel="stylesheet" href="../deck/theme/fonts.css">
-<link rel="stylesheet" href="../deck/theme/tokens.css">
+<link rel="stylesheet" href="fonts.css">
 <style>
+:root {
+  --card: #F4EDDE;        /* the ground */
+  --lampblack: #050505;   /* the ink */
+  --flare: #FF6842;       /* the point: once per frame */
+  --voice-settings: "opsz" 72, "SOFT" 0, "WONK" 0;
+}
 html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--lampblack); }
 
-/* ---- the stage ---- */
 .film {
   position: absolute; left: 0; top: 0; overflow: hidden; transform-origin: 0 0;
-  background: var(--lampblack); color: var(--card);
-  font-family: var(--f-body); font-weight: var(--wght-text); font-stretch: var(--wdth-text);
+  background: var(--card); color: var(--lampblack);
+  font-family: "Archivo", sans-serif; font-weight: 500; font-stretch: 100%;
   font-synthesis: none; font-kerning: normal; -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision;
   user-select: none;
 }
 :where(.film *) { margin: 0; padding: 0; box-sizing: border-box; font-style: normal; font-weight: inherit; }
 .film .a { position: absolute; }
-.film .sc { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; background: var(--ground); color: var(--ink); }
+.sc { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; background: var(--card); }
 
-/* the two grounds. Flare stays Flare on both, and always carries Lampblack type */
-.on-card { --ground: var(--card); --ink: var(--lampblack); }
-.on-ink { --ground: var(--lampblack); --ink: var(--card); }
-.ink { background: var(--ink); }
-.lamp { background: var(--lampblack); }
+.ink { background: var(--lampblack); }
 .card { background: var(--card); }
 .flare { background: var(--flare); }
 
-/* ---- type: the deck's four hands ---- */
+/* the four hands */
 .t-display {
-  font-family: var(--f-display); font-weight: var(--wght-display); font-stretch: var(--wdth-display);
-  line-height: var(--lh-cap); letter-spacing: 0; text-transform: uppercase; white-space: nowrap;
+  font-family: "Archivo", sans-serif; font-weight: 900; font-stretch: 62%;
+  line-height: 0.708; letter-spacing: 0; text-transform: uppercase; white-space: nowrap;
 }
 .t-label {
-  font-family: var(--f-mono); font-size: var(--t-label); font-weight: var(--wght-label); font-stretch: var(--wdth-label);
-  line-height: 1; letter-spacing: var(--track-label); text-transform: uppercase; white-space: nowrap;
-  font-variant-numeric: tabular-nums;
+  font-family: "Archivo", sans-serif; font-size: 32px; font-weight: 700; font-stretch: 125%;
+  line-height: 1; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; font-variant-numeric: tabular-nums;
 }
-.t-label.is-tight { font-stretch: var(--wdth-label-tight); }
 .t-voice {
-  font-family: var(--f-voice); font-style: italic; font-weight: var(--wght-voice); font-stretch: normal;
-  font-variation-settings: var(--voice-settings); font-optical-sizing: none; letter-spacing: 0;
+  font-family: "Fraunces", serif; font-style: italic; font-weight: 600; font-stretch: normal;
+  font-variation-settings: var(--voice-settings); font-optical-sizing: none; letter-spacing: 0; white-space: nowrap;
 }
 .t-say {
-  font-family: var(--f-display); font-weight: var(--wght-strong); font-stretch: var(--wdth-text);
+  font-family: "Archivo", sans-serif; font-weight: 800; font-stretch: 100%;
   line-height: 1.04; letter-spacing: -0.012em; white-space: nowrap;
 }
+.ln { display: block; width: max-content; white-space: nowrap; }
+.bar { position: absolute; left: 0; background: var(--lampblack); }
+.strike { position: absolute; left: 0; background: var(--lampblack); transform-origin: 0 50%; }
 
-/* a fitted stack (THEME.fitStack justifies each line on the width axis, once, at load) */
-.stack {
-  font-family: var(--f-display); font-weight: var(--wght-display); font-stretch: var(--wdth-display);
-  line-height: var(--lh-cap); letter-spacing: 0; text-transform: uppercase; font-kerning: normal;
-}
-.stack .ln { display: block; width: max-content; white-space: nowrap; }
-.stack .bar { position: absolute; left: 0; background: currentColor; }
-.stack .ln.is-punch { color: var(--lampblack); }
-
-/* ---- 1. the sentence, and our edit of it ---- */
-.quote .ql { display: block; position: relative; width: max-content; white-space: nowrap; }
-.quote .hang { position: absolute; right: 100%; top: 0; }
-.quote .struck { position: relative; display: inline-block; }
-.quote .strike {
-  position: absolute; left: -0.06em; right: -0.06em; top: 53%; height: max(var(--w-rule), 0.085em);
-  background: currentColor; transform-origin: 0 50%;
-}
-.edit { overflow: hidden; }
-.edit-plate { position: absolute; left: 0; bottom: 0; display: flex; align-items: stretch; }
-.edit-new { display: block; padding: 0.12em 0.16em; background: var(--flare); color: var(--lampblack); }
-.edit-flag {
-  display: flex; align-items: center; padding: 0 0.42em; background: var(--ink); color: var(--ground);
-  font-family: var(--f-mono); font-size: max(var(--t-small), 0.333em); font-weight: var(--wght-label);
-  font-stretch: var(--wdth-label-tight); line-height: 1; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap;
-}
-.attr { display: flex; align-items: center; gap: var(--s-3); white-space: nowrap; }
-.attr-rule { display: block; flex: none; width: 96px; height: var(--w-rule); transform-origin: 0 50%; }
-.is-square .attr { flex-direction: column; align-items: flex-start; gap: 26px; }
-
-/* ---- the gate ---- */
-.bay { color: var(--ink); }
-.shut { overflow: hidden; background: var(--ink); color: var(--ground); }
-.pitch { white-space: normal; text-wrap: balance; }
+/* the gate */
+.shut { overflow: hidden; background: var(--lampblack); color: var(--card); }
+.shut.is-no { background: var(--flare); color: var(--lampblack); }
 .arrow {
-  background: var(--ink);
-  clip-path: polygon(0 calc(50% - var(--aw) / 2), calc(100% - var(--aw) * 6) calc(50% - var(--aw) / 2), calc(100% - var(--aw) * 6) 0,
-    100% 50%, calc(100% - var(--aw) * 6) 100%, calc(100% - var(--aw) * 6) calc(50% + var(--aw) / 2), 0 calc(50% + var(--aw) / 2));
+  background: var(--lampblack);
+  clip-path: polygon(0 calc(50% - var(--aw) / 2), calc(100% - var(--aw) * 5) calc(50% - var(--aw) / 2), calc(100% - var(--aw) * 5) 0,
+    100% 50%, calc(100% - var(--aw) * 5) 100%, calc(100% - var(--aw) * 5) calc(50% + var(--aw) / 2), 0 calc(50% + var(--aw) / 2));
 }
-.up { transform-origin: 0 0; }
+.micro { line-height: 1.12; letter-spacing: 0.06em; }
 
-/* ---- 4. the note beside the premise ---- */
-.note { background: var(--ground); color: var(--ink); }
+/* the idea */
+.crate { background: var(--lampblack); color: var(--card); overflow: hidden; }
+.crate.is-winner { background: var(--flare); color: var(--lampblack); }
 
-/* ---- 6. the title card ---- */
+/* the title card */
 .lfield { background: var(--card); }
 .lgroup { color: var(--lampblack); }
 .spine { background: var(--lampblack); }
 .slab { background: var(--flare); color: var(--lampblack); }
-.catalogue {
-  font-family: var(--f-mono); font-size: var(--t-label); font-weight: var(--wght-label); font-stretch: var(--wdth-text);
-  line-height: 1; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; font-variant-numeric: tabular-nums;
-}
-.fine .t-label { display: block; margin-bottom: 20px; }
+.fine .t-label { display: block; margin-bottom: 18px; }
 .fine b { display: block; font-size: 58px; line-height: 0.92; }
-.fine.is-s .t-label { margin-bottom: 14px; }
-.fine.is-s b { font-size: 42px; }
-.credit { line-height: 1; white-space: nowrap; }
-.credit b { display: block; margin-bottom: 14px; font-size: var(--t-name); font-weight: var(--wght-display); font-stretch: var(--wdth-text); letter-spacing: -0.005em; }
-.credit span { display: block; font-size: 36px; font-weight: 600; font-stretch: var(--wdth-tight); }
-.credit.is-row { display: flex; align-items: baseline; gap: 22px; }
-.credit.is-row b { margin-bottom: 0; }
-
-/* stop-time: the card prints in negative. Card and Lampblack swap; Flare stays. */
+.fine.is-s .t-label { margin-bottom: 12px; }
+.fine.is-s b { font-size: 40px; }
+.name { font-size: 48px; font-weight: 900; font-stretch: 100%; line-height: 1; letter-spacing: -0.005em; white-space: nowrap; }
+.role { font-size: 36px; font-weight: 600; font-stretch: 75%; line-height: 1; white-space: nowrap; }
 .is-negative .lfield { background: var(--lampblack); }
 .is-negative .lgroup { color: var(--card); }
 .is-negative .spine { background: var(--card); }
 
-/* ---- the replay control: outside the stage, never in a capture ---- */
+/* the replay control: outside the stage, never in a capture */
 .film-ui {
   position: fixed; left: 16px; bottom: 16px; z-index: 10; display: flex; align-items: center; gap: 12px;
   padding: 10px 14px; background: var(--card); color: var(--lampblack);
-  font: 600 15px/1 var(--f-body); visibility: hidden;
+  font: 600 15px/1 "Archivo", sans-serif; visibility: hidden;
 }
 .film-ui button {
   appearance: none; border: 3px solid var(--lampblack); background: var(--lampblack); color: var(--card);
-  padding: 9px 16px; font: 700 15px/1 var(--f-body); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer;
+  padding: 9px 16px; font: 700 15px/1 "Archivo", sans-serif; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer;
 }
 .film-ui button:hover, .film-ui button:focus-visible { background: var(--card); color: var(--lampblack); outline: none; }
 .film-ui-time { min-width: 86px; font-variant-numeric: tabular-nums; }
-.film-ui-note { font-weight: 500; }
-/* only while the mouse is moving: a film that has ended holds a clean last frame */
 .is-awake .film-ui { visibility: visible; }
 html:not(.is-awake) body { cursor: none; }
 .is-capture .film-ui { display: none; }
 </style>
 </head>
 <body>
-<div id="film" class="film" aria-label="Title film: The Most Valuable AI Skill Is Saying No. Silent."></div>
+<div id="film" class="film" aria-label="Title film: The Most Valuable AI Skill Is Saying No."></div>
 <noscript>This film needs JavaScript. Open it in Chrome, Edge or Safari, or play title-sequence.mp4.</noscript>
 
-<script src="../deck/lib/motion.js"></script>
+<script src="score.js"></script>
 <script src="../deck/content/your-numbers.js"></script>
-<script src="../deck/theme/theme.js"></script>
 <script src="title-sequence.js"></script>
 </body>
 </html>
