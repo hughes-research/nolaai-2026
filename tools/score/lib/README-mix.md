@@ -136,7 +136,7 @@ filters); left/right correlation 0.60, mono loses 0.97 dB, correlation under 150
 `checks.run({ file | stereo, sync, breath, lufs, ceilingDb, lra, length, fps, clicks, onset, quiet })` prints one
 line per check and returns `{ ok, failures, numbers, rows }`. Defaults: the three HARD times from `video/score.js`,
 breath 20.3 to 22 s, -16.5 to -15.5 LUFS, -2 dBTP, 5 to 12 LU. `breath: false` and `sync: []` skip those.
-From a shell: `node tools/score/lib/checks.js final.wav` (exit 0 only if all pass).
+From a shell, at the repository root: `node tools/score/lib/checks.js tools/score/<key>/final.wav` (exit 0 only if all pass).
 
 **Clicks** (`checks.clicks(stereo)`). Each sample is compared with the value a cubic through its four neighbours
 gives (the fourth difference over 6). A click is a sample where that difference is at least 0.004 and at least 8
@@ -173,7 +173,7 @@ was made to fail on purpose in the tests.
 
 ## analyze.js
 
-`analyze.run(file, { outDir, stemsDir, ref, pictures, quiet })` writes `numbers.md`, `numbers.json` and six PNGs.
+`analyze.run(file, { outDir, stemsDir, ref, pictures, quiet })` writes `numbers.md`, `numbers.json` and five PNGs (six with `ref`).
 17 s for a file with four stems and a reference on this machine. The measures, each checked on a signal whose
 answer is known:
 
@@ -201,7 +201,7 @@ end from the band table.
 
 ## mux.js
 
-`mux.run(wav, outMp4, { square })`, or `node tools/score/lib/mux.js final.wav out.mp4 [--square out-square.mp4]`.
+`mux.run(wav, outMp4, { square })`, or `node tools/score/lib/mux.js final.wav out.mp4 [--square out-square.mp4]` (give each file with its folder, from where you run it).
 Stream-copies the picture of `video/title-sequence.mp4` (and `video/title-square.mp4`), encodes the WAV to AAC at
 256 kb/s, then checks: the video stream's MD5 is the known one (bdc6eb79... wide, 12c86948... square), h264 plus
 AAC stereo at 48 kHz, 46.0 s; and prints the decoded audio's loudness, range and true peak. It refuses to write

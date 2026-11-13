@@ -123,25 +123,32 @@ P('| Check | Measured | Target | Result |');
 P('|---|---|---|---|');
 for (const r of C.kit.rows) { P('| ' + [r.name, r.measured, r.target, r.ok ? 'pass' : '**FAIL**'].join(' | ') + ' |'); }
 P();
-P('### The brief\'s targets, by the kit\'s analysis tool (analysis/numbers.md)');
+P('### The brief\'s targets, by the kit\'s analysis tool');
 P();
-P(section(A, 'The targets of BRIEF.md section 4.3') || '(run the kit\'s analyze.js first)');
-P();
-P('### Stems');
-P();
-P(section(A, 'Stems').split('\n\nSmall-speaker test')[0] || '');
+const HOW = '`node tools/score/lib/analyze.js tools/score/minimal/final.wav --stems tools/score/minimal/stems`';
+if (A) {
+  P('This score\'s build does not run the kit\'s analysis. These tables were printed after running it by hand, from the repository root: ' + HOW + '.');
+  P();
+  P(section(A, 'The targets of BRIEF.md section 4.3'));
+  P();
+  P('### Stems');
+  P();
+  P(section(A, 'Stems').split('\n\nSmall-speaker test')[0] || '');
+} else {
+  P('This score\'s build does not run the kit\'s analysis. To print its tables here, run ' + HOW + ' from the repository root, then this script again.');
+}
 P();
 P('## 8. What was looked at');
 P();
 P('- **This candidate\'s own pictures** (spectro.py, analysis/own-*.png: a plain short-time Fourier transform on a labelled log axis). own-final-00-12s: nothing but the noise floor before 0.5 s; four rising steps at 0.5, 1.0, 1.5, 2.0 s (98, 117, 131, 147 Hz); brush columns from 2.5 s; idea 1 as fast steps up to 196 Hz at 5.0 s, the drop to 73 Hz at 6.5 s, the slide down to 55 Hz; a dark sliver just before 8.0 s; at 8.0 s a low blob at 52 Hz dying by about 9.5 s with nothing above it after 8.4 s; brush columns alone from 10 s and one bass note (92 Hz) at 11 s. own-final-20-32s: only the floor from 20 to 22 s; from 22.0 s a stair of harmonic stacks, one a beat, the fundamental going from 49 Hz to 196 Hz at 30 s; four short bright dashes at 392, 466, 523, 587 Hz at 22.5, 24.5, 26.5, 28.5 s; no brush column at 22.0 s, the first at 22.5 s. own-drums-20-38s: columns once a beat from 22.5 s, taller on 2 and 4 from 24.5 s, brighter tops on 2 and 4 from 26.5 s, paired columns at the swung off-beats from 28.5 s, horizontal cymbal lines from 30.0 s to about 36.3 s, low blobs once a beat from 32 s. own-final-30-46s: the stair coming down; a dark sliver before 37.0 s; at 37.0 s the 49 Hz blob and four held lines (233, 294, 349, 440 Hz); three steps at 38, 38.5, 39 s; a dark sliver before 40 s; one long line at 98 Hz and four chord lines fading smoothly to the floor by about 45.3 s. No thin full-height vertical line (a click) anywhere; the floor is an even speckle with no bright shelf.');
-P('- **The kit\'s pictures** (analysis/spectrogram*.png): used for time structure only (the same gaps and entries), because their frequency axis is mirrored (see section 9). analysis/waveform.png: sparse first two bars, a dense block from 4 to 8 s, a spike and a decay at 8 s, a flat line from 18 to 22 s, a steady build from 22 to 30 s, the slab no taller than the loudest bass notes, a long smooth decay after 40 s; no flat tops.');
+P('- **The kit\'s pictures** (analysis/spectrogram*.png): used for time structure only (the same gaps and entries), because their frequency axis was mirrored at the time (see section 9). analysis/waveform.png: sparse first two bars, a dense block from 4 to 8 s, a spike and a decay at 8 s, a flat line from 18 to 22 s, a steady build from 22 to 30 s, the slab no taller than the loudest bass notes, a long smooth decay after 40 s; no flat tops.');
 P('- **The audition\'s pictures** of the chosen presets: bass-musescore.png (sharp starts, a smooth four-second decay on the held note, a clean stop, nothing between the notes), piano-mellow-musescore.png (three velocities: more upper partials with each, smooth decays, no hiss), brushes-fluidr3.png (the same three brush recordings: energy to above 10 kHz, which is why they are low-passed here).');
 P('- **Where the master squeezes** (diag.js: stems times the master\'s plain gain against final.wav, 5 ms frames): idea 1 2.6 to 2.8 dB on average (most 3.7), bars 15 to 18 1.4 to 1.8 dB (most 3.0), the three hits most 4.1, 3.7 and 5.4 dB for an instant; idea 2 and bars 12 to 13 0.3 to 0.5 dB on average (most 1.4).');
 P();
 P('## 9. Notes on the kit');
 P();
 P('1. **The kit\'s spectrogram pictures were mirrored (fixed since: the kit now draws them with `lib/spectro.py`).** When this score was composed, the kit\'s spectrograms (ffmpeg showspectrumpic, fscale=log, in analyze.js) showed a dark line at the "520 Hz" label with the picture reflected below it; a rising bass line drew one band going up above the line and one going down below it. The labels could not be used to read pitch. Worked around at the time with spectro.py (numpy and Pillow), which the kit then took over.');
-P('2. **"Keys relative to bass, 30 to 36 s"** measures a window in which this candidate\'s piano does not play, by assignment. It reads ' + (A.match(/Keys relative to bass, 30 to 36 s \| [^|]+ \| ([^|]+) \|/) || [0, '?'])[1].trim() + ' and fails. Where the piano plays it is inside the target: see the row "keys against bass" in section 5.');
+P('2. **"Keys relative to bass, 30 to 36 s"** measures a window in which this score\'s piano plays one soft chord and then stays out (in the version that was judged it did not play there at all, and the row read -54.0 dB). It reads ' + (A.match(/Keys relative to bass, 30 to 36 s \| [^|]+ \| ([^|]+) \|/) || [0, '?'])[1].trim() + ' and fails. Where the piano plays it is inside the target: see the row "keys against bass" in section 5.');
 P('3. sampler.onset() caches into lib/audition/onsets.json: this build\'s calls added its hard-hit keys to that file (the kit\'s own cache, written by the kit\'s own function).');
 P('4. test-sampler.js: 12 of 12 passed. The kit\'s mix test (not shipped): 141 ok, 0 failed.');
 P();

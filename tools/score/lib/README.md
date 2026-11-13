@@ -99,8 +99,8 @@ layers. Choose by those numbers, not by name.
 | `synth.thud({ hz, size, rattle, seed })` | the NO: a pitched low drum, fast pitch drop, body at 2x and 3x `hz`, low-passed at 3 kHz. About 1.5 s, starts on its first sample |
 | `synth.roomTone({ db, seed })` | steady pink noise, -68 dBFS, 80 Hz to 6 kHz, mono-safe. The master's gain moves it with everything else |
 | `wav.read(file)`, `wav.write(file, st, { bits })` | PCM 16/24/32 and float in; 24-bit dithered out |
-| `checks.run({ file, sync, breath, lufs, ceilingDb, lra })` | the gate: prints PASS or FAIL per check, returns `{ ok, failures, numbers, rows }`. From a shell: `node tools/score/lib/checks.js final.wav` |
-| `analyze.run(file, { outDir, stemsDir, ref })` | `numbers.md` (every BRIEF 4.3 target, measured, PASS or FAIL), `numbers.json`, spectrograms, waveform. CLI: `node tools/score/lib/analyze.js final.wav --out analysis --stems stems` (`--ref other.wav` sets a second file beside it). About 16 s; `pictures: false` (`--no-pictures`) makes it 5 s while you iterate |
+| `checks.run({ file, sync, breath, lufs, ceilingDb, lra })` | the gate: prints PASS or FAIL per check, returns `{ ok, failures, numbers, rows }`. From a shell, at the repository root: `node tools/score/lib/checks.js tools/score/<key>/final.wav` |
+| `analyze.run(file, { outDir, stemsDir, ref })` | `numbers.md` (every BRIEF 4.3 target, measured, PASS or FAIL), `numbers.json`, spectrograms, waveform. CLI, from the repository root: `node tools/score/lib/analyze.js tools/score/<key>/final.wav --stems tools/score/<key>/stems` (it writes `analysis/` beside the file; `--ref other.wav` sets a second file beside it). About 16 s; `pictures: false` (`--no-pictures`) makes it 5 s while you iterate |
 | `mux.run(wav, outMp4, { square })` | the listening copy; CLI above |
 
 ## What trips people up
