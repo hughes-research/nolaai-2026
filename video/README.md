@@ -9,7 +9,7 @@ three ideas come to the four gates, and only the boring one gets through.
 | `title-sequence.mp4` | The film with sound, 1920×1080, 30 fps |
 | `title-square.mp4` | The same film re-laid for a square frame, 1080×1080, with sound, for social posts |
 | `title-silent.mp4` | The wide film with no audio track at all, for a room with no sound |
-| `play.html` | Shows the film with no player controls: open it in Chrome, F for full screen, Space to start. It holds the title card at the end |
+| `play.html` | Shows the film with no player controls: open it in Chrome, F for full screen, then Space to start once Chrome's own notice about the Esc key has gone. It holds the title card at the end |
 | `poster.png` | The last frame (the title card), 1920×1080: the cover image, or a still walk-in slide |
 | `title.html` | The picture, live. Double-click it and it plays in the browser (silently: the sound is in the MP4s) |
 | `title-sequence.js` | Everything the picture does: layout, words, moves |
@@ -80,12 +80,20 @@ should be confirmed by ear.
 
 ## Showing it
 
-- **With sound:** open `play.html` in Chrome. Press F for full screen, then
-  Space to start. It plays `title-sequence.mp4` once, with no player controls
-  on screen, and holds the title card when the film ends (the last chord has
-  faded by 46 s), so the card can stay up until you switch to the deck. Space
-  pauses and resumes. Once the film has ended, Space and clicks do nothing, so
-  a stray key cannot start it again; R plays it from the start.
+- **With sound:** open `play.html` in Chrome, shortly before you want it.
+  Press F for full screen, wait about five seconds until Chrome's own notice
+  about the Esc key has gone from the top of the screen (the page asks you
+  to), then tap Space once. It plays `title-sequence.mp4` once, with no player
+  controls on screen, and holds the title card when the film ends (the last
+  chord has faded by 46 s), so the card can stay up until you switch to the
+  deck. Space pauses and resumes; a key held down counts once. A click does
+  not start or stop the film: if F or Space seem to do nothing, click once on
+  the page to give it the keyboard, then press the key again. Once the film
+  has ended, Space does nothing, so a stray key cannot start it again; R plays
+  it from the start.
+- **Before you go full screen:** if Chrome shows a strip of its own under the
+  address bar, close it. In a test a strip of that kind stayed on screen in
+  full screen and pushed the picture down.
 - **Do not open the MP4 itself for the room.** A browser's own player keeps
   its control bar across the bottom of the picture whenever the film is paused
   or has ended: in Chrome it covers the name and role line of the title card.
@@ -105,11 +113,13 @@ All of this was tried in Chrome and in no other browser or player.
 ## Changing it
 
 - **Timing:** `score.js` moves the picture. The sound is composed bar by bar
-  against the same times and does not move by itself: if a NO, a PASS, the
-  winner, the sleeve or the title's return to positive moves, the score's
-  build stops and says that `tools/score/ref/events.json` disagrees with
-  `score.js`. Update that table, then the score's `chart.js`. Keep every NO's
-  `land` on a beat (a multiple of 0.5 s); the build fails if a hit is not
+  against the same times and does not move by itself: if a NO, one of idea 3's
+  four PASSes, the winner, the sleeve or the title's return to positive moves,
+  the score's build stops and says that `tools/score/ref/events.json`
+  disagrees with `score.js`. Update that table, then the score's `chart.js`.
+  If idea 2's PASS moves, the build stops as well, but the message comes from
+  the chart and names the bar that no longer matches the picture. Keep every
+  NO's `land` on a beat (a multiple of 0.5 s); the build fails if a hit is not
   within 10 ms of its frame.
 - **Idea names, kickers, the voice lines:** `score.js` too.
 - **Your name, the date, the room:** `deck/content/your-numbers.js`, not here.

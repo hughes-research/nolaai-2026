@@ -7,14 +7,18 @@
 <!--
   video/play.html: shows the title film with no player controls.
 
-  Open it in Chrome (double-click). F goes full screen, Space starts the film.
+  Open it in Chrome (double-click). F goes full screen. Chrome then shows its
+  own notice about the Esc key at the top of the screen for about five
+  seconds: when it has gone, tap Space once to start the film.
   It plays once, with its sound, and holds the title card at the end with
   nothing over it, so the card can stay on screen until you switch to the deck.
+  Go full screen shortly before the film, not long in advance.
 
   Why not open the MP4 itself: a browser's own player keeps its control bar
   across the bottom of the picture whenever the film is paused or has ended.
 
-    Space, Enter or a click   play, pause (nothing once the film has ended)
+    Space or Enter            play, pause (nothing once the film has ended)
+    a click                   nothing: it only gives this page the keyboard
     F                         full screen on, off
     R                         from the start
     play.html?film=title-silent.mp4    another film from this folder
@@ -48,8 +52,13 @@
 
   /* Which film: title-sequence.mp4 unless ?film= names another .mp4 in this folder. */
   var asked = new URLSearchParams(location.search).get('film');
-  var file = (asked && /^[^\/\\]+\.mp4$/i.test(asked)) ? asked : 'title-sequence.mp4';
-  film.src = encodeURIComponent(file);
+  var named = asked !== null && asked !== '';
+  var usable = named && /^[^\/\\]+\.mp4$/i.test(asked);
+  var file = usable ? asked : 'title-sequence.mp4';
+  if (named && !usable) {
+    body.classList.add('problem');
+    hint.textContent = 'This page was asked for "' + asked + '". Name an .mp4 that sits next to it, for example ?film=title-silent.mp4';
+  } else { film.src = encodeURIComponent(file); }
 
   film.addEventListener('error', function () {
     body.classList.remove('started');
@@ -58,9 +67,10 @@
   });
 
   function start() {
+    if (body.classList.contains('problem')) { return; }   // no film to play: leave the message up
     body.classList.add('started');
     var p = film.play();
-    if (p && p.catch) { p.catch(function () { /* the browser wants a key or a click first: the next one starts it */ }); }
+    if (p && p.catch) { p.catch(function () { /* the browser wants a key press first: the next Space starts it */ }); }
   }
   function toggle() {
     if (film.ended) { return; }                 // the card holds: a stray key must not start the film again
@@ -74,11 +84,26 @@
 
   document.addEventListener('keydown', function (e) {
     if (e.ctrlKey || e.metaKey || e.altKey) { return; }
-    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); }
-    else if (e.key === 'f' || e.key === 'F') { e.preventDefault(); fullScreen(); }
-    else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); restart(); }
+    var k = e.key === ' ' || e.key === 'Enter' ? 'play' : (e.key === 'f' || e.key === 'F') ? 'full' : (e.key === 'r' || e.key === 'R') ? 'again' : '';
+    if (!k) { return; }
+    e.preventDefault();
+    if (e.repeat) { return; }                   // a key held down counts once
+    if (k === 'play') { toggle(); } else if (k === 'full') { fullScreen(); } else { restart(); }
   });
-  document.addEventListener('click', toggle);
+  /* A click does nothing on purpose: a click that only wakes the window must not start or stop the film. */
+
+  /* Going full screen, the browser shows a notice of its own for a few seconds. Until it has
+   * gone the hint asks for patience, so the film does not start underneath it. */
+  var hintHome = hint.innerHTML;
+  var patience = null;
+  document.addEventListener('fullscreenchange', function () {
+    clearTimeout(patience);
+    if (body.classList.contains('problem')) { return; }
+    if (document.fullscreenElement && !body.classList.contains('started')) {
+      hint.innerHTML = 'Wait for the browser\'s notice above to clear &nbsp;&middot;&nbsp; then <b>Space</b>';
+      patience = setTimeout(function () { hint.innerHTML = hintHome; }, 5000);
+    } else { hint.innerHTML = hintHome; }
+  });
 
   /* The pointer hides after two still seconds. */
   var still = null;
