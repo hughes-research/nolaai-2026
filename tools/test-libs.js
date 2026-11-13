@@ -811,7 +811,9 @@ function testLoading(YOUR, BENCHLM) {
     if (/XMLHttpRequest/.test(src)) problems.push('uses XMLHttpRequest');
     if (/^\s*(import|export)\s/m.test(src)) problems.push('uses ES module syntax');
     if (/\bdocument\s*\./.test(src)) problems.push('touches document');
-    if (/https?:\/\//.test(src)) problems.push('contains a web address');
+    // The two links are shown as text and a QR code, never loaded, so they are the one place an address may be.
+    var forUrls = key === 'your' ? src.replace(/\b(screenerUrl|repoUrl)\s*:\s*'[^']*'/g, '') : src;
+    if (/https?:\/\//.test(forUrls)) problems.push('contains a web address');
     ok(problems.length === 0, rel + ': no fetch, no XHR, no ES modules, no DOM, no web addresses', problems.join(', '));
   });
   ['data', 'cost', 'gates'].forEach(function (key) {

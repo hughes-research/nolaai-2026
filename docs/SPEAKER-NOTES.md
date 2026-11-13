@@ -681,7 +681,7 @@ He said it in 1956. Find the few.
 
 *3:56 · 4 min · 0 clicks · id `thanks`*
 
-**SAY:** Thank you. I'm Dustin T Hughes. Questions.  
+**SAY:** Thank you. I'm Dustin T Hughes. The deck and the code are at that address. Questions.  
   
 **DO:** Leave this up through Q&A. Quiet room? Ask who killed their favorite.  
 Asked which AI assistant: “an AI coding assistant”. Never name it.  

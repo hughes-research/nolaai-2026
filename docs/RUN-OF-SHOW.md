@@ -103,4 +103,3 @@ To skip a slide on the day, type the number of the slide you want next and press
 
 - `story.howWeBuiltIt (optional; the slide is skipped while empty)`
 - `links.screenerUrl (optional)`
-- `links.repoUrl (optional)`
