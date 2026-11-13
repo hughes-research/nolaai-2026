@@ -952,7 +952,12 @@ async function testBrowser(nodeSnapshot) {
   }
   var playwright;
   try {
-    playwright = require('playwright');
+    try {
+      playwright = require('playwright');
+    } catch (e) {
+      // Installed globally, not in this repository.
+      playwright = require(path.join(require('child_process').execSync('npm root -g', { encoding: 'utf8' }).trim(), 'playwright'));
+    }
   } catch (e) {
     ok(false, 'Playwright is available', 'could not load "playwright" (' + e.message + '). Install it, or run with --no-browser to skip this part.');
     return;

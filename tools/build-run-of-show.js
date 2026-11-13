@@ -18,7 +18,18 @@
 
 const fs = require('fs');
 const path = require('path');
-const { chromium } = require('playwright');
+/* Playwright is installed globally, not in this repository. */
+function requirePlaywright() {
+  try { return require('playwright'); } catch (e) { /* try the global folders next */ }
+  const roots = (process.env.NODE_PATH || '').split(path.delimiter).filter(Boolean);
+  try { roots.push(require('child_process').execSync('npm root -g', { encoding: 'utf8' }).trim()); } catch (e) { /* no npm */ }
+  for (const root of roots) {
+    try { return require(path.join(root, 'playwright')); } catch (e) { /* keep looking */ }
+  }
+  console.error('Playwright was not found. Install it once, globally:  npm install -g playwright');
+  process.exit(2);
+}
+const { chromium } = requirePlaywright();
 
 const ROOT = path.resolve(__dirname, '..');
 const DECK = 'file://' + path.join(ROOT, 'deck', 'index.html') + '?fast';
