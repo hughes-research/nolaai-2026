@@ -23,6 +23,15 @@
  *     swung "and", beat 3), a voice thicker and a step higher each time.
  *   - from the sleeve (32 s) to the last chord (40 s) the piano's top note walks
  *     up one octave of D harmonic minor: D E F G A (the slab) A Bb C# D.
+ *
+ * REVISION (after the three judges; every change is marked "rev" below):
+ *   - three exposed minor ninths are gone: bar 12 beat 4 (bass F#2, not Ab2, under the held A4), the winner chord
+ *     (G4 in place of E4 under the top F5; the bass walks D2 C2 A1 A2, not through E2), bar 17 (the bass reaches
+ *     E2 from F2, not from Eb2 under the pushed E4).
+ *   - bar 19 is an enclosure: Eb3 (the root NO 2 was refused on) and C#3 (the third of NO 1's A7b9) close on D2.
+ *   - the last D2 is let go before the recording's loop and touched again, softly, at 42 s.
+ *   - bar 16 is thin under the on-screen line; the tag has two ride strokes on two cymbals, not four on one.
+ *   - the brush roll into the slab starts a beat earlier; SHAPE is how hard the band plays from PASS 3 to the slab.
  */
 'use strict';
 
@@ -45,7 +54,7 @@ const CHORDS = [
   'Gm7',                      // 13  24-26  PASS 2
   'Em7b5',                    // 14  26-28  PASS 3
   'A7b9',                     // 15  28-30  PASS 4
-  'Dm9',                      // 16  30-32  the winner
+  'Dm11',                     // 16  30-32  the winner (rev: G4 for E4, no minor ninth under the top F5)
   'Gm9',                      // 17  32-34  the sleeve; the title lines
   'Em7b5 | A7b9',             // 18  34-36
   'Eb9#11 | Dm6/9 (the slab)',// 19  36-38  the slab on beat 3
@@ -73,7 +82,7 @@ const HARMONY = {
   13: [[1, 5, 'Gm7', [G, Bb, D, F]]],
   14: [[1, 5, 'Em7b5', [E, G, Bb, D]]],
   15: [[1, 5, 'A7b9', [A, Cs, E, G]]],
-  16: [[1, 5, 'Dm9', [D, F, A, C]]],
+  16: [[1, 5, 'Dm11', [D, F, A, C]]],
   17: [[1, 5, 'Gm9', [G, Bb, D, F]]],
   18: [[1, 3, 'Em7b5', [E, G, Bb, D]], [3, 5, 'A7b9', [A, Cs, E, G]]],
   19: [[1, 3, 'Eb9#11', [Eb, G, Bb, Cs]], [3, 5, 'Dm6/9', [D, F, A, B]]],
@@ -84,7 +93,8 @@ const HARMONY = {
 /* THE BASS, bar by bar: [beat, midi, length in beats, accent, flag].
  * accent: where the player leans in that bar (1 = the bar's strongest note).
  * flags: 'hit' = a HARD sync hit (exact, short, damped); 'slab' = the HARD hit that rings;
- *        'ghost' = a dead note (short, soft); 'ring' = let it ring to the end. */
+ *        'ghost' = a dead note (short, soft).
+ * No note is held longer than 1.3 s: the recorded bass notes go into a loop about 1.45 s after the pluck. */
 const BASS = {
   1: [[2, 38, 1, 0.88], [3, 41, 1, 0.84], [4, 45, 1, 0.92]],                              // D2 F2 A2: one note a bay
   2: [[1, 50, 1, 1.00], [2, 48, 1, 0.80], [3, 45, 1, 0.86], [4, 42, 1, 0.82]],            // D3 (the fourth bay) C3 A2 F#2
@@ -95,16 +105,16 @@ const BASS = {
   7: [[1, 50, 2, 0.90], [3, 45, 1.5, 0.80], [4.5, 41, 0.5, 0.62]],                        // D3, A2, F2 on 4&: two-feel
   8: [[1, 43, 2, 0.88], [3, 47, 1.5, 0.84], [4.5, 41, 0.5, 0.64]],                        // G2, B2, F2 on 4&
   9: [[1, 40, 1, 0.90], [2, 38, 0.25, 0.86], [3, 39, 0.4, 1.00, 'hit']],                  // E2 D2 enclose Eb2: NO 2 (D2 cut short: the break)
-  12: [[1, 38, 1, 0.86], [2, 41, 1, 0.78], [3, 45, 1, 0.84], [4, 44, 1, 0.76]],           // D2 F2 A2 Ab2: the bay notes again
+  12: [[1, 38, 1, 0.86], [2, 41, 1, 0.78], [3, 45, 1, 0.84], [4, 42, 1, 0.76]],           // D2 F2 A2 F#2: the bay notes again (rev: F#2, a minor third under the piano's held A4, leads up to G2; Ab2 was a minor ninth under it)
   13: [[1, 43, 1, 0.88], [2, 46, 1, 0.78], [3, 50, 1, 0.86], [4, 51, 1, 0.80]],           // G2 Bb2 D3 Eb3
   14: [[1, 52, 1, 0.92], [2, 50, 1, 0.80], [3, 46, 1, 0.86], [4, 44, 1, 0.82]],           // E3 D3 Bb2 G#2
   15: [[1, 45, 1, 0.90], [2, 43, 1, 0.82], [3, 40, 1, 0.90], [4, 37, 1, 0.86]],           // A2 G2 E2 C#2
-  16: [[1, 38, 1, 1.00], [2, 40, 1, 0.80], [3, 41, 1, 0.86], [4, 45, 1, 0.80], [4.5, 45, 0.3, 0.40, 'ghost']],  // D2 E2 F2 A2
-  17: [[1, 43, 1, 0.94], [2, 41, 1, 0.84], [3, 38, 1, 0.90], [4, 39, 1, 0.86]],           // G2 F2 D2 Eb2
+  16: [[1, 38, 1, 1.00], [2, 36, 1, 0.80], [3, 33, 1, 0.86], [4, 45, 1, 0.80]],           // D2 C2 A1 A2: root, seventh, fifth, and the octave up into G2 (rev: E2 was a minor ninth under the chord's F3 and F5; no dead note under the on-screen line)
+  17: [[1, 43, 1, 0.94], [2, 45, 1, 0.84], [3, 46, 1, 0.90], [4, 41, 1, 0.86]],           // G2 A2 Bb2 F2: up the scale to the third, then F2 falls a half step to E2 (rev: Eb2 was a minor ninth under the pushed chord's E4; F2 is a major seventh under it)
   18: [[1, 40, 1, 0.94], [2, 46, 1, 0.88], [3, 49, 1, 0.94], [4, 52, 1, 0.96]],           // E2 Bb2 C#3 E3: a rising diminished arpeggio
-  19: [[1, 51, 1, 0.98], [2, 39, 0.25, 0.98], [3, 38, 2, 1.00, 'slab']],                  // Eb3, Eb2 (the octave drop again, cut short: the break), D2 on the slab
+  19: [[1, 51, 1, 0.98], [2, 49, 0.25, 0.98], [3, 38, 2, 1.00, 'slab']],                  // Eb3, C#3 (cut short: the break), D2 on the slab (rev: the enclosure. Eb is the root NO 2 was refused on, C# the third of NO 1's A7b9: both refusals close on D. C#3 is the Db of the Eb9#11 voicing an octave down)
   20: [[1, 40, 2, 0.74], [3, 33, 2, 0.78]],                                               // E2, A1: the tag, in two
-  21: [[1, 38, 8.6, 0.84, 'ring']]                                                        // D2, left to ring; the hand comes off at 44.3 s
+  21: [[1, 38, 2.5, 0.74], [5, 38, 2.6, 0.135]]                                           // D2: the hand comes off at 41.25 s, before the recording's loop (it starts 1.45 s into the note); beat 5 is the next bar's downbeat, 42.0 s: the same string touched again, softly, under the ringing piano (rev)
 };
 
 /* Bars whose last note does not step into the next bar's first note, and why. */
@@ -147,18 +157,18 @@ const PIANO = [
   { bar: 15, beat: 2, notes: [64, 67, 70, 73], hold: 0.62, vel: 0.50, roll: 0, sync: 'pass4', pass: 4, what: 'PASS 4: E4 G4 Bb4 C#5' },
   { bar: 15, beat: 2.5, notes: [66, 69, 72, 75], hold: 0.36, vel: 0.48, roll: 0, pass: 4, what: 'F#4 A4 C5 Eb5' },
   { bar: 15, beat: 3, notes: [67, 70, 73, 76], hold: 1.7, vel: 0.56, roll: 0, pass: 4, top: true, what: 'G4 Bb4 C#5 E5' },
-  { bar: 16, beat: 1, notes: [53, 60, 64, 69, 74, 77], hold: 3.7, vel: 0.60, roll: 0.024, sync: 'winner', top: true, what: 'the winner: Dm9, rolled, left to ring under the text' },
+  { bar: 16, beat: 1, notes: [53, 60, 67, 69, 74, 77], hold: 3.7, vel: 0.60, roll: 0.024, sync: 'winner', top: true, what: 'the winner: Dm11 (F3 C4 G4 A4 D5 F5), rolled, left to ring under the text' },   // rev: G4, not E4 (a minor ninth under F5)
   // the title: the top note climbs D E F G A
   { bar: 17, beat: 1, notes: [53, 57, 58, 62], hold: 0.7, vel: 0.50, roll: 0.004, sync: 'sleeve', what: 'the sleeve: Gm9 (top D4)' },
   { bar: 17, beat: 4.5, notes: [55, 58, 62, 64], hold: 0.9, vel: 0.50, roll: 0, what: 'Em7b5, pushed (top E4)' },
-  { bar: 18, beat: 3, notes: [55, 58, 61, 65], hold: 0.9, vel: 0.56, roll: 0, what: 'A7b9 on the speaker\'s name (top F4)' },
-  { bar: 19, beat: 1, notes: [57, 61, 65, 67], hold: 1.2, vel: 0.62, roll: 0.004, what: 'Eb9#11 (top G4)' },
+  { bar: 18, beat: 3, notes: [55, 58, 61, 65], hold: 0.9, vel: 0.62, roll: 0, what: 'A7b9 on the speaker\'s name (top F4)' },   // rev: a little harder, the build
+  { bar: 19, beat: 1, notes: [57, 61, 65, 67], hold: 1.2, vel: 0.66, roll: 0.004, what: 'Eb9#11 (top G4)' },   // rev: harder again
   { bar: 19, beat: 3, notes: [53, 57, 59, 64, 69], hold: 1.92, vel: 0.68, roll: 0, sync: 'slab', what: 'THE SLAB: Dm6/9, home (top A4), held until the tag' },
   // the tag: A Bb C# D on top, in plain quarters
   { bar: 20, beat: 1, notes: [55, 58, 62, 69], hold: 1.8, vel: 0.44, roll: 0.010, sync: 'positive', what: 'the tag: Em11b5 (top A4)' },
   { bar: 20, beat: 3, notes: [55, 61, 65, 70], hold: 1.9, vel: 0.46, roll: 0.008, what: 'A7b9 (top Bb4), held under the next note' },
   { bar: 20, beat: 4, notes: [73], hold: 0.96, vel: 0.44, roll: 0, what: 'C#5 alone' },
-  { bar: 21, beat: 1, notes: [53, 57, 59, 64, 69, 74], hold: 9.8, vel: 0.56, roll: 0.055, last: true, what: 'the last chord: Dm6/9 (top D5), rolled slowly, left to ring' }
+  { bar: 21, beat: 1, notes: [53, 57, 59, 64, 69, 74], hold: 9.8, vel: 0.47, roll: 0.055, last: true, what: 'the last chord: Dm6/9 (top D5), rolled slowly, left to ring' }   // rev: softer than the slab, which is the last loud thing
 ];
 
 /* THE DRUMS, bar by bar. Each entry: what the kit plays in that bar.
@@ -166,25 +176,31 @@ const PIANO = [
  *   taps:  [beat, level] brush taps on the snare      ride: [beat, level]
  *   hat:   [beat, level] the hi-hat foot              kick: [beat, level] feathered bass drum
  *   hit:   a HARD hit (bass drum and brush slap, exact)
+ *   ands:  the beats whose swung "and" gets the brush's short return stroke (default: every beat of the swirl)
+ *   roll:  [from, to, level at the first stroke, level at the last, 'one hand'?] brush strokes in eighth-note triplets
+ *          (with both hands the other hand adds taps)
+ *   a ride entry may name its cymbal: [beat, level, key] (51 is the ride, 59 the second ride)
+ * Under the struck strokes the brush never leaves the head: build.js lays a continuous bed made from the recorded
+ * swirl wherever "swirl" or "roll" is written, and nowhere else.
  * The spang-a-lang is 1, 2, 2&, 3, 4, 4& with the weight on 2 and 4. */
 const RIDE = [[1, 0.52], [2, 0.66], [2.5, 0.34], [3, 0.54], [4, 0.68], [4.5, 0.36]];
 const DRUMS = {
   2: { swirl: [1, 5, 0.55], taps: [[2, 0.30], [4, 0.36], [4.5, 0.20]] },                 // brushes come in under the kicker
-  3: { swirl: [1, 5, 0.85], taps: [[2, 0.46], [2.5, 0.22], [4, 0.50]], ride: RIDE.map(([b, v]) => [b, v * 1.08]).concat([[1.5, 0.30], [3.5, 0.32]]), hat: [[2, 0.5], [4, 0.52]], kick: [[1, 0.34], [2, 0.26], [3, 0.32], [4, 0.26]] },
-  4: { swirl: [1, 4.3, 0.95], taps: [[2, 0.50], [3.5, 0.24], [4, 0.54]], ride: [[1, 0.58], [1.5, 0.32], [2, 0.72], [2.5, 0.38], [3, 0.62], [3.5, 0.34], [4, 0.74]], hat: [[2, 0.52], [4, 0.56]], kick: [[1, 0.36], [2, 0.28], [3, 0.34], [4, 0.30]] },
+  3: { swirl: [1, 5, 0.85], taps: [[2, 0.46], [2.5, 0.22], [4, 0.50]], ride: RIDE.concat([[1.5, 0.30], [3.5, 0.32]]), hat: [[2, 0.5], [4, 0.52]], kick: [[1, 0.34], [2, 0.26], [3, 0.32], [4, 0.26]] },
+  4: { swirl: [1, 4.3, 0.95], taps: [[2, 0.50], [3.5, 0.24], [4, 0.50]], ride: [[1, 0.56], [1.5, 0.31], [2, 0.68], [2.5, 0.36], [3, 0.60], [3.5, 0.33], [4, 0.66]], hat: [[2, 0.52], [4, 0.56]], kick: [[1, 0.36], [2, 0.28], [3, 0.34], [4, 0.30]] },
   5: { hit: 'no1' },
   7: { swirl: [1, 5, 0.60], taps: [[2, 0.30], [4, 0.34]] },
-  8: { swirl: [1, 5, 0.62], taps: [[2, 0.32], [4, 0.36], [4.5, 0.18]] },
+  8: { swirl: [1, 5, 0.62], taps: [[2, 0.32], [4, 0.32], [4.5, 0.18]] },
   9: { swirl: [1, 2.3, 0.66], taps: [[2, 0.38]], hit: 'no2' },
-  13: { swirl: [2, 5, 0.50], taps: [[2, 0.32], [4, 0.34]] },                              // PASS 2: the brushes join on the lift
+  13: { swirl: [2, 5, 0.50], taps: [[2, 0.28], [4, 0.30]] },                              // PASS 2: the brushes join on the lift
   14: { swirl: [1, 5, 0.58], taps: [[2, 0.34], [4, 0.38]], ride: [[2, 0.56], [2.5, 0.28], [3, 0.46], [4, 0.58], [4.5, 0.30]] },   // PASS 3: the ride joins on the lift
   15: { swirl: [1, 5, 0.64], taps: [[2, 0.38], [4, 0.42]], ride: RIDE.map(([b, v]) => [b, v * 0.94]), hat: [[2, 0.46], [4, 0.48]], kick: [[2, 0.24], [3, 0.28], [4, 0.24]] },   // PASS 4: hi-hat foot and bass drum join on the lift
-  16: { swirl: [1, 5, 0.66], taps: [[2, 0.36], [4, 0.40]], ride: RIDE.map(([b, v]) => [b, v * 0.92]), hat: [[2, 0.44], [4, 0.46]], kick: [[1, 0.32], [3, 0.26]] },
+  16: { swirl: [1, 5, 0.66], ands: [1], taps: [[2, 0.36], [4, 0.40]], ride: [[1, 0.48], [2, 0.60], [4, 0.62]], hat: [[2, 0.44], [4, 0.46]], kick: [[1, 0.32], [3, 0.26]] },   // rev: the full kit on beat 1, then thin under the on-screen line: the brush on the beats only, the ride on 2 and 4
   17: { swirl: [1, 5, 0.72], taps: [[2, 0.40], [3, 0.26, 'title'], [3.5, 0.30, 'title'], [4, 0.36, 'title'], [4.5, 0.42, 'title']], ride: RIDE.map(([b, v]) => [b, v * 1.0]), hat: [[2, 0.48], [4, 0.5]], kick: [[1, 0.32], [3, 0.28]] },
-  18: { swirl: [1, 5, 0.82], taps: [[2, 0.46], [4, 0.52], [4.5, 0.30]], ride: RIDE.map(([b, v]) => [b, v * 1.1]), hat: [[2, 0.52], [4, 0.54]], kick: [[1, 0.34], [2, 0.26], [3, 0.32], [4, 0.28]] },
-  19: { swirl: [1, 2.25, 1.0], roll: [1, 2.25], hat: [[2, 0.54]], kick: [[1, 0.36], [2, 0.3]], hit: 'slab' },   // both hands on the snare: a brush roll swells to the slab (no ride until the slab itself)
-  20: { swirl: [1, 5, 0.40], ride: [[1, 0.40], [2, 0.36], [3, 0.33], [4, 0.29]] },        // the tag: the ride on each beat, fading
-  21: { ride: [[1, 0.34]] }                                                               // one soft cymbal note under the last chord
+  18: { swirl: [1, 4, 0.82], roll: [4, 5, 0.32, 0.40, 'one hand'], taps: [[2, 0.46], [4, 0.50]], ride: RIDE.slice(0, 5).map(([b, v]) => [b, v * 1.1]), hat: [[2, 0.52], [4, 0.54]], kick: [[1, 0.34], [2, 0.26], [3, 0.32], [4, 0.28]] },   // rev: the roll into the slab starts here, on beat 4, with one hand; the ride's last stroke is beat 4
+  19: { swirl: [1, 2.25, 0.9], roll: [1, 2.25, 0.42, 0.56], hat: [[2, 0.54]], kick: [[1, 0.36], [2, 0.3]], hit: 'slab' },   // both hands on the snare: the roll goes on rising to the break (no ride until the slab itself)
+  20: { swirl: [1, 5, 0.40], ride: [[1, 0.38], [3, 0.31, 59]] },                          // the tag: two cymbal strokes, the ride and then the second ride (rev: four strokes of one cymbal at a falling level read as an echo)
+  21: { ride: [[1, 0.32]] }                                                               // one soft cymbal note under the last chord
 };
 
 /* Who is in, section by section (for the notes-per-second check and the report). */
@@ -205,12 +221,30 @@ const SECTIONS = [
   { name: 'the last chord rings', from: 40, to: 46 }
 ];
 
+/* THE SHAPE (rev): how hard the band plays from PASS 3 to the slab, as [bar, beat, dB]; straight lines between the
+ * points, 0 dB before the first and after the last. build.js rides the bass, the piano and the drums by this much
+ * before the room (the three HARD hits are not ridden). PASS 3 and 4 step back a little so the winner is an arrival;
+ * from the winner each bar leans in a little more; the last bar and the roll rise into the break. */
+const SHAPE = [
+  [13, 4, 0], [14, 1, -1.0],          // bars 14 and 15 (PASS 3, PASS 4): 1 dB down
+  [15, 4.5, -1.0], [16, 1, -0.75],    // bar 16, the winner: a little more
+  [16, 4.5, -0.75], [17, 1, -0.5],    // bar 17: and a little more,
+  [17, 3, -0.5], [18, 1, -2.8],       // then the band pulls back through its last two beats ...
+  [18, 2, -2.6], [19, 1, 0.6],        // ... and swells through the bar as the roll starts
+  [19, 2.2, 1.0], [19, 2.6, 0]        // the top, as the door lets go; back to 0 inside the break, before the slab
+];
+
+/* The last D2 under the last chord (rev): the bass alone comes down by this much, [bar, beat, dB] as SHAPE, so the note
+ * dies away faster than its recording does and the piano leads the ring-out. The string touched again at 42 s is
+ * soft by its velocity (about 12 of 127) and sits under the last level, which holds to the end. */
+const BASS_END = [[21, 1.8, 0], [21, 3.5, -14], [21, 4.0, -14], [21, 4.8, -6]];
+
 /* The low drum under each HARD hit: Hz of the fundamental (45 to 60), size, rattle. */
 const THUDS = {
   no1: { hz: 55, size: 1.0, rattle: 0.3, body: 1.5, seed: 8 },        // A1: the root of A7b9
   no2: { hz: 49, size: 1.25, rattle: 0.3, body: 1.5, seed: 17 },      // G1: the third of Eb7, a size heavier
-  slab: { hz: 55, size: 0.9, rattle: 0, body: 1.5, seed: 37 }         // A1 under D2: the fifth of the home chord; no rattle, it resolves
+  slab: { hz: 55, size: 0.9, rattle: 0, body: 1.5, seed: 37, cut: [0.22, 0.40] }   // A1 under D2: the fifth of the home chord; no rattle, it resolves. rev: faded out between 0.22 and 0.40 s, so the bass's D2 sustains alone (the two beat at 18 Hz while both ring)
   // body 1.5: more of the thud's 2nd and 3rd partials (110 and 165 Hz at 55), so it carries on small speakers without a higher peak
 };
 
-module.exports = { SWING, CHORDS, HARMONY, BASS, APPROACH_EXCEPTIONS, PIANO, DRUMS, RIDE, SECTIONS, THUDS };
+module.exports = { SWING, CHORDS, HARMONY, BASS, APPROACH_EXCEPTIONS, PIANO, DRUMS, RIDE, SECTIONS, THUDS, SHAPE, BASS_END };

@@ -23,6 +23,13 @@ Nobody who built the replacement could hear it. So four scores were composed ind
 
 `sampled-piano` ranked first with all three judges and is the score on the films. The judges called `vibes` the best composition and the weakest rendering (the library's vibraphone is a short looped recording). Each score's `report.md` has its idea, its chart bar by bar, its mix, its measurements, a listening guide ("at N s you should hear ...") and its known weaknesses.
 
+**After the judging**, a reviser who had written none of the scores worked through the judges' findings on two of them:
+
+- `sampled-piano` (on the films): the brushes became a continuous texture in place of separate strokes; three clashing notes were fixed; the cymbals were darkened and the ride's ringing partials notched out; the hits were made to land harder on small speakers; a build was added into the last hit; the last bass note no longer hangs in a loop. It still passes all 24 mix targets.
+- `minimal`: a new opening motif (the first one matched the opening of a well-known rock riff), an arrival chord at the winner, a title line with a shape of its own, and continuous brushes.
+
+The scores in the table are for the versions as judged; the revisions were measured but not re-judged. Each revised score's `report.md` ends with a "Revision" section: what changed, the numbers before and after, what was left alone and why, and what remains weak.
+
 To put a different score on the films: `node tools/build-audio.js --score minimal --mux`.
 
 ## What is checked, and what is not
