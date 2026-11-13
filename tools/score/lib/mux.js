@@ -8,21 +8,32 @@
  *
  * The video stream of video/title-sequence.mp4 (and, with --square, of
  * video/title-square.mp4) is stream-copied, never re-encoded; the WAV is
- * encoded to AAC at 256 kb/s, 48 kHz, stereo. Afterwards it checks that the
- * video stream's MD5 is unchanged, that the file is h264 + AAC stereo at
- * 48 kHz and 46.0 s long, and prints the decoded audio's integrated loudness,
- * loudness range and true peak (what a viewer's player will actually get).
+ * encoded to AAC at 256 kb/s, 48 kHz, stereo. A WAV that is not at 48 kHz, in
+ * stereo and 46.000 s long (as the builds write it) is refused before a film
+ * is written. Afterwards it checks that the video stream's MD5 is unchanged,
+ * that the file is h264 + AAC stereo at 48 kHz, that the film is within
+ * 0.06 s of 46 s and so are its picture and its sound (where the file gives
+ * their own lengths, as an .mp4 does), and prints the decoded audio's
+ * integrated loudness, loudness range and true peak (what a viewer's player
+ * will actually get).
  *
- * It refuses to write into the repository's video/ folder unless asked to
+ * It refuses to write into the repository's video/ folder: symbolic links in
+ * the path are followed first, a link that leads to nothing is refused, and so
+ * is a hard link to one of the files in video/. The one exception is an
  * install:
  *
  *   node mux.js final.wav --install
  *
  * replaces the sound of video/title-sequence.mp4 and video/title-square.mp4 in
- * place. Each new film is written beside the old one (<film>.new.mp4) and
- * checked there: picture MD5, codecs, length, decoded true peak. Only when
- * both new films pass are they renamed over the old ones; if either fails, or
- * ffmpeg does, both new files are removed and both films stay as they were.
+ * place. While one install runs, a second is refused (video/.install.lock
+ * marks the running one).
+ * Each new film is written beside the old one (title-sequence.new.mp4,
+ * title-square.new.mp4) and checked there: picture MD5, codecs, length,
+ * decoded true peak. Only when both new films pass are they renamed over the
+ * old ones; if either fails, or ffmpeg does, both new files are removed and
+ * both films stay as they were. A run that is killed while a new film is
+ * being written also leaves both films as they were, but it can leave a
+ * .new.mp4 and the lock behind: the next install removes them.
  * The picture is still only copied: its MD5 before and after must be the same.
  */
 'use strict';
@@ -63,17 +74,81 @@ function loudness(file) {
 }
 
 function probe(file) {
-  const r = sh('ffprobe', ['-v', 'error', '-show_entries', 'stream=codec_type,codec_name,channels,sample_rate,width,height:format=duration', '-of', 'json', file]);
+  const r = sh('ffprobe', ['-v', 'error', '-show_entries', 'stream=codec_type,codec_name,channels,sample_rate,width,height,duration:format=duration', '-of', 'json', file]);
   return JSON.parse(r.stdout);
+}
+
+/* The path a file really has, links followed, whether or not the file exists yet. */
+/* Where a path really leads, with symbolic links followed, also when its last parts are not there yet. */
+function real(file) {
+  const abs = path.resolve(file);
+  if (fs.existsSync(abs)) { return fs.realpathSync.native(abs); }
+  let link = false;
+  try { link = fs.lstatSync(abs).isSymbolicLink(); } catch (e) { /* nothing is there yet */ }
+  if (link) { throw new Error('this is a symbolic link that leads to nothing, and mux does not write through one: ' + abs); }
+  const up = path.dirname(abs);
+  return up === abs ? abs : path.join(real(up), path.basename(abs));
+}
+
+/* The name of the file in dir that is this very file on the disk (a hard link gives a file a second name), if there is one. */
+function twinIn(dir, file) {
+  try {
+    const me = fs.statSync(file, { bigint: true });
+    return fs.readdirSync(dir).find(function (name) {
+      const s = fs.statSync(path.join(dir, name), { bigint: true, throwIfNoEntry: false });
+      return Boolean(s) && s.dev === me.dev && s.ino === me.ino;
+    });
+  } catch (e) { return undefined; }                          // no such file yet, or no such folder: nothing is shared
+}
+
+/* The WAV must fit the film: 48 kHz, stereo, 46.000 s. Checked before a film is written. */
+function checkWav(wavFile) {
+  const r = spawnSync('ffprobe', ['-v', 'error', '-select_streams', 'a:0', '-show_entries', 'stream=sample_rate,channels,duration', '-of', 'json', '-i', wavFile], { encoding: 'utf8' });
+  if (r.error) { throw new Error('ffprobe could not run: ' + r.error.message); }
+  if (r.status !== 0) { throw new Error('not a sound file that ffprobe can read: ' + wavFile); }
+  const s = (JSON.parse(r.stdout).streams || [])[0];
+  if (!s) { throw new Error('there is no sound in ' + wavFile); }
+  const length = Number(s.duration);
+  const wrong = [];
+  if (Number(s.sample_rate) !== 48000) { wrong.push('it is at ' + s.sample_rate + ' Hz (the film needs 48000)'); }
+  if (Number(s.channels) !== 2) { wrong.push('it has ' + s.channels + ' channel' + (Number(s.channels) === 1 ? '' : 's') + ' (the film needs 2)'); }
+  if (!Number.isFinite(length)) { wrong.push('ffprobe gives no length for it (the film is ' + SECONDS.toFixed(3) + ' s)'); }
+  else if (length.toFixed(3) !== SECONDS.toFixed(3)) { wrong.push('it is ' + length.toFixed(3) + ' s long (the film is ' + SECONDS.toFixed(3) + ' s)'); }
+  if (wrong.length) { throw new Error('the WAV does not fit the film: ' + wrong.join('; ') + ': ' + wavFile); }
+}
+
+/* While one install runs, a second is refused. Two at once write the same <film>.new.mp4, and the first to finish can
+ * rename a file the second is still writing: that leaves a film without its index. */
+function lockInstall() {
+  const lock = path.join(REPO, 'video', '.install.lock');
+  try { fs.writeFileSync(lock, String(process.pid), { flag: 'wx' }); } catch (e) {
+    if (e.code !== 'EEXIST') { throw new Error('cannot write into ' + path.dirname(lock) + ': ' + e.message); }
+    const pid = Number(fs.readFileSync(lock, 'utf8'));
+    const young = Date.now() - fs.statSync(lock).mtimeMs < 5000;
+    let alive = false;
+    try { if (pid > 0) { process.kill(pid, 0); alive = true; } } catch (e2) { alive = e2.code === 'EPERM'; }
+    if (alive || (!(pid > 0) && young)) {
+      throw new Error('another install is running (process ' + pid + '). Let it finish, then run this again. If none is running, delete ' + lock);
+    }
+    fs.writeFileSync(lock, String(process.pid));          // left by a run that was killed
+  }
+  return function () { try { fs.unlinkSync(lock); } catch (e) { /* gone already */ } };
 }
 
 /* Write one film and check it where it was written. An in-place mux writes <film>.new.mp4 and
  * leaves the film alone: settle() then renames it over the film, or removes it. */
 function muxOne(wavFile, picture, outFile, opts) {
-  const out = path.resolve(outFile);
-  const videoDir = path.join(REPO, 'video') + path.sep;
-  if (out.startsWith(videoDir) && !(opts && opts.allowVideoDir)) { throw new Error('mux never writes into ' + videoDir + ' (got ' + out + ')'); }
+  const out = real(outFile);
+  const videoDir = real(path.join(REPO, 'video')) + path.sep;
+  if (!(opts && opts.allowVideoDir)) {
+    if ((out + path.sep).startsWith(videoDir)) { throw new Error('mux never writes into ' + videoDir + ' (got ' + out + ')'); }
+    const twin = twinIn(videoDir, out);
+    if (twin) { throw new Error('mux never writes into ' + videoDir + ' (' + out + ' is a hard link to ' + twin + ' there)'); }
+  }
   if (!fs.existsSync(wavFile)) { throw new Error('no such WAV: ' + wavFile); }
+  if (real(wavFile) === out) { throw new Error('the output is the WAV itself: ' + out); }
+  if (fs.existsSync(out) && fs.statSync(out).isDirectory()) { throw new Error('the output is a folder, not a file: ' + out); }
+  checkWav(wavFile);
   if (!fs.existsSync(picture.file)) { throw new Error('the picture is missing: ' + picture.file); }
   const before = videoMd5(picture.file);
   if (before !== picture.md5) {
@@ -82,8 +157,9 @@ function muxOne(wavFile, picture, outFile, opts) {
     console.warn('mux: note: ' + path.basename(picture.file) + ' is not the picture of 2026-11-12 (video MD5 ' + before + '); its picture is copied as it is.');
   }
   fs.mkdirSync(path.dirname(out), { recursive: true });
-  const inPlace = path.resolve(picture.file) === out;
+  const inPlace = real(picture.file) === out;
   const target = inPlace ? out.replace(/\.mp4$/, '') + '.new.mp4' : out;
+  const had = fs.existsSync(target) ? fs.statSync(target) : null;
   let after, info, loud;
   try {
     sh('ffmpeg', ['-v', 'error', '-y', '-i', picture.file, '-i', wavFile, '-map', '0:v:0', '-map', '1:a:0',
@@ -92,7 +168,10 @@ function muxOne(wavFile, picture, outFile, opts) {
     info = probe(target);
     loud = loudness(target);
   } catch (e) {
-    if (fs.existsSync(target)) { fs.unlinkSync(target); }     // never leave half a film behind
+    try {                                                      // never leave half a film behind, never remove a file this run did not write
+      const now = fs.existsSync(target) ? fs.statSync(target) : null;
+      if (now && !(had && now.mtimeMs === had.mtimeMs && now.size === had.size)) { fs.unlinkSync(target); }
+    } catch (e2) { /* the first error is the one to report */ }
     throw e;
   }
   const v = info.streams.find(function (s) { return s.codec_type === 'video'; });
@@ -105,7 +184,10 @@ function muxOne(wavFile, picture, outFile, opts) {
   if (a && Number(a.channels) !== 2) { bad.push('audio has ' + a.channels + ' channels'); }
   if (a && Number(a.sample_rate) !== 48000) { bad.push('audio sample rate is ' + a.sample_rate); }
   if (!(Math.abs(duration - SECONDS) < 0.06)) { bad.push('duration is ' + duration + ' s'); }
-  if (!(loud.truePeakDb <= -1.0)) { bad.push('decoded true peak is ' + loud.truePeakDb + ' dBTP (must stay under -1.5; hard fail above -1.0)'); }
+  if (a && a.duration !== undefined && !(Math.abs(Number(a.duration) - SECONDS) < 0.06)) { bad.push('the sound is ' + a.duration + ' s long, the film ' + SECONDS + ' s'); }
+  if (v && v.duration !== undefined && !(Math.abs(Number(v.duration) - SECONDS) < 0.06)) { bad.push('the picture is ' + v.duration + ' s long, the film should be ' + SECONDS + ' s'); }
+  if (Number.isNaN(loud.truePeakDb)) { bad.push('the decoded sound has no peak that ffmpeg could give as a number (digital silence?)'); }
+  else if (!(loud.truePeakDb <= -1.0)) { bad.push('decoded true peak is ' + loud.truePeakDb + ' dBTP (must stay under -1.5; hard fail above -1.0)'); }
   return {
     out: out, written: target, inPlace: inPlace, videoMd5: after, pictureUnchanged: after === before,
     width: v && v.width, height: v && v.height, duration: duration,
@@ -130,8 +212,9 @@ function settle(results) {
 function describe(name, r) {
   return name + ': ' + path.relative(process.cwd(), r.out) + '  ' + r.width + 'x' + r.height + ', ' + r.duration.toFixed(3) + ' s, ' +
     (r.bytes / 1e6).toFixed(1) + ' MB, picture ' + (r.pictureUnchanged ? 'unchanged (MD5 ' + r.videoMd5.slice(0, 8) + ')' : 'CHANGED') +
-    ', decoded audio ' + r.lufs.toFixed(1) + ' LUFS, LRA ' + r.lra.toFixed(1) + ' LU, true peak ' + r.truePeakDb.toFixed(1) + ' dBTP' +
+    ', decoded audio ' + r.lufs.toFixed(1) + ' LUFS, LRA ' + r.lra.toFixed(1) + ' LU, true peak ' + (Number.isNaN(r.truePeakDb) ? 'not a number' : r.truePeakDb.toFixed(1) + ' dBTP') +
     (r.ok ? '' : '\n  PROBLEMS: ' + r.problems.join('; ')) +
+    (r.ok && r.truePeakDb > -1.5 ? '\n  NOTE: the decoded true peak is over the brief\'s -1.5 dBTP' : '') +
     (r.inPlace && r.installed === false ? '\n  NOT INSTALLED: ' + path.basename(r.out) + ' was left as it was' + (r.ok ? ' (the other film did not pass)' : '') : '');
 }
 
@@ -154,7 +237,14 @@ function run(wavFile, outMp4, opts) {
 /* Replace the sound of the two shipped films, in place: both or neither. */
 function install(wavFile, opts) {
   const o = Object.assign({}, opts || {}, { allowVideoDir: true, square: PICTURES.square.file });
-  return run(wavFile, PICTURES.wide.file, o);
+  const unlock = lockInstall();
+  try {
+    [PICTURES.wide.file, PICTURES.square.file].forEach(function (film) {      // what a killed run left behind
+      const stale = film.replace(/\.mp4$/, '') + '.new.mp4';
+      if (fs.existsSync(stale)) { fs.unlinkSync(stale); }
+    });
+    return run(wavFile, PICTURES.wide.file, o);
+  } finally { unlock(); }
 }
 
 module.exports = { run: run, install: install, videoMd5: videoMd5, loudness: loudness, PICTURES: PICTURES };
@@ -164,9 +254,10 @@ if (require.main === module) {
   const pos = [];
   const opts = {};
   for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === '--square') { opts.square = argv[++i]; }
+    if (argv[i] === '--square') { opts.square = argv[++i]; if (!opts.square) { console.error('mux: --square needs a file name'); process.exit(2); } }
     else if (argv[i] === '--install') { opts.install = true; }
     else if (argv[i] === '--help' || argv[i] === '-h') { console.log('Usage: node mux.js final.wav out.mp4 [--square out-square.mp4]\n       node mux.js final.wav --install'); process.exit(0); }
+    else if (argv[i].startsWith('--')) { console.error('mux: unknown option: ' + argv[i] + '\nUsage: node mux.js final.wav out.mp4 [--square out-square.mp4]\n       node mux.js final.wav --install'); process.exit(2); }
     else { pos.push(argv[i]); }
   }
   if (pos.length !== (opts.install ? 1 : 2)) { console.error('Usage: node mux.js final.wav out.mp4 [--square out-square.mp4]\n       node mux.js final.wav --install'); process.exit(2); }
