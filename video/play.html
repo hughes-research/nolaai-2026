@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Most Valuable AI Skill Is Saying No</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  video/play.html: shows the title film with no player controls.
+
+  Open it in Chrome (double-click). F goes full screen, Space starts the film.
+  It plays once, with its sound, and holds the title card at the end with
+  nothing over it, so the card can stay on screen until you switch to the deck.
+
+  Why not open the MP4 itself: a browser's own player keeps its control bar
+  across the bottom of the picture whenever the film is paused or has ended.
+
+    Space, Enter or a click   play, pause (nothing once the film has ended)
+    F                         full screen on, off
+    R                         from the start
+    play.html?film=title-silent.mp4    another film from this folder
+
+  Nothing here is loaded from outside this folder.
+-->
+<style>
+  html, body { margin: 0; height: 100%; background: #050505; overflow: hidden; }
+  video { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: contain; background: #050505; opacity: 0; }
+  body.started video { opacity: 1; }
+  #hint {
+    position: fixed; left: 0; right: 0; bottom: 7vh; text-align: center; pointer-events: none;
+    font: 600 2vh/1.6 system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    letter-spacing: 0.14em; text-transform: uppercase; color: #F4EDDE; opacity: 0.85;
+  }
+  #hint b { color: #FF6842; font-weight: 600; }
+  body.started #hint { display: none; }
+  body.problem #hint { display: block; text-transform: none; letter-spacing: 0.02em; }
+  body.idle { cursor: none; }
+</style>
+</head>
+<body>
+<video id="film" preload="auto" playsinline disablepictureinpicture></video>
+<div id="hint"><b>F</b> full screen &nbsp;&middot;&nbsp; <b>Space</b> play &nbsp;&middot;&nbsp; <b>R</b> from the start</div>
+<script>
+(function () {
+  'use strict';
+  var film = document.getElementById('film');
+  var hint = document.getElementById('hint');
+  var body = document.body;
+
+  /* Which film: title-sequence.mp4 unless ?film= names another .mp4 in this folder. */
+  var asked = new URLSearchParams(location.search).get('film');
+  var file = (asked && /^[^\/\\]+\.mp4$/i.test(asked)) ? asked : 'title-sequence.mp4';
+  film.src = encodeURIComponent(file);
+
+  film.addEventListener('error', function () {
+    body.classList.remove('started');
+    body.classList.add('problem');
+    hint.textContent = 'This page plays ' + file + ', which was not found next to it (or this browser cannot play it).';
+  });
+
+  function start() {
+    body.classList.add('started');
+    var p = film.play();
+    if (p && p.catch) { p.catch(function () { /* the browser wants a key or a click first: the next one starts it */ }); }
+  }
+  function toggle() {
+    if (film.ended) { return; }                 // the card holds: a stray key must not start the film again
+    if (film.paused) { start(); } else { film.pause(); }
+  }
+  function restart() { film.currentTime = 0; start(); }
+  function fullScreen() {
+    if (document.fullscreenElement) { document.exitFullscreen(); }
+    else if (document.documentElement.requestFullscreen) { document.documentElement.requestFullscreen().catch(function () {}); }
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) { return; }
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); }
+    else if (e.key === 'f' || e.key === 'F') { e.preventDefault(); fullScreen(); }
+    else if (e.key === 'r' || e.key === 'R') { e.preventDefault(); restart(); }
+  });
+  document.addEventListener('click', toggle);
+
+  /* The pointer hides after two still seconds. */
+  var still = null;
+  function moved() {
+    body.classList.remove('idle');
+    clearTimeout(still);
+    still = setTimeout(function () { body.classList.add('idle'); }, 2000);
+  }
+  document.addEventListener('mousemove', moved);
+  moved();
+}());
+</script>
+</body>
+</html>

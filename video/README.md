@@ -9,6 +9,7 @@ three ideas come to the four gates, and only the boring one gets through.
 | `title-sequence.mp4` | The film with sound, 1920×1080, 30 fps |
 | `title-square.mp4` | The same film re-laid for a square frame, 1080×1080, with sound, for social posts |
 | `title-silent.mp4` | The wide film with no audio track at all, for a room with no sound |
+| `play.html` | Shows the film with no player controls: open it in Chrome, F for full screen, Space to start. It holds the title card at the end |
 | `poster.png` | The last frame (the title card), 1920×1080: the cover image, or a still walk-in slide |
 | `title.html` | The picture, live. Double-click it and it plays in the browser (silently: the sound is in the MP4s) |
 | `title-sequence.js` | Everything the picture does: layout, words, moves |
@@ -30,15 +31,15 @@ player may refuse.
 | 0–4 s | A floor line. Four dock doors stand up on it, one to a beat: COST, RETURN, EFFORT, POTENTIAL. "THREE IDEAS · FOUR GATES". | Four notes on the upright bass, one as each door stands up (D, F, A, D): three alone, the brushes joining on the fourth. Then one soft piano chord. |
 | 4–8 s | **Idea 1, the exciting one.** "A CHATBOT FOR EVERYTHING" set as big as the stage allows. Its crate is taller than the door. It stops at COST. The bay is held empty. | The trio at its busiest: walking bass, ride, brushes, piano chords pushed ahead of the beat. As the shutter lets go the band cuts off and holds its breath. |
 | 8 s | The COST shutter drops through the floor: **NO** (Flare). | On the frame, out of that silence: a low thud, the bass and one short tense chord (the dominant). Then nothing but the tail. |
-| 9–12 s | "TOO COSTLY TO RUN". The title is struck through. *Your best AI idea is probably wrong.* | From 10 s the bass alone: one long note, then two shorter ones stepping up. |
+| 9–12 s | "TOO COSTLY TO RUN". The title is struck through. *Your best AI idea is probably wrong.* | From 10 s the bass alone: one long note, then two shorter ones, each higher (G, A, C sharp). |
 | 12–17 s | A black block wipes the dock clean (a small tell-tale mark stays where the NO hit). **Idea 2, the easy one**: "MEETING NOTES FOR MANAGERS". COST checks it (the shutter comes down, then lifts: PASS, carried forward). It stops at RETURN. | Lighter and thinner: brushes and a little piano; two rising piano notes as COST lifts. The band cuts off as the next shutter lets go. |
 | 17 s | RETURN: **NO**. "NOTHING COMES BACK". *Easy is not the same as worth it.* | The thud again, a tone lower, with a chord a half step above home. Then a long quiet. |
 | 20–22 s | The dock is wiped again. **Idea 3, nobody pitched it**: "Invoice follow-up reminders", set quietly. Its plain crate walks up to COST. | **A held breath:** only a very quiet room tone. |
 | 22–30 s | It goes through all four gates, one to a bar: each shutter comes down, lifts to PASS, and the crate walks through on the beat. | The bass alone, on the same D, F, A the film opened with. At each lift a rising piano figure, fuller and higher than the last; brushes, then ride, then hi-hat and bass drum join, one door at a time. |
-| 30–32 s | Past the last door, the crate turns Flare: the point. *The boring one you didn't pitch is probably worth thousands.* | The first cadence that arrives: a rolled piano chord left to ring while the bass walks under the line. |
+| 30–32 s | Past the last door, the crate turns Flare: the point. *The boring one you didn't pitch is probably worth thousands.* | The boring idea's cadence arrives (the dominant falls home to D minor): a rolled piano chord left to ring while the bass walks under the line. |
 | 32–37 s | The sleeve: a black block covers the stage and pulls back to the spine. The title card builds as the deck's title slide: THE MOST / VALUABLE / AI SKILL / IS SAYING, the subtitle, the name. The right half is held empty. | Short piano chords whose top note steps upward; a brush swell; the band cuts off as the slab lets go. |
 | 37 s | The slab drops: **NO**. Two beats in negative. | The thud once more, but this time with the home chord and a cymbal left to ring: the one NO that resolves. |
-| 38–46 s | The fine print cuts in: WAYPOINT · NOAI 2026 · NEW ORLEANS, when, time, room. The card holds: it is the walk-in screen. | Two slow chords and a single note, then the last chord, rolled, fading on its own by about 45 s. |
+| 38–46 s | The fine print cuts in: WAYPOINT · NOAI 2026 · NEW ORLEANS, when, time, room. The card holds to the end of the film. | Two slow chords and a single note, then the last chord, rolled, left to ring and let go at 45 s. |
 
 Every NO lands on a beat and on a whole frame (8.0 s = frame 240, 17.0 s =
 frame 510, 37.0 s = frame 1110), and the sound of each is checked to begin
@@ -79,21 +80,37 @@ should be confirmed by ear.
 
 ## Showing it
 
-- **With sound:** `title-sequence.mp4`, full screen. It ends on the title card
-  and holds it (the last chord has faded by 46 s), so leave it paused on the
-  last frame as the walk-in screen, or show `poster.png`.
-- **No sound in the room:** `title-silent.mp4`. The picture tells the whole
-  story without the sound.
+- **With sound:** open `play.html` in Chrome. Press F for full screen, then
+  Space to start. It plays `title-sequence.mp4` once, with no player controls
+  on screen, and holds the title card when the film ends (the last chord has
+  faded by 46 s), so the card can stay up until you switch to the deck. Space
+  pauses and resumes. Once the film has ended, Space and clicks do nothing, so
+  a stray key cannot start it again; R plays it from the start.
+- **Do not open the MP4 itself for the room.** A browser's own player keeps
+  its control bar across the bottom of the picture whenever the film is paused
+  or has ended: in Chrome it covers the name and role line of the title card.
+  While the film plays, Chrome hides the bar a few seconds after the pointer
+  stops moving, unless the pointer rests on the bottom of the picture.
+- **No sound in the room:** `play.html?film=title-silent.mp4`. The picture
+  tells the whole story without the sound.
 - **Square for social:** `title-square.mp4`.
-- **In a browser:** double-click `title.html` (picture only). Space pauses,
-  R replays, the arrow keys step one beat. `title.html?size=1080x1080` is the
-  square; `title.html?t=17` freezes on the frame at 17 s.
+- **A still:** `poster.png` is the title card.
+- **The picture alone, live:** double-click `title.html` (no sound). Space
+  pauses, R replays, the arrow keys step one beat.
+  `title.html?size=1080x1080` is the square; `title.html?t=17` freezes on the
+  frame at 17 s.
+
+All of this was tried in Chrome and in no other browser or player.
 
 ## Changing it
 
-- **Timing** (for picture and sound together): `score.js`. Keep every NO's
-  `land` on a beat (a multiple of 0.5 s). The score's build refuses to finish
-  if a hit is not within 10 ms of its frame.
+- **Timing:** `score.js` moves the picture. The sound is composed bar by bar
+  against the same times and does not move by itself: if a NO, a PASS, the
+  winner, the sleeve or the title's return to positive moves, the score's
+  build stops and says that `tools/score/ref/events.json` disagrees with
+  `score.js`. Update that table, then the score's `chart.js`. Keep every NO's
+  `land` on a beat (a multiple of 0.5 s); the build fails if a hit is not
+  within 10 ms of its frame.
 - **Idea names, kickers, the voice lines:** `score.js` too.
 - **Your name, the date, the room:** `deck/content/your-numbers.js`, not here.
 - **Layout and moves:** `title-sequence.js`.
