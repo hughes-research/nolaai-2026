@@ -35,6 +35,7 @@ A mouse click on a slide does not advance it, because several slides have live c
 - [ ] Present from Chrome, with the laptop plugged in. If you jump straight to the warehouse slide (27) on a slow laptop, it shows the search counting up for a few seconds before the result lands; stepping through Act 4 normally avoids the wait.
 - [ ] On the screener slide (23), what the room types survives a reload. Press RESET after rehearsing so you start clean.
 - [ ] In the room: check the coral ink (Flare) on the projector, and check you can read the screener slide (slide 23, the densest) from the back row.
+- [ ] If you play the title film as people walk in: play `video/title-sequence.mp4` from the laptop, full screen, and check the room's sound once. Do not play it from a USB stick in the projector: a built-in player may refuse the file. It was tried in Chrome and nowhere else, so open it once in the player you will use. `video/title-silent.mp4` is the same film with no sound.
 
 ## Your numbers
 
