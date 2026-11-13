@@ -4,9 +4,11 @@
  *   In the browser:  <script src="score.js">  ->  window.SCORE
  *   In Node:         require('../video/score.js')
  *
- * video/title-sequence.js draws every frame from these times, and
- * tools/build-audio.js writes every sound from the same times, so a shutter
- * and its slam cannot drift apart: they are the same number.
+ * video/title-sequence.js draws every frame from these times, and the film's
+ * score (tools/score/, built by tools/build-audio.js) takes its hits and its
+ * stop-times from the same numbers, so a shutter and its slam cannot drift
+ * apart. The music itself, its notes and its harmony, is not in this file:
+ * it is the chosen score's chart, tools/score/<name>/chart.js.
  *
  * Tempo is 120 BPM: a beat is 0.5 s, a bar is 2 s, and at 30 frames a second
  * every beat falls on a whole frame (15 frames). A NO is timed by when it
@@ -111,33 +113,11 @@
     },
 
     /* Stop-time: the band stops dead. Only the slam (and its ring) sounds. */
-    silences: [[8, 9], [17, 18], [20, 22], [37, 38]],
-
-    /* How much of the band plays, bar by bar: 0 none, 1 bass and ride,
-     * 2 with brushes, 3 with piano comping. 'bass' plays the bass alone. */
-    sections: [
-      { from: 0, to: 2, level: 1 },
-      { from: 2, to: 4, level: 2 },
-      { from: 4, to: 8, level: 3, busy: true },     // the hype
-      { from: 9, to: 12, level: 2 },
-      { from: 12, to: 17, level: 3 },
-      { from: 18, to: 20, level: 1 },               // thinning out
-      { from: 22, to: 24, level: 'bass' },          // the boring one walks in on the bass alone
-      { from: 24, to: 26, level: 1 },
-      { from: 26, to: 30, level: 2 },
-      { from: 30, to: 37, level: 3 },
-      { from: 38, to: 46, level: 'tag' }            // the resolved chord and a soft ride, fading
-    ],
-
-    /* The harmony, one chord to a bar (C minor). */
-    chords: ['Cm', 'Cm', 'Fm', 'Fm', 'Cm', 'Cm', 'Ab7', 'G7', 'Cm', 'G7', 'Cm', 'Cm',
-      'Fm', 'Ab7', 'G7', 'Cm', 'Fm', 'Ab7', 'G7', 'Cm', 'Cm', 'Cm', 'Cm'],
-
-    fadeOut: [43.5, 46]
+    silences: [[8, 9], [17, 18], [20, 22], [37, 38]]
   };
 
-  /* Every hard sound, with the picture event it belongs to. Built from the
-   * story above; the audio builder plays these and nothing it invents. */
+  /* Every picture event a sound can be cut to, in order. Built from the story
+   * above. */
   SCORE.cues = function () {
     var out = [];
     out.push({ t: SCORE.intro.floor, type: 'floor' });
