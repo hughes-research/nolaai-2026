@@ -74,6 +74,7 @@ for (let i = 0; i < args.length; i++) {
 }
 if (scores().indexOf(score) < 0) { fail('no such score: ' + score + ' (there are: ' + scores().join(', ') + ')', 2); }
 if (fs.existsSync(out) && fs.statSync(out).isDirectory()) { fail('--out needs a file name, and this is a folder: ' + out, 2); }
+if (!/\.wav$/i.test(out)) { fail('--out names the WAV to write, so its name has to end in .wav (got ' + out + ')', 2); }
 
 if (usesSampler(score)) {
   const fluid = spawnSync('fluidsynth', ['--version'], { encoding: 'utf8' });
@@ -130,7 +131,7 @@ if (mux) {
   console.log('\nPutting it on the films (the picture is stream-copied; its MD5 is checked before and after):');
   let result;
   try { result = require(path.join(SCORES, 'lib', 'mux.js')).install(out, {}); }
-  catch (e) { fail('the install stopped: ' + e.message + '\n  No film is replaced until both new files have passed their checks.'); }
+  catch (e) { fail('the install stopped: ' + e.message + (e.replaced === undefined ? '\n  No film is replaced until both new files have passed their checks.' : '')); }
   if (!result.ok) { fail('the mux reported a problem (see above); both films were left as they were.'); }
 } else {
   console.log('To put it on the films without re-rendering the picture:  node tools/build-audio.js' + (score === CHOSEN ? '' : ' --score ' + score) + ' --mux');

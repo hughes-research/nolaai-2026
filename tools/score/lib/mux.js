@@ -34,6 +34,10 @@
  * both films stay as they were. A run that is killed while a new film is
  * being written also leaves both films as they were, but it can leave a
  * .new.mp4 and the lock behind: the next install removes them.
+ * One case is not both or neither: if the system will not let the second
+ * film be replaced at that last step (a locked file, for example), the first
+ * film already has the new sound. The run then stops, removes the new file
+ * that is left and says which film has the new sound and which has not.
  * The picture is still only copied: its MD5 before and after must be the same.
  */
 'use strict';
@@ -78,7 +82,6 @@ function probe(file) {
   return JSON.parse(r.stdout);
 }
 
-/* The path a file really has, links followed, whether or not the file exists yet. */
 /* Where a path really leads, with symbolic links followed, also when its last parts are not there yet. */
 function real(file) {
   const abs = path.resolve(file);
@@ -127,10 +130,10 @@ function lockInstall() {
     const young = Date.now() - fs.statSync(lock).mtimeMs < 5000;
     let alive = false;
     try { if (pid > 0) { process.kill(pid, 0); alive = true; } } catch (e2) { alive = e2.code === 'EPERM'; }
-    if (alive || (!(pid > 0) && young)) {
-      throw new Error('another install is running (process ' + pid + '). Let it finish, then run this again. If none is running, delete ' + lock);
-    }
-    fs.writeFileSync(lock, String(process.pid));          // left by a run that was killed
+    if (alive) { throw new Error('another install is running (process ' + pid + '). Let it finish, then run this again. If none is running, delete ' + lock); }
+    if (!(pid > 0) && young) { throw new Error('an install seems to be starting: ' + lock + ' is a few seconds old and holds no process number yet. Run this again in ten seconds.'); }
+    try { fs.writeFileSync(lock, String(process.pid)); }  // left by a run that was killed
+    catch (e3) { throw new Error('cannot write into ' + path.dirname(lock) + ': ' + e3.message); }
   }
   return function () { try { fs.unlinkSync(lock); } catch (e) { /* gone already */ } };
 }
@@ -197,14 +200,26 @@ function muxOne(wavFile, picture, outFile, opts) {
 }
 
 /* Finish in-place muxes together: every new film replaces its old one only if all of them passed.
- * Otherwise the new files are removed and the films stay as they were. */
+ * Otherwise the new files are removed and the films stay as they were. If the system will not let a
+ * film be replaced at this last step, the new files that are left are removed and the error says
+ * which film has the new sound and which has not. */
 function settle(results) {
   const allOk = results.every(function (r) { return r && r.ok; });
+  const replaced = [];
   results.forEach(function (r) {
     if (!r || !r.inPlace) { return; }
     r.installed = allOk;
     if (!fs.existsSync(r.written)) { return; }
-    if (allOk) { fs.renameSync(r.written, r.out); } else { fs.unlinkSync(r.written); }
+    if (!allOk) { fs.unlinkSync(r.written); return; }
+    try { fs.renameSync(r.written, r.out); replaced.push(path.basename(r.out)); } catch (e) {
+      const film = path.basename(r.out);
+      const err = new Error('could not replace ' + film + ': ' + e.message + '\n  ' +
+        (replaced.length ? 'CAREFUL: ' + replaced.join(' and ') + ' already has the new sound and ' + film + ' still has the old one.' : 'No film was replaced.') +
+        '\n  Find what holds ' + film + ' (a locked file, for example), free it, and run the install again.');
+      err.replaced = replaced.length > 0;
+      results.forEach(function (x) { if (x && x.inPlace) { try { fs.unlinkSync(x.written); } catch (e2) { /* renamed already, or the first error is the one to report */ } } });
+      throw err;
+    }
   });
   return allOk;
 }
@@ -234,14 +249,14 @@ function run(wavFile, outMp4, opts) {
   return result;
 }
 
-/* Replace the sound of the two shipped films, in place: both or neither. */
+/* Replace the sound of the two shipped films, in place: both or neither, unless the system refuses the second rename (settle() then says which film has which sound). */
 function install(wavFile, opts) {
   const o = Object.assign({}, opts || {}, { allowVideoDir: true, square: PICTURES.square.file });
   const unlock = lockInstall();
   try {
     [PICTURES.wide.file, PICTURES.square.file].forEach(function (film) {      // what a killed run left behind
       const stale = film.replace(/\.mp4$/, '') + '.new.mp4';
-      if (fs.existsSync(stale)) { fs.unlinkSync(stale); }
+      if (fs.existsSync(stale)) { try { fs.unlinkSync(stale); } catch (e) { throw new Error('cannot write into ' + path.dirname(stale) + ': ' + e.message); } }
     });
     return run(wavFile, PICTURES.wide.file, o);
   } finally { unlock(); }
