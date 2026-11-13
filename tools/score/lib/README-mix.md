@@ -1,10 +1,11 @@
 # The mix half of the kit
 
-`wav.js`, `dsp.js`, `mix.js`, `synth.js`, `checks.js`, `analyze.js`, `mux.js`, `index.js`, `test-mix.js`, `demo/`.
+`wav.js`, `dsp.js`, `mix.js`, `synth.js`, `checks.js`, `analyze.js`, `mux.js`, `index.js`.
 `README.md` is the one page for composers; this file says exactly what each part does and how it was verified.
 
-Nobody on this team can hear. Every statement below is a measurement made by `node tools/score/lib/test-mix.js`
-(about 140 checks, a minute or so, exit 0 only if all hold) or says that it is not one.
+Nobody on this team can hear. Every statement below is a measurement made by the kit's mix test (141 checks;
+it ran where the scores were made and is not shipped, because it needs the first soundtrack's file) or says
+that it is not one.
 
 ## What came from the modelled build, and what changed
 
@@ -46,7 +47,7 @@ Returns a new Stereo (the input is not touched) with `.info`. In this order:
 `.info`: `{ inputLufs, gainDb, comp: { maxReductionDb, meanReductionDb } | null, limiter: { maxReductionDb,
 limitedPercent }, lufs, truePeakDb, lra, passes }`. `gainDb` is all the plain gain (what the room tone moved by).
 
-Measured (kit / ffmpeg after writing 24-bit): synthetic mix -16.04 / -16.04 LUFS, -2.05 / -2.05 dBTP; `ref/old.wav`
+Measured (kit / ffmpeg after writing 24-bit): synthetic mix -16.04 / -16.04 LUFS, -2.05 / -2.05 dBTP; the first soundtrack
 -16.05 / -16.05, -2.05 / -2.05; `modelled/final.wav` -16.01 / -16.02, -2.05 / -2.05; with `{ comp: false, lufs: -14,
 ceilingDb: -1 }` -14.02 / -14.03, -1.05 / -1.05. 0.3 to 0.8 s for 46 s. Twice the same result. No click in the output
 of a mix the limiter works on for 18 percent of its samples. The default chain measured on white noise: 29 dB down
@@ -63,8 +64,8 @@ EBU Tech 3342: 3 s blocks, gates -70 LUFS and -20 LU, 10th to 95th percentile.
 
 | file | integrated LUFS kit / ffmpeg | range LU kit / ffmpeg | true peak dBTP kit / ffmpeg |
 |---|---|---|---|
-| `ref/old.wav` | -15.812 / -15.817 | 6.80 / 6.81 | -2.416 / -2.418 |
-| `modelled/final.wav` (as rebuilt at 01:00) | -16.012 / -16.017 | 7.95 / 7.95 | -2.009 / -2.004 |
+| the first soundtrack (not in the repository) | -15.812 / -15.817 | 6.80 / 6.81 | -2.416 / -2.418 |
+| `modelled/final.wav` (an earlier build) | -16.012 / -16.017 | 7.95 / 7.95 | -2.009 / -2.004 |
 | a synthetic 20 s mix (thumps, a 11 kHz tone, four quiet seconds) | -13.543 / -13.548 | 8.57 / 8.58 | +0.448 / +0.449 |
 
 Also: the EBU calibration tone (997 Hz at -23 dBFS in both channels) reads -23.000 LUFS; a 12 kHz tone 45 degrees
@@ -142,15 +143,15 @@ gives (the fourth difference over 6). A click is a sample where that difference 
 times its own 90th percentile over the 2 ms before it and over the 2 ms after it, whichever is larger. An attack
 is followed by more of the same; a click is alone. Calibration, on `modelled/final.wav`:
 
-- the file has been rebuilt by its own agent since the kit was started. As first built, the modelled build's rule
+- the file was rebuilt while the kit was being made. As first built, the modelled build's rule
   (any sample-to-sample jump over 0.05) counted 70 "clicks" in it, at 4.5, 26.5, 37.0 s and other note attacks;
   an earlier version of this detector (a median instead of the 90th percentile, a ratio of 12) reported 0 there
   and found an inserted click of 0.05 at 105 of 105 places. That file is gone; the numbers below are the detector
-  as it is now, on the file as rebuilt at 01:00, where the old rule counts 3766: this detector reports **0**;
+  as it is now, on a later build of the file, where the old rule counts 3766: this detector reports **0**;
 - a single-sample click of 0.05 inserted at each of 30 places (on the attacks at 4.5, 8, 17, 26.5, 36.5 and 37 s,
   in the held breath, at 16 random places): **found 30 of 30**, and nothing else reported;
 - at 0.02 (smaller than asked): 28 of 30; the two misses are on the loudest attacks (4.500 and 36.504 s);
-- `ref/old.wav`, where the old rule counts 11200 jumps: 0;
+- the first soundtrack, where the old rule counts 11200 jumps: 0;
 - a step of 0.05 under a note is one click; a note cut off at the top of its swing is one click;
 - not clicks: a loud 3 kHz tone that starts within 0.25 ms, a burst of noise that starts on one sample.
 
@@ -193,10 +194,10 @@ total; bass within 0.5 dB of centre, keys louder on the left and drums on the ri
 least -15 dB, above 3 kHz at most -40 dB, start at least 1.15 times the settled pitch. The room's decay cannot be
 measured from a mix and the row says so.
 
-Pictures: ffmpeg `showspectrumpic`, 1602 x 700, log frequency with a legend; `waveform.png` 1610 x 480. Below
-about 150 Hz the spectrograms are coarse (ffmpeg's FFT is short); read the low end from the band table.
+Pictures: spectrograms by `spectro.py` (numpy and Pillow; an 8192-point transform, 5.9 Hz a bin), 1578 x 676, log
+frequency; `waveform.png` by ffmpeg, 1610 x 480. Below about 100 Hz a bin is wider than a semitone; read the low
+end from the band table.
 
-`demo/` holds the run on `modelled/final.wav` with its stems against `ref/old.wav`.
 
 ## mux.js
 

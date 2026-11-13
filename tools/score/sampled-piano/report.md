@@ -189,23 +189,22 @@ Events a second by section: dock 5.3; idea 1 22.0; after NO 1 4.0; bass alone 1.
 - The break before the slab is my reading of "builds toward the slab": a swell, then a held breath, then the chord.
 - Originality: composed here from common jazz vocabulary (ii-V-i in D minor, a tritone substitute, a three-step rising cell); no tune was quoted or imitated, and nothing checks that except my own intent.
 
-## Decisions the lead may overrule (from the composer's hand-back)
+## Decisions that may be overruled
 
 1. The break. Each time a door lets go (7.625, 16.625, 36.625 s, read from video/score.js) the band cuts off and is silent for the 0.375 s the door falls, then the hit lands. I added this because, under a -2 dBTP ceiling at -16 LUFS, the hits could not be made louder than the bar before them without the limiter flattening them. The brief says "the band builds toward the slab": here the build is a brush swell to 36.5 s, then the held breath. To undo it for the slab, in chart.js set BASS bar 19 beat 2 back to length 1 and DRUMS bar 19 roll and swirl back to [1, 3].
 2. The piano is brighter than the raw preset: a +4.5 dB shelf above 1 kHz. Without it the mix measured 7.5 dB per octave, outside the brief's tilt window on the dark side.
 3. The master has no 8 kHz shelf (every voice is already low-passed) and a lighter compressor (threshold -16, ratio 1.6) than the kit default.
 
-(Saved by the lead from the composer's hand-back: subagents return their reports as text.)
 
 ## Revision (after the judging)
 
-Three judges measured this score beside the other three. A reviser, who did not write it, then worked through their findings. This section is the reviser's hand-back; the sections above describe the score as it was judged, and where the two differ this section is the current state.
+Three judges measured this score beside the other three. A reviser, who did not write it, then worked through their findings. This section is the reviser's report; the sections above describe the score as it was judged, and where the two differ this section is the current state.
 
-Nobody has heard this revision either. Everything below was measured or seen in a picture. The tables and the mix chain above this heading describe the first mix; where they differ from this section, this section is the current state.
+Nobody has heard this revision either. Everything below was measured or seen in a picture. The tables and the mix chain above this heading describe the first mix; where they differ from this section, this section is the current state. The scripts named below are the judges' and the reviser's own measuring scripts; they are not in the repository.
 
 ### What changed, and why
 
-Both majors of the realism judge are fixed, and every minor the lead listed except the optional one (the neighbour-key round robin for repeated bass pitches).
+Both majors of the realism judge are fixed, and every listed minor except one (the neighbour-key round robin for repeated bass pitches).
 
 1. **The brushes are continuous.** Under the struck swirl strokes lies a bed made from the recorded swirl itself: three takes of key 40, their decay divided out, cut into seeded grains of 60 to 90 ms that overlap at equal power. The bed sits 8 dB under the loudest 10 ms of the strokes around it (measured in the build), dips 7 to 10 dB under each on-beat stroke, is darker than the strokes, and has their fader, pan and room send. It exists only where the chart has a swirl or a roll, and it is cut with the band 70 ms after each door lets go. No two neighbouring struck strokes are the same waveform any more (five variants of the recording, 3 % slower to 3 % faster).
 2. **The last bass note ends before its loop.** D2 from 40.0 s is let go at 41.25 s and dies under the chord (the bass alone comes down 14 dB over its last 0.85 s); the same string is touched again at 42.0 s at velocity 12 of 127. No bass note is longer than 1.27 s. From 41 s the piano leads.
@@ -363,17 +362,17 @@ All 24 measured targets of the kit's analysis pass; check-chart.js has 37 rows a
 
 ### Not changed, and why
 
-- **Bass: one recording per pitch at every level (realism, minor; the lead's item 13, optional)**: Not attempted. It was optional and the time was gone; every re-pitched pass would have needed its own proof of pitch and timing. Unchanged: 110 of 134 same-pitch pairs over r 0.98.
+- **Bass: one recording per pitch at every level (realism, minor)**: Not attempted: every re-pitched pass would have needed its own proof of pitch and timing. Unchanged: 110 of 134 same-pitch pairs over r 0.98.
 - **The ride's second low-pass at 7.5 kHz, as the signal judge wrote**: At 7.5 kHz the whole mix measured a tilt of 6.70 dB per octave (the fitted line ends at 8 kHz), outside the brief. It is at 8.5 kHz (was 9); the first low-pass is where the judge put it, 5.6 kHz.
-- **Bars 16 to 18 rising about 0.5 dB a bar (the lead's item 7)**: Only in part. The hits are bound by the limiter, so the slab can only be the loudest thing after 32 s if the roll before it stays under it, and a rise of 3 dB into the break then has to start low. I chose the 3 dB rise and the slab on top: bar 16 is at -0.75 dB and bar 17 at -0.5, then the band pulls back through bar 17's last two beats and swells through bar 18. Per-bar RMS of bars 16, 17, 18 is -17.0, -17.8, -18.0 dBFS (bar 18 ends high), not a rise of 0.5 dB a bar.
-- **Raise the brush slap at 37.000 s (the lead's item 6)**: The slab has no brush slap (bass drum, ride left to ring, thud: the composer's design, the NO that resolves). I did not add one. The slab's chord is 3.5 dB up and its ride 3 dB up instead.
+- **Bars 16 to 18 rising about 0.5 dB a bar**: Only in part. The hits are bound by the limiter, so the slab can only be the loudest thing after 32 s if the roll before it stays under it, and a rise of 3 dB into the break then has to start low. I chose the 3 dB rise and the slab on top: bar 16 is at -0.75 dB and bar 17 at -0.5, then the band pulls back through bar 17's last two beats and swells through bar 18. Per-bar RMS of bars 16, 17, 18 is -17.0, -17.8, -18.0 dBFS (bar 18 ends high), not a rise of 0.5 dB a bar.
+- **Raise the brush slap at 37.000 s**: The slab has no brush slap (bass drum, ride left to ring, thud: the composer's design, the NO that resolves). I did not add one. The slab's chord is 3.5 dB up and its ride 3 dB up instead.
 - **The slab is the loudest event after 32 s by momentary loudness**: By RMS it is (0.8 dB over the next half second). By ffmpeg's momentary loudness the roll's last 400 ms and the slab's first 400 ms tie at -12.4 LUFS (first mix: roll -13.0, slab -13.4). More would need a harder limiter or a still lower build.
 - **The judge's bass line for bar 17 (G2 Bb2 A2 F2)**: It puts A, the ninth, on beat 3, which the chart's own chord-tone check refuses. G2 A2 Bb2 F2 keeps a chord tone on beat 3 and the same half step F2 to E2.
-- **Idea 1's cycle of fourths; piano stabs on the title lines; removing the break**: Not wanted by the lead. Untouched.
+- **Idea 1's cycle of fourths; piano stabs on the title lines; removing the break**: Left as composed.
 
 ### Final numbers
 
-Final state, /home/user/nolaai-2026/tools/score/sampled-piano/final.wav, MD5 1b843a2689d046b29ccff6e863adcaee (three consecutive builds identical, stems and arrangement.json too; build 41 s). Kit analysis: 24 of 24 measured targets pass. Kit checks 14 of 14, the build's own 28 of 28, check-chart.js 37 of 37. Integrated loudness -16.01 LUFS (ffmpeg -16.0); true peak -2.05 dBTP (AAC 256k round trip -2.0); loudness range 6.8 LU; tilt 6.43 dB per octave; above 8 kHz -35.5 dB; 2 to 5 kHz -18.1 dB; keys -7.9 dB and drums -9.1 dB against the bass (30 to 36 s); mono sum loses 0.06 dB (worst band 0.35 dB); low-end correlation 0.999; bass stem above 150 Hz 27 %; under 50 Hz -21.4 dB; clicks 0, clipping 0, DC -1.2e-5; held breath -67.9 dBFS, quietest 100 ms -69.2; stage L minus R +0.00, +2.53, -2.24 dB; thuds 55.0, 49.0, 55.0 Hz, start 1.41 to 1.44 times higher, body -5.2 to -7.0 dB. HARD hits: kit onsets -3.8, -4.0, -4.1 ms; the music judge's detector -4.0, -4.1, -4.0 ms first trace, +3.4, +3.2, +1.8 ms half rise. Tail -86.4 dBFS after 45.9 s; loop seam 1.2e-7. Master: compressor up to 2.5 dB (0.34 average), limiter up to 4.10 dB, below unity on 9.5 % of samples; crest 16.9 dB; loudest 400 ms -12.4 LUFS, loudest 3 s -14.0.
+Final state, final.wav, MD5 1b843a2689d046b29ccff6e863adcaee (three consecutive builds identical, stems and arrangement.json too; build 41 s). Kit analysis: 24 of 24 measured targets pass. Kit checks 14 of 14, the build's own 28 of 28, check-chart.js 37 of 37. Integrated loudness -16.01 LUFS (ffmpeg -16.0); true peak -2.05 dBTP (AAC 256k round trip -2.0); loudness range 6.8 LU; tilt 6.43 dB per octave; above 8 kHz -35.5 dB; 2 to 5 kHz -18.1 dB; keys -7.9 dB and drums -9.1 dB against the bass (30 to 36 s); mono sum loses 0.06 dB (worst band 0.35 dB); low-end correlation 0.999; bass stem above 150 Hz 27 %; under 50 Hz -21.4 dB; clicks 0, clipping 0, DC -1.2e-5; held breath -67.9 dBFS, quietest 100 ms -69.2; stage L minus R +0.00, +2.53, -2.24 dB; thuds 55.0, 49.0, 55.0 Hz, start 1.41 to 1.44 times higher, body -5.2 to -7.0 dB. HARD hits: kit onsets -3.8, -4.0, -4.1 ms; the music judge's detector -4.0, -4.1, -4.0 ms first trace, +3.4, +3.2, +1.8 ms half rise. Tail -86.4 dBFS after 45.9 s; loop seam 1.2e-7. Master: compressor up to 2.5 dB (0.34 average), limiter up to 4.10 dB, below unity on 9.5 % of samples; crest 16.9 dB; loudest 400 ms -12.4 LUFS, loudest 3 s -14.0.
 
 ### What remains weak
 
@@ -387,5 +386,4 @@ Final state, /home/user/nolaai-2026/tools/score/sampled-piano/final.wav, MD5 1b8
 - Room tone: darker as decided, but L/R correlation rose from 0.61 to 0.72.
 - Master limiter below unity on 9.5 % of samples (was 4.3 %); deepest reduction 4.10 dB (was 3.99).
 - Bass repeats unchanged (one recording per pitch); the optional round robin was not attempted.
-- judge-music-picture/extra.py reads drums-stem swing as 0.52 to 0.67 now (its onset detector cannot isolate strokes over the bed); pitch.py reads the 125 ms D2 at 16.50 s as -40.5 cents on a 75 ms window (-27.6 before). Both are method effects, stated so the lead is not surprised.
-- The revision took about 65 minutes, not 25.
+- judge-music-picture/extra.py reads drums-stem swing as 0.52 to 0.67 now (its onset detector cannot isolate strokes over the bed); pitch.py reads the 125 ms D2 at 16.50 s as -40.5 cents on a 75 ms window (-27.6 before). Both are method effects.

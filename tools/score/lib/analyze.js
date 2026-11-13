@@ -11,8 +11,8 @@
  *                 and PASS or FAIL, then the detail (loudness, spectrum, stereo, bar by bar, stems)
  *   numbers.json  the same numbers for programs
  *   spectrogram.png, spectrogram-00-12s.png, spectrogram-20-32s.png, spectrogram-30-46s.png
- *                 log frequency, with a legend (ffmpeg showspectrumpic); in the three windows the time axis
- *                 starts at 0 (add the window's start)
+ *                 log frequency, drawn by spectro.py (Python 3, numpy, Pillow); the time axis shows the
+ *                 film's own seconds in every window
  *   waveform.png  left over right, a grid line every bar (2 s), the three HARD hits marked
  *   ref-spectrogram.png   with --ref
  *

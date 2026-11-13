@@ -51,7 +51,7 @@ P('- The brief limits the bass to E1..G3. G minor is the only key in which that 
 P('- G1 is 49.0 Hz, inside the 45 to 60 Hz the brief asks of a thud. The last thud is tuned to the home root, and the two "wrong" hits to the notes they land on (Ab1 51.9 Hz, F#1 46.2 Hz), both still inside that band.');
 P('- Tonic and dominant are the open G and D strings: idea 2\'s two-feel can be as lazy as it should be.');
 P('- The gate notes on the piano (G4 to D5, 392 to 587 Hz) sit far below the 2 to 5 kHz band the mix has to keep down.');
-P('- The first soundtrack was in C minor (video/score.js). This is not that piece.');
+P('- The first soundtrack was in C minor. This is not that piece.');
 P();
 P('## 3. The instruments, and why (from lib/audition)');
 P();
@@ -138,12 +138,12 @@ P('- **The kit\'s pictures** (analysis/spectrogram*.png): used for time structur
 P('- **The audition\'s pictures** of the chosen presets: bass-musescore.png (sharp starts, a smooth four-second decay on the held note, a clean stop, nothing between the notes), piano-mellow-musescore.png (three velocities: more upper partials with each, smooth decays, no hiss), brushes-fluidr3.png (the same three brush recordings: energy to above 10 kHz, which is why they are low-passed here).');
 P('- **Where the master squeezes** (diag.js: stems times the master\'s plain gain against final.wav, 5 ms frames): idea 1 2.6 to 2.8 dB on average (most 3.7), bars 15 to 18 1.4 to 1.8 dB (most 3.0), the three hits most 4.1, 3.7 and 5.4 dB for an instant; idea 2 and bars 12 to 13 0.3 to 0.5 dB on average (most 1.4).');
 P();
-P('## 9. Notes on the kit, for the lead');
+P('## 9. Notes on the kit');
 P();
-P('1. **The kit\'s spectrogram pictures are mirrored.** analysis/spectrogram*.png (ffmpeg showspectrumpic, fscale=log, in analyze.js) show a dark line at the "520 Hz" label with the picture reflected below it; a rising bass line draws one band going up above the line and one going down below it. lib/demo/spectrogram-00-12s.png shows the same. The labels cannot be used to read pitch. Worked around here with spectro.py (numpy and PIL, this directory only); the kit was not edited.');
+P('1. **The kit\'s spectrogram pictures were mirrored (fixed since: the kit now draws them with `lib/spectro.py`).** When this score was composed, the kit\'s spectrograms (ffmpeg showspectrumpic, fscale=log, in analyze.js) showed a dark line at the "520 Hz" label with the picture reflected below it; a rising bass line drew one band going up above the line and one going down below it. The labels could not be used to read pitch. Worked around at the time with spectro.py (numpy and Pillow), which the kit then took over.');
 P('2. **"Keys relative to bass, 30 to 36 s"** measures a window in which this candidate\'s piano does not play, by assignment. It reads ' + (A.match(/Keys relative to bass, 30 to 36 s \| [^|]+ \| ([^|]+) \|/) || [0, '?'])[1].trim() + ' and fails. Where the piano plays it is inside the target: see the row "keys against bass" in section 5.');
 P('3. sampler.onset() caches into lib/audition/onsets.json: this build\'s calls added its hard-hit keys to that file (the kit\'s own cache, written by the kit\'s own function).');
-P('4. test-sampler.js: 12 of 12 passed. test-mix.js: 141 ok, 0 failed.');
+P('4. test-sampler.js: 12 of 12 passed. The kit\'s mix test (not shipped): 141 ok, 0 failed.');
 P();
 P('## 10. Listening guide');
 P();

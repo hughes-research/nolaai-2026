@@ -60,14 +60,14 @@ wav.write(here('final.wav'), final);                                // 24-bit, d
 
 // 6. Prove it. The build exits 0 only if the checks pass.
 const result = kit.checks.run({ file: here('final.wav') });         // prints PASS or FAIL per check
-kit.analyze.run(here('final.wav'), { outDir: here('analysis'), stemsDir: here('stems'), ref: path.join(kit.const.LAB, 'ref', 'old.wav') });
+kit.analyze.run(here('final.wav'), { outDir: here('analysis'), stemsDir: here('stems') });
 if (!result.ok) { process.exit(1); }
 ```
 
 Then a listening copy (the picture is stream-copied and its MD5 verified; never write into `video/`):
 
 ```sh
-node tools/score/lib/mux.js tools/score/<key>/final.wav tools/score/listen/<key>.mp4 --square tools/score/listen/<key>-square.mp4
+node tools/score/lib/mux.js tools/score/<key>/final.wav out/video/<key>.mp4 --square out/video/<key>-square.mp4
 ```
 
 ## Sampler half (kit-sampler)
@@ -100,7 +100,7 @@ layers. Choose by those numbers, not by name.
 | `synth.roomTone({ db, seed })` | steady pink noise, -68 dBFS, 80 Hz to 6 kHz, mono-safe. The master's gain moves it with everything else |
 | `wav.read(file)`, `wav.write(file, st, { bits })` | PCM 16/24/32 and float in; 24-bit dithered out |
 | `checks.run({ file, sync, breath, lufs, ceilingDb, lra })` | the gate: prints PASS or FAIL per check, returns `{ ok, failures, numbers, rows }`. From a shell: `node tools/score/lib/checks.js final.wav` |
-| `analyze.run(file, { outDir, stemsDir, ref })` | `numbers.md` (every BRIEF 4.3 target, measured, PASS or FAIL), `numbers.json`, spectrograms, waveform. CLI: `node tools/score/lib/analyze.js final.wav --out analysis --stems stems --ref ../ref/old.wav`. About 16 s; `pictures: false` (`--no-pictures`) makes it 5 s while you iterate |
+| `analyze.run(file, { outDir, stemsDir, ref })` | `numbers.md` (every BRIEF 4.3 target, measured, PASS or FAIL), `numbers.json`, spectrograms, waveform. CLI: `node tools/score/lib/analyze.js final.wav --out analysis --stems stems` (`--ref other.wav` sets a second file beside it). About 16 s; `pictures: false` (`--no-pictures`) makes it 5 s while you iterate |
 | `mux.run(wav, outMp4, { square })` | the listening copy; CLI above |
 
 ## What trips people up

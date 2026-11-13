@@ -2,7 +2,7 @@
 """
 tools/score/modelled/analyze.py: numbers and pictures for final.wav and its stems.
 
-    python3 analyze.py [final.wav] [--out analysis] [--stems stems] [--ref ../ref/old.wav] [--no-pics]
+    python3 analyze.py [final.wav] [--out analysis] [--stems stems] [--ref other.wav] [--no-pics]
 
 It is deliberately independent of build.js: it reads the files from disk and
 measures them again with numpy (and draws with ffmpeg), so a mistake in the
