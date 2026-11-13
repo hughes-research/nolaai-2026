@@ -87,11 +87,41 @@ function checkChart(rows) {
   const motif = bass.filter((n) => (n.bar === 1) || (n.bar === 2 && n.beat === 1)).map((n) => n.midi % 12);
   const gates = chart.GATE_NOTES.map((s) => chart.midiOf(s) % 12);
   const passNotes = chart.KEYS.filter((k) => k.pass).map((k) => k.midis[0]);
-  const tag = bass.filter((n) => n.bar === 20 || n.bar === 21).map((n) => n.midi % 12);
+  const tag = bass.filter((n) => n.bar >= 20 && n.bar <= 22).map((n) => n.midi % 12);
+  const pcName = (p) => chart.nameOf(p + 12).replace(/-?\d+$/, '');
   const sameMotif = motif.join() === gates.join() && passNotes.map((m) => m % 12).join() === gates.join() && tag.join() === gates.slice().reverse().join();
-  row(rows, 'gate-motif', 'bays (bass), PASSes (keys) and the tag (bass, backwards) use the same four notes',
-    'bays ' + motif.map((p) => chart.nameOf(p + 12).replace(/-?\d+$/, '')).join(' ') + '; keys ' + passNotes.map(chart.nameOf).join(' ') + '; tag ' + tag.map((p) => chart.nameOf(p + 12).replace(/-?\d+$/, '')).join(' '),
-    'G Bb C D; G Bb C D; D C Bb G', sameMotif);
+  row(rows, 'gate-motif', 'bays (bass), PASSes (keys) and the tag (bass, backwards, bars 20 to 22) use the same four notes',
+    'bays ' + motif.map(pcName).join(' ') + '; keys ' + passNotes.map(chart.nameOf).join(' ') + '; tag ' + tag.map(pcName).join(' '),
+    gates.map(pcName).join(' ') + '; the same; ' + gates.slice().reverse().map(pcName).join(' '), sameMotif);
+  // 5b. the motif is not the first soundtrack's risk again: no step-and-third cell of the kind rock and blues riffs are made of
+  // (a minor third then a whole step, or the reverse, in either direction: 1 b3 4, 5 b7 1, 4 b3 1), and no 1 4 5
+  const cells = [];
+  const lines = [bass.filter((n) => n.bar === 1 || (n.bar === 2 && n.beat === 1)).map((n) => n.midi), bass.filter((n) => n.bar >= 20 && n.bar <= 22).map((n) => n.midi)];
+  for (const line of lines) { for (let i = 0; i + 2 < line.length; i++) { cells.push([line[i + 1] - line[i], line[i + 2] - line[i + 1]]); } }
+  const riffy = cells.filter(([a, b]) => { const x = Math.abs(a), y = Math.abs(b); return Math.sign(a) === Math.sign(b) && ((x === 3 && y === 2) || (x === 2 && y === 3) || (x === 5 && y === 2) || (x === 2 && y === 5)); });
+  row(rows, 'motif-cells', 'the exposed motif (bays, tag): no three notes in a row move by a minor third and a whole step, or a fourth and a whole step, in one direction',
+    cells.map((c) => (c[0] > 0 ? '+' : '') + c[0] + ' ' + (c[1] > 0 ? '+' : '') + c[1]).join('; ') + ' semitones', 'none of +3 +2, +2 +3, +5 +2, +2 +5 or their mirrors', riffy.length === 0);
+  // 5c. the motif inside the winning scale: the gate notes are the strong beats of bars 12 to 13 and again of 14 to 15
+  const skeleton = [[12, 13], [14, 15]].map(([a, b]) => bass.filter((n) => (n.bar === a || n.bar === b) && (n.beat === 1 || n.beat === 3)).map((n) => n.midi % 12));
+  row(rows, 'gate-skeleton', 'idea 3: the gate notes are the strong beats (1 and 3) of the scale, in both octaves',
+    skeleton.map((sk) => sk.map(pcName).join(' ')).join(' / '), gates.map(pcName).join(' ') + ', twice', skeleton.every((sk) => sk.join() === gates.join()));
+  // 5d. the winner: all four gate notes at once
+  const win = chart.KEYS.filter((k) => k.bar === 16 && k.beat === 1);
+  row(rows, 'winner-chord', 'the winner (bar 16, beat 1): the piano strikes the four gate notes together', win.length === 1 ? win[0].notes.join(' ') : 'no chord', chart.GATE_NOTES.join(' '),
+    win.length === 1 && win[0].notes.join() === chart.GATE_NOTES.join());
+  // 5e. the title has a line of its own: not a scale
+  const title = bass.filter((n) => n.bar === 17 || n.bar === 18).concat(bass.filter((n) => n.bar === 19).slice(0, 1));
+  const moves = []; for (let i = 1; i < title.length; i++) { moves.push(title[i].midi - title[i - 1].midi); }
+  const bigMoves = moves.filter((m) => Math.abs(m) >= 3).length;
+  let turns = 0; for (let i = 1; i < moves.length; i++) { if (Math.sign(moves[i]) !== Math.sign(moves[i - 1])) { turns++; } }
+  const scaleMoves = []; { const sc = bass.filter((n) => n.bar >= 12 && n.bar <= 16); for (let i = 1; i < sc.length; i++) { scaleMoves.push(sc[i].midi - sc[i - 1].midi); } }
+  const peak = title.reduce((a, b) => (b.midi > a.midi ? b : a));
+  const climb = bass.filter((n) => (n.bar === 17 && n.beat >= 3) || (n.bar === 18 && n.beat <= 3)).map((n) => n.midi);
+  let climbing = climb.length === 5; for (let i = 1; i < climb.length; i++) { if (!(climb[i] > climb[i - 1])) { climbing = false; } }
+  row(rows, 'title-shape', 'the title (bars 17 and 18, into bar 19) has a line of its own: leaps and turns, and a climb to its peak before the slab',
+    title.map((n) => n.note).join(' ') + ': ' + bigMoves + ' leaps of a third or more in ' + moves.length + ' moves, ' + turns + ' turns; five notes rising to ' + peak.note + ' (bar ' + peak.bar + ', beat ' + peak.beat + '); idea 3 and the winner: ' +
+    scaleMoves.filter((m) => Math.abs(m) >= 3).length + ' leaps in ' + scaleMoves.length + ' moves',
+    'at least 3 leaps and 2 turns; the peak in bar 18', bigMoves >= 3 && turns >= 2 && peak.bar === 18 && climbing);
   let rising = true;
   for (let i = 1; i < passNotes.length; i++) { if (!(passNotes[i] > passNotes[i - 1])) { rising = false; } }
   row(rows, 'pass-rise-chart', 'the four PASS notes rise (as written)', passNotes.map(chart.nameOf).join(' < '), 'each higher than the last', rising && passNotes.length === 4);
@@ -192,7 +222,29 @@ function checkPlayed(rows, arr) {
   const quarters = bass.filter((n) => n.t >= 21.98 && n.t < 36.9);
   let steady = true;
   for (let i = 1; i < quarters.length; i++) { const gap = quarters[i].t - quarters[i - 1].t; if (Math.abs(gap - BEAT) > 0.012) { steady = false; } }
-  row(rows, 'idea3-plain', 'idea 3 and the title are plain quarters: one bass note a beat from 22 s to the slab', quarters.length + ' notes, steady: ' + steady, '30 notes, one a beat', quarters.length === 30 && steady);
+  row(rows, 'idea3-plain', 'idea 3 and the title are plain quarters: one bass note a beat from 22 s until the slab lets go (36.0 s is the last)', quarters.length + ' notes, steady: ' + steady, '29 notes, one a beat', quarters.length === 29 && steady);
+
+  // which beats lean: a pattern, and a different one in each idea (the touch the player meant, before the recordings are evened)
+  const lean = [['idea 1 (bars 3 and 4)', 3, 4, [2, 4], [1, 3]], ['idea 3 (bars 12 to 15)', 12, 15, [1, 3], [2, 4]], ['the winner and the title (bars 16 to 18)', 16, 18, [2, 4], [1, 3]]].map(([name, b0, b1, strong, weak]) => {
+    const mean = (beats) => { const xs = bass.filter((n) => n.touch !== undefined && beats.some((bt) => Math.abs(n.t - 0.007 - nominal(Math.floor((n.t + 0.03) / BAR) + 1, bt)) < 0.03) && n.t >= nominal(b0, 1) - 0.03 && n.t < nominal(b1 + 1, 1) - 0.03); return xs.reduce((s, n) => s + n.touch, 0) / xs.length; };
+    return { name: name, strong: strong, diff: mean(strong) - mean(weak) };
+  });
+  const i2 = bass.filter((n) => n.touch !== undefined && n.t >= nominal(7, 1) - 0.03 && n.t < nominal(9, 3) - 0.1);
+  const on1 = i2.filter((n) => Math.abs(n.t - 0.007 - Math.round(n.t / BAR) * BAR) < 0.03), on3 = i2.filter((n) => Math.abs(n.t - 0.007 - (Math.floor(n.t / BAR) * BAR + 2 * BEAT)) < 0.03);
+  const m = (xs) => xs.reduce((s, n) => s + n.touch, 0) / xs.length;
+  lean.push({ name: 'idea 2 (bars 7 to 9)', strong: [1], diff: m(on1) - m(on3) });
+  row(rows, 'accents', 'the bass leans on a pattern of beats, a different one in each idea (velocity, leaned beats minus the others)',
+    lean.map((l) => l.name + ': beats ' + l.strong.join(' and ') + ' by +' + f(l.diff, 3)).join('; '), 'each at least +0.04', lean.every((l) => l.diff >= 0.04));
+
+  // no minor ninth between the piano and the bass (any two notes that sound together for 80 ms or more)
+  const clashes = [];
+  for (const k of keys) { for (const b of bass) { const over = Math.min(k.t + k.dur, b.t + b.dur) - Math.max(k.t, b.t); const d = (k.midi - (arr.keysMidiOffset || 0)) - sounding(b); if (over >= 0.08 && d > 0 && d % 12 === 1) { clashes.push(chart.nameOf(k.midi) + ' over ' + chart.nameOf(sounding(b)) + ' at ' + f(Math.max(k.t, b.t), 2) + ' s'); } } }
+  row(rows, 'no-minor-ninth', 'no piano note sits a minor ninth over a bass note it sounds with', clashes.length ? clashes.join('; ') : 'none in ' + keys.length + ' piano notes', 'none', clashes.length === 0);
+
+  // the winner's chord, as played
+  const winNotes = keys.filter((n) => n.t >= 29.99 && n.t < 30.2).map((n) => n.midi - (arr.keysMidiOffset || 0)).sort((a, b) => a - b);
+  row(rows, 'winner-played', 'as played: the piano at the winner (30.0 s)', winNotes.map(chart.nameOf).join(' ') + ' within ' + f(1000 * (Math.max(...keys.filter((n) => n.t >= 29.99 && n.t < 30.2).map((n) => n.t)) - 30), 0) + ' ms of the frame',
+    chart.GATE_NOTES.join(' '), winNotes.join() === chart.GATE_NOTES.map(chart.midiOf).join());
 
   // the PASS notes rise, as played
   const passNotes = PASSES.map((t) => keys.filter((n) => Math.abs(n.t - t) < 0.06).sort((a, b) => b.midi - a.midi)[0]);
@@ -302,12 +354,12 @@ function checkSound(rows, dir, arr) {
     chart.GATE_NOTES.map((s) => f(chart.hzOf(chart.midiOf(s)), 0)).join(', ') + ' Hz', rising && passHz.every((h, i) => Math.abs(1200 * Math.log2(h / chart.hzOf(chart.midiOf(chart.GATE_NOTES[i])))) < 60));
 
   // the keys against the bass where the keys play
-  const windows = [['the four PASSes (22.5 to 30 s)', 22.5, 30], ['the slab chord (37 to 38 s)', 37, 38], ['the last chord (40 to 43 s)', 40, 43]];
+  const windows = [['the four PASSes (22.5 to 30 s)', 22.5, 30], ['the winner chord (30 to 31 s)', 30, 31], ['the slab chord (37 to 38 s)', 37, 38], ['the last chord (42 to 43.3 s)', 42, 43.3]];
   out.keysBalance = windows.map(([name, a, b]) => ({ name: name, db: dsp.rmsDb(stems.keys, a, b) - dsp.rmsDb(stems.bass, a, b) }));
   out.drumsBalance = [['idea 1 (4 to 8 s)', 4, 8], ['idea 2 (12 to 17 s)', 12, 17], ['idea 3 (24 to 30 s)', 24, 30], ['winner and title (30 to 36.5 s)', 30, 36.5]]
     .map(([name, a, b]) => ({ name: name, db: dsp.rmsDb(stems.drums, a, b) - dsp.rmsDb(stems.bass, a, b) }));
   const kb = out.keysBalance[0].db, db = out.drumsBalance[3].db;
-  row(rows, 'keys-balance', 'keys against bass (stem RMS) while the keys play', out.keysBalance.map((k) => k.name + ': ' + f(k.db, 1) + ' dB').join('; '), 'about -3 to -10 dB', kb <= -3 && kb >= -10.5);
+  row(rows, 'keys-balance', 'keys against bass (stem RMS) while the keys play', out.keysBalance.map((k) => k.name + ': ' + f(k.db, 1) + ' dB').join('; '), 'about -3 to -10 dB', out.keysBalance.every((k) => k.db <= -2.5 && k.db >= -10.5) && kb <= -3);
   row(rows, 'drums-balance', 'drums against bass (stem RMS)', out.drumsBalance.map((k) => k.name + ': ' + f(k.db, 1) + ' dB').join('; '), 'about -8 to -16 dB in the full passage', db <= -8 && db >= -16.5);
 
   // the layers of idea 3, as energy in the drums stem
@@ -316,6 +368,77 @@ function checkSound(rows, dir, arr) {
   let grows = layer[0] < -90;
   for (let i = 2; i < layer.length; i++) { if (!(layer[i] > layer[i - 1])) { grows = false; } }
   row(rows, 'layers-sound', 'idea 3: the drums stem grows at every PASS and again at the winner (RMS)', layer.map((v) => f(v, 1)).join(' < ') + ' dBFS', 'silent before PASS 1, then louder each time', grows);
+
+  // the accents, as they sound: each note's body in the bass stem (30 to 250 ms after it starts), leaned beats against the others
+  {
+    const body = (n) => dsp.rmsDb(stems.bass, n.t + 0.03, n.t + 0.25);
+    const bassNotes = arr.notes.filter((n) => n.inst === 'bass');
+    const beatOf = (n) => Math.round((n.t - 0.007 - Math.floor((n.t + 0.03) / BAR) * BAR) / BEAT) + 1;
+    const onBeat = (n) => Math.abs(n.t - 0.007 - Math.round((n.t - 0.007) / BEAT) * BEAT) < 0.03;
+    out.accents = [['idea 3 (22 to 30 s)', 22, 30, [1, 3]], ['the winner and the title (30 to 36 s)', 30, 36, [2, 4]]].map(([name, a, b, strong]) => {
+      const xs = bassNotes.filter((n) => n.t >= a - 0.03 && n.t < b - 0.03 && onBeat(n));
+      const mean = (list) => list.reduce((s2, n) => s2 + body(n), 0) / list.length;
+      return { name: name, strong: strong, db: mean(xs.filter((n) => strong.includes(beatOf(n)))) - mean(xs.filter((n) => !strong.includes(beatOf(n)))) };
+    });
+    row(rows, 'accents-sound', 'the accents, as they sound: bass stem level of the leaned beats against the other beats', out.accents.map((x) => x.name + ': beats ' + x.strong.join(' and ') + ' by ' + (x.db >= 0 ? '+' : '') + f(x.db, 1) + ' dB').join('; '),
+      'each at least +0.7 dB', out.accents.every((x) => x.db >= 0.7));
+  }
+
+  // the break: while each door falls the band is out, and the hit comes out of it
+  out.breaks = HARD.map((t) => {
+    const drop = dsp.rmsDb(final, t - 2, t - 0.4) - dsp.rmsDb(final, t - 0.3, t - 0.01);
+    const bandGap = dsp.rmsDb(band, t - 0.3, t - 0.01);
+    row(rows, 'break-' + t, 'the break before ' + t + ' s: final.wav from ' + f(t - 0.3, 1) + ' to ' + f(t - 0.01, 2) + ' s against the bar before; the instrument stems there', f(drop, 1) + ' dB under; stems at ' + f(bandGap, 1) + ' dBFS',
+      'at least 10 dB under', drop >= 10);
+    return { t: t, dropDb: drop, bandDb: bandGap };
+  });
+
+  // small speakers and phones: each hit against the 1.5 s before it, after a 150 Hz high-pass and in 400 Hz to 6 kHz (the judge's measure)
+  {
+    const hp = dsp.copy(final); dsp.butter(hp, 'hp', 150, 4);
+    const ph = dsp.copy(final); dsp.butter(ph, 'hp', 400, 4); dsp.butter(ph, 'lp', 6000, 4);
+    out.hitsSmall = HARD.map((t) => ({ t: t, full: dsp.rmsDb(final, t, t + 0.3) - dsp.rmsDb(final, t - 2, t - 0.5), hp150: dsp.rmsDb(hp, t, t + 0.3) - dsp.rmsDb(hp, t - 2, t - 0.5), phone: dsp.rmsDb(ph, t, t + 0.3) - dsp.rmsDb(ph, t - 2, t - 0.5) }));
+    row(rows, 'hits-small', 'each hit against the 1.5 s before it: full band / above 150 Hz / 400 Hz to 6 kHz', out.hitsSmall.map((h) => h.t + ' s: ' + [h.full, h.hp150, h.phone].map((v) => (v >= 0 ? '+' : '') + f(v, 1)).join(' / ') + ' dB').join('; '),
+      'the two shutters louder than the bar before them on a phone (over 0 dB in 400 Hz to 6 kHz); the slab not under it by more than 3 dB', out.hitsSmall[0].phone > 0 && out.hitsSmall[1].phone > 0 && out.hitsSmall[2].phone > -3);
+  }
+
+  // the brushes: a continuous stir, not a stroke and a hole (the judge's measure: 10 ms RMS of the drums stem, per beat, 12 to 16 s)
+  {
+    const mono = new Float64Array(stems.drums[0].length);
+    for (let i = 0; i < mono.length; i++) { mono[i] = 0.5 * (stems.drums[0][i] + stems.drums[1][i]); }
+    const w = Math.round(0.010 * SR), hop = Math.round(0.002 * SR);
+    const envAt = (i) => { let s = 0; for (let j = i; j < i + w; j++) { s += mono[j] * mono[j]; } return 10 * Math.log10(Math.max(s / w, 1e-24)); };
+    const valleys = [];
+    for (let b0 = 12.0; b0 < 16.0 - 1e-9; b0 += 0.5) {
+      let hi = -Infinity, lo = Infinity;
+      for (let i = Math.round(b0 * SR) - (w >> 1); i + (w >> 1) < Math.round((b0 + 0.5) * SR); i += hop) { if (i < 0) { continue; } const e = envAt(i); if (e > hi) { hi = e; } if (e < lo) { lo = e; } }
+      valleys.push(hi - lo);
+    }
+    out.brushValleys = valleys;
+    row(rows, 'brush-valley', 'brushes, 12 to 16 s: loudest minus quietest 10 ms in each beat of the drums stem', valleys.map((v) => f(v, 0)).join(' ') + ' dB', 'under 15 dB in every beat (it was 46 to 50)', valleys.every((v) => v < 15));
+
+    // no two struck swirls are the same waveform: neighbouring isolated strokes, first 60 ms, level taken out, best alignment within 4 ms
+    const hitsAll = (arr.hits || []).filter((h) => h.inst === 'drums').sort((a, b) => a.t - b.t);
+    const alone = hitsAll.filter((h) => h.kind === 'swirl' && !hitsAll.some((o) => o !== h && Math.abs(o.t - h.t) < 0.02) && !hitsAll.some((o) => o !== h && o.t >= h.t + 0.02 && o.t < h.t + 0.06));
+    const n = Math.round(0.06 * SR), S = Math.round(0.004 * SR);
+    const rs = [];
+    const pairs = []; for (let i = 0; i + 1 < alone.length; i++) { pairs.push([alone[i], alone[i + 1]]); if (i + 2 < alone.length) { pairs.push([alone[i], alone[i + 2]]); } }
+    for (const [x, y] of pairs) {
+      const ia = Math.round((x.t - 0.003) * SR), ib = Math.round((y.t - 0.003) * SR);
+      let ea = 0; for (let i = 0; i < n; i++) { ea += mono[ia + i] * mono[ia + i]; }
+      let best = -2;
+      for (let lag = -S; lag <= S; lag++) { let s = 0, eb = 0; for (let i = 0; i < n; i++) { const v = mono[ib + lag + i]; s += mono[ia + i] * v; eb += v * v; } const r = s / Math.sqrt(ea * eb + 1e-30); if (r > best) { best = r; } }
+      rs.push(best);
+    }
+    rs.sort((a, b) => a - b);
+    out.swirlPairs = { n: rs.length, median: rs[rs.length >> 1], max: rs[rs.length - 1] };
+    row(rows, 'stroke-pairs', 'struck swirls that stand alone: neighbouring pairs, first 60 ms of the drums stem, level taken out', rs.length + ' pairs, r median ' + f(rs[rs.length >> 1], 3) + ', highest ' + f(rs[rs.length - 1], 3),
+      'every pair under 0.98 (it was 1.0000)', rs.length > 10 && rs[rs.length - 1] < 0.98);
+  }
+
+  // the stir stops with the band: while each door falls only the room's answer is left of the kit
+  const kitGaps = HARD.map((t) => dsp.rmsDb(stems.drums, t - 1.6, t - 0.4) - dsp.rmsDb(stems.drums, t - 0.25, t - 0.02));
+  row(rows, 'stir-stops', 'the drums stem while each door falls (0.25 to 0.02 s before each hit) against the bar before', kitGaps.map((v) => f(v, 1)).join(', ') + ' dB under', 'at least 20 dB under (the room dying away is all that is left)', kitGaps.every((v) => v >= 20));
 
   return out;
 }

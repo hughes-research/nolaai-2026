@@ -52,7 +52,7 @@ sampler.onset({ font, bank, program, midi, vel })   // measured delay in seconds
 
 ## Mix half (owner: kit-mix)
 
-Files: `dsp.js`, `mix.js`, `synth.js`, `wav.js`, `checks.js`, `analyze.js` (module and CLI), `mux.js` (module and CLI), `index.js`, `test-mix.js`, `README-mix.md`, `README.md` (one page for composers: both halves, shortest path to a finished candidate).
+Files: `dsp.js`, `mix.js`, `synth.js`, `wav.js`, `checks.js`, `analyze.js` (module and CLI), `mux.js` (module and CLI), `index.js`, `README-mix.md`, `README.md` (one page for composers: both halves, shortest path to a finished candidate).
 
 ```js
 // wav.js

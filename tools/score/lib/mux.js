@@ -19,9 +19,11 @@
  *   node mux.js final.wav --install
  *
  * replaces the sound of video/title-sequence.mp4 and video/title-square.mp4 in
- * place (each is written beside itself and renamed over, so a failure leaves
- * the film as it was). The picture is still only copied: its MD5 before and
- * after must be the same.
+ * place. Each new film is written beside the old one (<film>.new.mp4) and
+ * checked there: picture MD5, codecs, length, decoded true peak. Only when
+ * both new films pass are they renamed over the old ones; if either fails, or
+ * ffmpeg does, both new files are removed and both films stay as they were.
+ * The picture is still only copied: its MD5 before and after must be the same.
  */
 'use strict';
 
@@ -65,6 +67,8 @@ function probe(file) {
   return JSON.parse(r.stdout);
 }
 
+/* Write one film and check it where it was written. An in-place mux writes <film>.new.mp4 and
+ * leaves the film alone: settle() then renames it over the film, or removes it. */
 function muxOne(wavFile, picture, outFile, opts) {
   const out = path.resolve(outFile);
   const videoDir = path.join(REPO, 'video') + path.sep;
@@ -80,14 +84,17 @@ function muxOne(wavFile, picture, outFile, opts) {
   fs.mkdirSync(path.dirname(out), { recursive: true });
   const inPlace = path.resolve(picture.file) === out;
   const target = inPlace ? out.replace(/\.mp4$/, '') + '.new.mp4' : out;
-  sh('ffmpeg', ['-v', 'error', '-y', '-i', picture.file, '-i', wavFile, '-map', '0:v:0', '-map', '1:a:0',
-    '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', '-ar', '48000', '-ac', '2', '-movflags', '+faststart', target]);
-  if (inPlace) {
-    if (videoMd5(target) !== before) { fs.unlinkSync(target); throw new Error('the picture changed while muxing ' + path.basename(out) + '; the film was left as it was'); }
-    fs.renameSync(target, out);
+  let after, info, loud;
+  try {
+    sh('ffmpeg', ['-v', 'error', '-y', '-i', picture.file, '-i', wavFile, '-map', '0:v:0', '-map', '1:a:0',
+      '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', '-ar', '48000', '-ac', '2', '-movflags', '+faststart', target]);
+    after = videoMd5(target);
+    info = probe(target);
+    loud = loudness(target);
+  } catch (e) {
+    if (fs.existsSync(target)) { fs.unlinkSync(target); }     // never leave half a film behind
+    throw e;
   }
-  const after = videoMd5(out);
-  const info = probe(out);
   const v = info.streams.find(function (s) { return s.codec_type === 'video'; });
   const a = info.streams.find(function (s) { return s.codec_type === 'audio'; });
   const duration = Number(info.format.duration);
@@ -98,29 +105,45 @@ function muxOne(wavFile, picture, outFile, opts) {
   if (a && Number(a.channels) !== 2) { bad.push('audio has ' + a.channels + ' channels'); }
   if (a && Number(a.sample_rate) !== 48000) { bad.push('audio sample rate is ' + a.sample_rate); }
   if (!(Math.abs(duration - SECONDS) < 0.06)) { bad.push('duration is ' + duration + ' s'); }
-  const loud = loudness(out);
   if (!(loud.truePeakDb <= -1.0)) { bad.push('decoded true peak is ' + loud.truePeakDb + ' dBTP (must stay under -1.5; hard fail above -1.0)'); }
-  const result = {
-    out: out, videoMd5: after, pictureUnchanged: after === before,
+  return {
+    out: out, written: target, inPlace: inPlace, videoMd5: after, pictureUnchanged: after === before,
     width: v && v.width, height: v && v.height, duration: duration,
     lufs: loud.lufs, lra: loud.lra, truePeakDb: loud.truePeakDb,
-    bytes: fs.statSync(out).size, ok: bad.length === 0, problems: bad
+    bytes: fs.statSync(target).size, ok: bad.length === 0, problems: bad
   };
-  return result;
+}
+
+/* Finish in-place muxes together: every new film replaces its old one only if all of them passed.
+ * Otherwise the new files are removed and the films stay as they were. */
+function settle(results) {
+  const allOk = results.every(function (r) { return r && r.ok; });
+  results.forEach(function (r) {
+    if (!r || !r.inPlace) { return; }
+    r.installed = allOk;
+    if (!fs.existsSync(r.written)) { return; }
+    if (allOk) { fs.renameSync(r.written, r.out); } else { fs.unlinkSync(r.written); }
+  });
+  return allOk;
 }
 
 function describe(name, r) {
   return name + ': ' + path.relative(process.cwd(), r.out) + '  ' + r.width + 'x' + r.height + ', ' + r.duration.toFixed(3) + ' s, ' +
     (r.bytes / 1e6).toFixed(1) + ' MB, picture ' + (r.pictureUnchanged ? 'unchanged (MD5 ' + r.videoMd5.slice(0, 8) + ')' : 'CHANGED') +
     ', decoded audio ' + r.lufs.toFixed(1) + ' LUFS, LRA ' + r.lra.toFixed(1) + ' LU, true peak ' + r.truePeakDb.toFixed(1) + ' dBTP' +
-    (r.ok ? '' : '\n  PROBLEMS: ' + r.problems.join('; '));
+    (r.ok ? '' : '\n  PROBLEMS: ' + r.problems.join('; ')) +
+    (r.inPlace && r.installed === false ? '\n  NOT INSTALLED: ' + path.basename(r.out) + ' was left as it was' + (r.ok ? ' (the other film did not pass)' : '') : '');
 }
 
 function run(wavFile, outMp4, opts) {
   opts = opts || {};
-  const result = { wide: muxOne(wavFile, PICTURES.wide, outMp4, opts) };
-  if (opts.square) { result.square = muxOne(wavFile, PICTURES.square, opts.square, opts); }
-  result.ok = result.wide.ok && (!result.square || result.square.ok);
+  const result = {};
+  const done = [];
+  try {
+    result.wide = muxOne(wavFile, PICTURES.wide, outMp4, opts); done.push(result.wide);
+    if (opts.square) { result.square = muxOne(wavFile, PICTURES.square, opts.square, opts); done.push(result.square); }
+  } catch (e) { done.push(null); settle(done); throw e; }
+  result.ok = settle(done);
   if (!opts.quiet) {
     console.log(describe('wide', result.wide));
     if (result.square) { console.log(describe('square', result.square)); }
@@ -128,13 +151,10 @@ function run(wavFile, outMp4, opts) {
   return result;
 }
 
-/* Replace the sound of the two shipped films, in place. */
+/* Replace the sound of the two shipped films, in place: both or neither. */
 function install(wavFile, opts) {
-  const o = Object.assign({}, opts || {}, { allowVideoDir: true });
-  const result = { wide: muxOne(wavFile, PICTURES.wide, PICTURES.wide.file, o), square: muxOne(wavFile, PICTURES.square, PICTURES.square.file, o) };
-  result.ok = result.wide.ok && result.square.ok;
-  if (!o.quiet) { console.log(describe('wide', result.wide)); console.log(describe('square', result.square)); }
-  return result;
+  const o = Object.assign({}, opts || {}, { allowVideoDir: true, square: PICTURES.square.file });
+  return run(wavFile, PICTURES.wide.file, o);
 }
 
 module.exports = { run: run, install: install, videoMd5: videoMd5, loudness: loudness, PICTURES: PICTURES };

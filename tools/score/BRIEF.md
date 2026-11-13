@@ -84,12 +84,12 @@ Preset lists are in `tools/score/ref/presets-*.txt` (`bank-program name`; drum k
 - `final.wav`: 48 kHz, stereo, 24-bit PCM, exactly 2,208,000 samples per channel.
 - `stems/bass.wav`, `stems/keys.wav`, `stems/drums.wav`, `stems/fx.wav` (thuds, room tone, any sound design): same length, each as it sits in the mix before the master bus. Their sum, through the master, is `final.wav`.
 - `arrangement.json`: `{ key, bpm, swing, chords: [one string per bar], notes: [{ t, dur, inst, midi, vel }], hits: [{ t, inst, kind, vel }], sync: [{ t, what }] }`, the notes as actually played, after humanising. Times in seconds.
-- `report.md` (saved from the composer's hand-back): the idea in five lines; each instrument (library, preset) and why; the chart bar by bar in one table; the mix chain; the measurements; what you looked at; the known weaknesses, plainly.
+- `report.md`: the idea in five lines; each instrument (library, preset) and why; the chart bar by bar in one table; the mix chain; the measurements; what you looked at; the known weaknesses, plainly.
 - `analysis/`: the kit's analysis output for `final.wav` and the stems.
 
 ## 6. How the candidates were made
 
-- Each candidate was composed, rendered and mixed independently, in its own directory, by a different composer, from this brief alone.
+- Each candidate was rendered and mixed in its own directory by a different composer. The piano trio and the synthesized candidate share one D minor sketch; the other two were composed from this brief alone.
 - Node 22 with no dependencies; `ffmpeg`, `ffprobe` and (for the recorded-instrument scores) `fluidsynth` on the PATH; Python 3 with numpy and Pillow for the analysis pictures.
 - Every build is deterministic (seeded) and checks itself.
 - Reports say what was measured and what was seen, never what was heard.

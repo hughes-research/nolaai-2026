@@ -10,8 +10,8 @@ every bar (2 s) and the three HARD hits marked, level as colour over 90 dB.
 
 Why it exists: ffmpeg's showspectrumpic with a log frequency scale and start/stop (ffmpeg 6.1)
 draws the picture mirrored about a line near 520 Hz, so pitch could not be read from the kit's
-first pictures. Written by the composer of the "minimal" candidate, who found the fault; taken
-into the kit by the lead. Needs numpy and Pillow.
+first pictures. Written by the composer of the "minimal" score, who found the fault. Needs numpy
+and Pillow.
 """
 import os
 import struct

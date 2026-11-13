@@ -2,7 +2,7 @@
 
 Nobody on this team can hear. Everything below is measured or seen in a picture; nothing here says how it sounds.
 
-(Saved by the lead from the composer's hand-back: subagents return their reports as text. Section numbers are the composer's.)
+(Section numbers are the composer's.)
 
 ## 2. The idea in five lines
 
@@ -137,4 +137,4 @@ Seven builds. First build: the kit's checks passed but mine failed (drum stem cl
 9. The bass speaks slowly (50 percent point 8 to 28 ms per the audition) and is also placed 4 to 12 ms behind: it may read as dragging, most on F#2 to Bb2.
 10. From 25.5 to 28.5 s the PASS figures run as an unbroken stream of quarter notes; the four lifts may be heard as one long arpeggio rather than four separate figures.
 11. Hits measure 1.6 to 3.2 ms early (every sample is started early by its 10 percent onset). Inside the 10 ms.
-12. Drums sit only 1.65 dB right (kick centred). The square mp4 was not muxed.
+12. Drums sit only 1.65 dB right (kick centred).

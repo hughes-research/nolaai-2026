@@ -2,7 +2,6 @@
 
 Nobody on this team can hear. Everything below is measured or seen in a picture; nothing here says how it sounds.
 
-(Saved by the lead from the composer's hand-back: subagents return their reports as text.)
 
 ## The idea, in five lines
 
@@ -124,7 +123,7 @@ Rendered but not opened: the other pictures in `analysis/` (0-12, 20-32, 30-46 s
 ## Known weaknesses, plainly
 
 1. **Nobody has heard it.** It is a set of models tuned by numbers. Of the candidates it is the one most likely to still read as synthetic, the piano and the ride first.
-2. **Fewer passes than planned.** The work was interrupted by a worker restart and then cut to a deadline. The mix went through four build-measure-fix passes. The bass and the piano were measured against recorded references and corrected once; the drums were compared with recorded hits only before modelling and afterwards checked only for likeness between hits. The models were looked at less than the brief asks: see the list above.
+2. **Fewer passes than planned.** The mix went through four build-measure-fix passes. The bass and the piano were measured against recorded references and corrected once; the drums were compared with recorded hits only before modelling and afterwards checked only for likeness between hits. The models were looked at less than the brief asks: see the list above.
 3. **The ride is dark and low.** Its energy sits from 300 Hz to 4 kHz; a recorded ride measured here has its centroid at 5 to 9 kHz. It may read as a wash and not as a stick on a cymbal.
 4. **Piano unison beating may be too strong.** Some partials null within 1 to 1.5 s (wobble up to 7.7 dB on the second partial of C4 at the loudest velocity; the fundamental wobbles 0.1 to 0.4 dB, like the recorded grand). The last chord rings alone for five seconds, so this is where it would show.
 5. **The room may have a metallic colour.** In its impulse response the strongest bins of the tail stand 17 to 20 dB over the band mean above 1 kHz, where a diffuse tail gives about 9 to 11. Part of that is the tilt inside each band; I did not separate the two. The decay-time routine in `lab.py ir` is wrong (its zero-phase filter wraps around) and its numbers must be ignored; the 0.68 s above is the build's own causal measurement.
@@ -132,12 +131,12 @@ Rendered but not opened: the other pictures in `analysis/` (0-12, 20-32, 30-46 s
 7. **The bass is uneven note to note.** Across A1 to F3 the note level varies by 4.5 dB and the share of energy above 150 Hz varies from 4 % (G#2) to 100 % (measured before the last pluck change). The stem as a whole keeps 51 % above 150 Hz, but single notes may thin out on small speakers.
 8. **The compressor works hard at the hits** (up to 6.2 dB of reduction, on the thuds).
 9. **"No two ride hits alike" is checked on the excitation, not the waveform,** inside the build (0.450 at most between any two of 68). The waveform check was done once in the lab on eight isolated strokes (0.310).
-10. **Not done by the composer:** the mux onto the picture and the AAC true-peak check (done by the lead with the kit's `mux.js`: picture unchanged, decoded audio -16.0 LUFS, true peak -2.0 dBTP); the loop from the ringing end into the sparse start was checked only as numbers (both ends are room tone at -68 dBFS, first and last sample 0).
-11. **`score.js` here differs from the draft's copy in its music block** (the picture times are unchanged and checked on every build against `video/score.js`). The rough mux sent earlier is the old arrangement, with a bass note at 0.000 s; this one is different music.
+10. **Not done by the composer:** the mux onto the picture and the AAC true-peak check (done afterwards with the kit's `mux.js`: picture unchanged, decoded audio -16.0 LUFS, true peak -2.0 dBTP); the loop from the ringing end into the sparse start was checked only as numbers (both ends are room tone at -68 dBFS, first and last sample 0).
+11. **`score.js` here is this score's own copy of the film's timeline, with its music block** (the picture times are checked on every build against `video/score.js`).
 
 ## Files
 
 - `build.js`: rebuilds everything, 13 s, exits 0 only if all 52 self-checks pass. `score.js`: its timeline and music block.
 - `final.wav`, `stems/{bass,keys,drums,fx}.wav`, `arrangement.json`.
-- `analysis/`: `self-checks.md` (the build), `numbers.md` and `numbers.json` (`analyze.py`, with the old soundtrack side by side), spectrograms and waveforms, `instruments/` (each instrument alone, from `lab.js`). `analysis-kit/`: the shared kit's analysis of the same files.
-- `analyze.py`, `lab.js`, `lab.py`: the measuring tools. `draft-original/`: the interrupted draft's `build.js` and `score.js`.
+- `analysis/`: `self-checks.md` (the build), `numbers.md` and `numbers.json` (`analyze.py`, with the old soundtrack side by side), spectrograms and waveforms, `instruments/` (each instrument alone, from `lab.js`).
+- `analyze.py`, `lab.js`, `lab.py`: the measuring tools.

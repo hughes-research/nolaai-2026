@@ -1,12 +1,10 @@
 /*
- * video/score.js: THE SCORE. One timeline for the picture and the sound.
+ * tools/score/modelled/score.js: this score's own copy of the film's timeline
+ * (video/score.js), with the music this score plays added in a block of its
+ * own. build.js beside it refuses to finish if the picture times here differ
+ * from video/score.js, so a shutter and its slam cannot drift apart.
  *
- *   In the browser:  <script src="score.js">  ->  window.SCORE
- *   In Node:         require('../video/score.js')
- *
- * video/title-sequence.js draws every frame from these times, and
- * tools/build-audio.js writes every sound from the same times, so a shutter
- * and its slam cannot drift apart: they are the same number.
+ *   In Node:  require('./score.js')
  *
  * Tempo is 120 BPM: a beat is 0.5 s, a bar is 2 s, and at 30 frames a second
  * every beat falls on a whole frame (15 frames). A NO is timed by when it

@@ -16,22 +16,26 @@ three ideas come to the four gates, and only the boring one gets through.
 | `fonts.css` | A copy of `deck/theme/fonts.css` (Archivo and Fraunces, open-licensed), so the film does not depend on the deck |
 
 All three MP4s are H.264 (High, yuv420p, BT.709) with the index at the front
-of the file, so they play in QuickTime, Windows, every browser and every social
-platform. The two with sound carry AAC stereo, 48 kHz, 256 kb/s.
+of the file: the format QuickTime, Windows, browsers and social platforms
+accept. The two with sound carry AAC stereo, 48 kHz, 256 kb/s. They were
+decoded end to end with ffmpeg and played in Chrome; no other player was
+tried. Play them from a laptop: the two wide films are marked H.264 level 5.0
+(the square one 4.0), which a projector's or a television's built-in USB
+player may refuse.
 
 ## What happens (120 beats a minute, a beat is half a second)
 
 | Time | Picture | Sound |
 |---|---|---|
-| 0–4 s | A floor line. Four dock doors stand up on it, one to a beat: COST, RETURN, EFFORT, POTENTIAL. "THREE IDEAS · FOUR GATES". | Four notes on the upright bass, alone, one as each door stands up (D, F, A, D). Brushes join, then one soft piano chord. |
+| 0–4 s | A floor line. Four dock doors stand up on it, one to a beat: COST, RETURN, EFFORT, POTENTIAL. "THREE IDEAS · FOUR GATES". | Four notes on the upright bass, one as each door stands up (D, F, A, D): three alone, the brushes joining on the fourth. Then one soft piano chord. |
 | 4–8 s | **Idea 1, the exciting one.** "A CHATBOT FOR EVERYTHING" set as big as the stage allows. Its crate is taller than the door. It stops at COST. The bay is held empty. | The trio at its busiest: walking bass, ride, brushes, piano chords pushed ahead of the beat. As the shutter lets go the band cuts off and holds its breath. |
 | 8 s | The COST shutter drops through the floor: **NO** (Flare). | On the frame, out of that silence: a low thud, the bass and one short tense chord (the dominant). Then nothing but the tail. |
-| 9–12 s | "TOO COSTLY TO RUN". The title is struck through. *Your best AI idea is probably wrong.* | From 10 s the bass alone, two long notes a bar. |
+| 9–12 s | "TOO COSTLY TO RUN". The title is struck through. *Your best AI idea is probably wrong.* | From 10 s the bass alone: one long note, then two shorter ones stepping up. |
 | 12–17 s | A black block wipes the dock clean (a small tell-tale mark stays where the NO hit). **Idea 2, the easy one**: "MEETING NOTES FOR MANAGERS". COST checks it (the shutter comes down, then lifts: PASS, carried forward). It stops at RETURN. | Lighter and thinner: brushes and a little piano; two rising piano notes as COST lifts. The band cuts off as the next shutter lets go. |
 | 17 s | RETURN: **NO**. "NOTHING COMES BACK". *Easy is not the same as worth it.* | The thud again, a tone lower, with a chord a half step above home. Then a long quiet. |
 | 20–22 s | The dock is wiped again. **Idea 3, nobody pitched it**: "Invoice follow-up reminders", set quietly. Its plain crate walks up to COST. | **A held breath:** only a very quiet room tone. |
 | 22–30 s | It goes through all four gates, one to a bar: each shutter comes down, lifts to PASS, and the crate walks through on the beat. | The bass alone, on the same D, F, A the film opened with. At each lift a rising piano figure, fuller and higher than the last; brushes, then ride, then hi-hat and bass drum join, one door at a time. |
-| 30–32 s | Past the last door, the crate turns Flare: the point. *The boring one you didn't pitch is probably worth thousands.* | The only cadence that arrives: a rolled piano chord left to ring while the bass walks under the line. |
+| 30–32 s | Past the last door, the crate turns Flare: the point. *The boring one you didn't pitch is probably worth thousands.* | The first cadence that arrives: a rolled piano chord left to ring while the bass walks under the line. |
 | 32–37 s | The sleeve: a black block covers the stage and pulls back to the spine. The title card builds as the deck's title slide: THE MOST / VALUABLE / AI SKILL / IS SAYING, the subtitle, the name. The right half is held empty. | Short piano chords whose top note steps upward; a brush swell; the band cuts off as the slab lets go. |
 | 37 s | The slab drops: **NO**. Two beats in negative. | The thud once more, but this time with the home chord and a cymbal left to ring: the one NO that resolves. |
 | 38–46 s | The fine print cuts in: WAYPOINT · NOAI 2026 · NEW ORLEANS, when, time, room. The card holds: it is the walk-in screen. | Two slow chords and a single note, then the last chord, rolled, fading on its own by about 45 s. |
@@ -50,21 +54,25 @@ in, in case that file is missing).
 ## The sound: an original score, played by recorded instruments
 
 The music is an original composition for this picture: a cool-jazz trio in
-D minor at the film's 120 beats a minute, with swung eighths. It quotes no
-existing tune. It is performed with recorded instrument samples (an upright
-bass and a dark grand piano from MuseScore General; a brush kit, ride, hi-hat
-and bass drum from FluidR3 GM; both libraries are MIT licensed) played through
-`fluidsynth` with a written, humanised performance. The three low thuds and
-the quiet room tone under everything are synthesized. The mix is set to
--16 LUFS with the true peak under -2 dBTP.
+D minor at the film's 120 beats a minute, with swung eighths. It is performed
+with recorded instrument samples (an upright bass and a dark grand piano from
+MuseScore General; a brush kit, ride, hi-hat and bass drum from FluidR3 GM;
+both libraries are MIT licensed) played through `fluidsynth` with a written,
+humanised performance. The three low thuds and the quiet room tone under
+everything are synthesized. The mix is set to -16 LUFS with the true peak
+under -2 dBTP.
+
+It was written to quote no existing tune. One judge compared it from memory
+with tunes it knows and found no melody of one (bars 3 and 4 run the
+cycle-of-fifths chord sequence that many standards share); the notes changed
+in the revision were not compared again, and none of this was checked by ear.
 
 The film's first soundtrack was fully synthesized and was replaced: on
 listening it was found cheap, repetitive and harsh. Four replacement scores
-were composed independently and measured side by side; `tools/score/README.md`
-tells that story, lists the alternates (a vibraphone trio, a bass-and-brushes
-version, a fully synthesized one) and says how to put a different one on the
-film. Credits and licence notices for the samples are in
-`tools/score/SAMPLE-LICENSES.md`.
+were made and measured side by side; `tools/score/README.md` tells that story,
+lists the alternates (a vibraphone trio, a bass-and-brushes version, a fully
+synthesized one) and says how to put a different one on the film. Credits and
+licence notices for the samples are in `tools/score/SAMPLE-LICENSES.md`.
 
 Nobody who built the score could hear it. It was chosen by measurement and
 should be confirmed by ear.
@@ -95,15 +103,22 @@ should be confirmed by ear.
 
 ## Rebuilding it
 
-From the repository root. The sound needs Node, ffmpeg, and (for the
-recorded-instrument scores) `fluidsynth` with two free sound libraries:
+From the repository root. The sound needs Node, ffmpeg and ffprobe, `fluidsynth`
+with two free sound libraries (for the recorded-instrument scores), and
+Python 3 with numpy and Pillow (the chosen score draws its analysis pictures
+with them; `SCORE_FAST=1` in front of the command skips the pictures, and the
+sound is the same bytes):
 
 ```
 apt-get install fluidsynth fluid-soundfont-gm musescore-general-soundfont-small
+apt-get install ffmpeg python3-numpy python3-pil
 ```
 
-**Only the sound** (about half a minute; the picture is copied untouched and
-its MD5 is checked before and after):
+The build says what is missing before it starts.
+
+**Only the sound** (under a minute; the picture is copied untouched, its MD5
+is checked before and after, and the two films are replaced only when both
+new files pass their checks):
 
 ```
 node tools/build-audio.js --mux                 # builds the score, then replaces the sound of both films
