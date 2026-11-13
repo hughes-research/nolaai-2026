@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Most Valuable AI Skill Is Saying No</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  video/play.html: shows the title film with no player controls.
+
+  Open it in Chrome (double-click). F goes full screen. Chrome then shows its
+  own notice about the Esc key at the top of the screen for about five
+  seconds: when it has gone, tap Space once to start the film. Until then the
+  page asks for patience and Space, Enter and R do nothing.
+  It plays once, with its sound, and holds the title card at the end with
+  nothing over it, so the card can stay on screen until you switch to the deck.
+  Go full screen shortly before the film, not long in advance.
+
+  Why not open the MP4 itself: a browser's own player keeps its control bar
+  across the bottom of the picture whenever the film is paused or has ended.
+
+    Space or Enter            play, pause (nothing once the film has ended)
+    a click                   nothing: it only gives this page the keyboard
+    F                         full screen on, off
+    R                         from the start
+    play.html?film=title-silent.mp4    another film from this folder
+
+  Nothing here is loaded from outside this folder.
+-->
+<style>
+  html, body { margin: 0; height: 100%; background: #050505; overflow: hidden; }
+  video { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: contain; background: #050505; opacity: 0; }
+  body.started video { opacity: 1; }
+  #hint {
+    position: fixed; left: 0; right: 0; bottom: 7vh; text-align: center; pointer-events: none;
+    font: 600 2vh/1.6 system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    letter-spacing: 0.14em; text-transform: uppercase; color: #F4EDDE; opacity: 0.85;
+  }
+  #hint b { color: #FF6842; font-weight: 600; }
+  body.started #hint { display: none; }
+  body.problem #hint { display: block; text-transform: none; letter-spacing: 0.02em; }
+  body.idle { cursor: none; }
+</style>
+</head>
+<body>
+<video id="film" preload="auto" playsinline disablepictureinpicture></video>
+<div id="hint"><b>F</b> full screen &nbsp;&middot;&nbsp; <b>Space</b> play &nbsp;&middot;&nbsp; <b>R</b> from the start</div>
+<script>
+(function () {
+  'use strict';
+  var film = document.getElementById('film');
+  var hint = document.getElementById('hint');
+  var body = document.body;
+
+  /* Which film: title-sequence.mp4 unless ?film= names another .mp4 in this folder. */
+  var asked = new URLSearchParams(location.search).get('film');
+  var named = asked !== null && asked !== '';
+  var usable = named && /^[^\/\\]+\.mp4$/i.test(asked);
+  var file = usable ? asked : 'title-sequence.mp4';
+  if (named && !usable) {
+    body.classList.add('problem');
+    hint.textContent = 'This page was asked for "' + asked + '". Name an .mp4 that sits next to it, for example ?film=title-silent.mp4';
+  } else { film.src = encodeURIComponent(file); }
+
+  film.addEventListener('error', function () {
+    body.classList.remove('started');
+    body.classList.add('problem');
+    hint.textContent = 'This page plays ' + file + ', which was not found next to it (or this browser cannot play it).';
+  });
+
+  function start() {
+    if (body.classList.contains('problem')) { return; }   // no film to play: leave the message up
+    body.classList.add('started');
+    var p = film.play();
+    if (p && p.catch) { p.catch(function () { /* the browser wants a key press first: the next Space starts it */ }); }
+  }
+  function toggle() {
+    if (film.ended) { return; }                 // the card holds: a stray key must not start the film again
+    if (film.paused) { start(); } else { film.pause(); }
+  }
+  function restart() { film.currentTime = 0; start(); }
+  function fullScreen() {
+    if (document.fullscreenElement) { document.exitFullscreen(); }
+    else if (document.documentElement.requestFullscreen) { document.documentElement.requestFullscreen().catch(function () {}); }
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) { return; }
+    var k = e.key === ' ' || e.key === 'Enter' ? 'play' : (e.key === 'f' || e.key === 'F') ? 'full' : (e.key === 'r' || e.key === 'R') ? 'again' : '';
+    if (!k) { return; }
+    e.preventDefault();
+    if (e.repeat) { return; }                   // a key held down counts once
+    if (patience && k !== 'full') { return; }   // the browser's notice is still up: the film must not start under it
+    if (k === 'play') { toggle(); } else if (k === 'full') { fullScreen(); } else { restart(); }
+  });
+  /* A click does nothing on purpose: a click that only wakes the window must not start or stop the film. */
+
+  /* Going full screen, the browser shows a notice of its own for a few seconds. Until it has
+   * gone the hint asks for patience, so the film does not start underneath it. */
+  var hintHome = hint.innerHTML;
+  var patience = null;
+  document.addEventListener('fullscreenchange', function () {
+    clearTimeout(patience); patience = null;
+    if (body.classList.contains('problem')) { return; }
+    if (document.fullscreenElement && !body.classList.contains('started')) {
+      hint.innerHTML = 'Wait for the browser\'s notice above to clear &nbsp;&middot;&nbsp; then <b>Space</b>';
+      patience = setTimeout(function () { patience = null; hint.innerHTML = hintHome; }, 5000);
+    } else { hint.innerHTML = hintHome; }
+  });
+
+  /* The pointer hides after two still seconds. */
+  var still = null;
+  function moved() {
+    body.classList.remove('idle');
+    clearTimeout(still);
+    still = setTimeout(function () { body.classList.add('idle'); }, 2000);
+  }
+  document.addEventListener('mousemove', moved);
+  moved();
+}());
+</script>
+</body>
+</html>

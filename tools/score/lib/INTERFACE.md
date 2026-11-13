@@ -94,7 +94,7 @@ const result = require('./checks.js').run({
 // the breath below -60 dBFS but not digital zero, the tail inaudible by 45.9 s.
 
 // analyze.js : numbers and pictures, for people who cannot hear
-// CLI: node tools/score/lib/analyze.js final.wav --out analysis [--stems stems] [--ref other.wav]
+// CLI: node tools/score/lib/analyze.js final.wav --out analysis [--stems stems] [--ref other.wav]   (give each file with its folder)
 require('./analyze.js').run(file, { outDir, stemsDir, ref })   // -> numbers (also written as analysis/numbers.json and analysis/numbers.md)
 // loudness, true peak, LRA, crest factor; band energies relative to total (sub <60, bass 60-250, low-mid 250-500,
 // mid 500-2k, presence 2-5k, brilliance 5-8k, air >8k); long-term spectrum slope 200 Hz-8 kHz in dB per octave;
@@ -104,7 +104,7 @@ require('./analyze.js').run(file, { outDir, stemsDir, ref })   // -> numbers (al
 // waveform PNG via ffmpeg; and, with --ref, the same numbers for the reference side by side.
 
 // mux.js : put a WAV on the finished picture without touching the picture
-// CLI: node tools/score/lib/mux.js final.wav out.mp4 [--square out-square.mp4]
+// CLI: node tools/score/lib/mux.js final.wav out.mp4 [--square out-square.mp4]   (give each file with its folder)
 require('./mux.js').run(wavFile, outMp4, { square })   // stream-copies video/title-sequence.mp4 (and title-square.mp4), AAC 256k,
                                                       // then verifies the video stream MD5 is unchanged and prints the decoded loudness and true peak
 
@@ -112,4 +112,4 @@ require('./mux.js').run(wavFile, outMp4, { square })   // stream-copies video/ti
 const kit = require('../lib');   // kit.timeline, kit.midi, kit.sampler, kit.dsp, kit.mix, kit.synth, kit.wav, kit.checks, kit.analyze, kit.mux, kit.const
 ```
 
-The room, the BS.1770 loudness meter, the 4x true-peak limiter, the biquads and the WAV writer already exist, working, in `tools/score/modelled/build.js` (the interrupted modelled score). Lift them; do not rewrite them from memory.
+The room, the BS.1770 loudness meter, the 4x true-peak limiter, the biquads and the WAV writer already exist, working, in `tools/score/modelled/build.js` (the modelled score). Lift them; do not rewrite them from memory.

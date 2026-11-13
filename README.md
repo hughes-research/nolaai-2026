@@ -7,7 +7,7 @@ This repository holds the presentation, the notes and the code behind it. Everyt
 ## Present it
 
 1. Open **`dist/deck.html`** in Chrome (double-click it). It is the whole deck in one file. `deck/index.html` is the same deck as separate files, for editing.
-2. Press **F** for fullscreen. Press **S** for the presenter view (your notes, the clock, and whether you are ahead or behind) and drag that window to your laptop screen.
+2. Press **S** for the presenter view (your notes, the clock, and whether you are ahead or behind) and drag that window to your laptop screen. Then click the deck window and press **F** for fullscreen. Keep that order: opening a new window can drop a browser out of fullscreen.
 3. Advance with **→**, **Space** or a clicker.
 
 | Key | What it does |
@@ -28,14 +28,21 @@ A mouse click on a slide does not advance it, because several slides have live c
 
 - [ ] Fill in your numbers (next section).
 - [ ] Read `docs/REHEARSAL.md` (one page: the through-line, the lines to land word for word, a 20-minute run-through for tonight).
-- [ ] Run through it once with the presenter view open and its window maximised (the last slide's notes hold five likely questions and need the room). `docs/SPEAKER-NOTES.md` has every note in order; `docs/RUN-OF-SHOW.md` has the clock time of every slide and a cut plan for running late.
-- [ ] Nine slides have a `YOUR STORY` note: a place where only you know what to say. Decide each one before you walk on.
+- [ ] Run through it once with the presenter view open and its window maximised. `docs/SPEAKER-NOTES.md` has every note in order; `docs/RUN-OF-SHOW.md` has the clock time of every slide and a cut plan for running late.
+- [ ] The last slide's notes hold six likely questions (Q1 to Q6). At the type size the notes start at, they were longer than a maximised presenter window at every laptop screen size that was tried. During questions, scroll them with the trackpad or the mouse wheel, pointer over the notes: the panel shows MORE BELOW at its foot until the last line is in view. Do not use the keyboard for this: the arrow keys, PageUp and PageDown do not scroll the notes, and the up arrow, PageUp or Home moves the room's screen to another slide. The minus key in the presenter window makes the type smaller (four presses reach the smallest) for every slide's notes, and the size is remembered until you press plus (four presses bring it back; more make it larger than it started). Even at the smallest size, on a 1440 by 900 screen, the end of the answer to Q6 was out of view unless the window's page area was at least 815 pixels tall, so expect to scroll.
+- [ ] Eight slides have a `YOUR STORY` note (slides 5, 17, 22, 25, 29, 30, 35 and 39 in the deck as delivered): a place where only you know what to say. Decide each one before you walk on. If you write your own lines into `story.howWeBuiltIt`, its slide appears as slide 33 with a note of its own and 35 and 39 become 36 and 40; if you empty the scorecard figures, slide 32 gains one.
 - [ ] Print **`handouts/worksheet.pdf`**, one sheet per person, two-sided, black and white. Bring pens.
 - [ ] Copy `dist/` to a USB stick. `dist/deck.pdf` is the fallback if a browser misbehaves (41 pages: two slides print an extra click).
 - [ ] Present from Chrome, with the laptop plugged in. If you jump straight to the warehouse slide (27) on a slow laptop, it shows the search counting up for a few seconds before the result lands; stepping through Act 4 normally avoids the wait.
 - [ ] On the screener slide (23), what the room types survives a reload. Press RESET after rehearsing so you start clean.
 - [ ] In the room: check the coral ink (Flare) on the projector, and check you can read the screener slide (slide 23, the densest) from the back row.
-- [ ] If you play the title film as people walk in: play `video/title-sequence.mp4` from the laptop, full screen, and check the room's sound once. Do not play it from a USB stick in the projector: a built-in player may refuse the file. It was tried in Chrome and nowhere else, so open it once in the player you will use. `video/title-silent.mp4` is the same film with no sound.
+- [ ] If you show the title film, run it once this way on the laptop you will use (it was tried in Chrome on one machine and nowhere else):
+  - Open `video/play.html` in Chrome, shortly before you want it. If Chrome shows a strip of its own under the address bar, close it first: in a test a strip of that kind stayed on screen in full screen and pushed the picture down.
+  - Press **F** for full screen. Chrome shows its own notice about the Esc key at the top of the screen for about five seconds. Wait until it has gone (the page asks you to, and Space does nothing until then), then tap **Space** once. Check the room's sound.
+  - The film plays with no player controls on screen and holds the title card when it ends, until you switch to the deck. Once it has ended, only **R** starts it again.
+  - A click does not start or stop the film. If F or Space seem to do nothing, click once on the page to give it the keyboard, then press the key again. Leave the trackpad alone while the film is up: a pointer that touches the top edge of the screen brings down a round close button of Chrome's own for a few seconds.
+  - Do not open the MP4 itself for the room: Chrome's own player keeps its control bar across the bottom of the title card once the film has ended or is paused. Do not play it from a USB stick in the projector either: a built-in player may refuse the file.
+  - `video/play.html?film=title-silent.mp4` is the same film with no sound.
 
 ## Your numbers
 
@@ -67,7 +74,7 @@ These need Node 22 and Playwright (`npm install -g playwright`, then `npx playwr
 | 2:40 | 2. The Four Gates | Cost, Return, Effort, Potential. Minutes become money through the cash conversion cycle or through capacity. |
 | 2:55 | 3. Your Turn | Three exercises on the worksheet: inventory two weeks, pick three, run them through the gates. |
 | 3:30 | 4. The One We Built | A real warehouse slotting project: the problem, a live re-creation, the real numbers, seven attempts, what was refused, what it costs to run, and the scorecard. |
-| 3:50 | 5. Who Owns the Minutes? | Freed time is a management decision. Share the gain. Close. |
+| 3:49 | 5. Who Owns the Minutes? | Freed time is a management decision. Share the gain. Close. |
 
 ## Where every number comes from
 
@@ -81,7 +88,7 @@ Nothing on screen is typed by hand except the real project results, which live i
 ## Other pieces
 
 - **`screener/index.html`**: the four-gate screener as a stand-alone page that works on a phone.
-- **`video/title-sequence.mp4`**: a 46-second title film: three ideas run the four gates, two get NO, the boring one passes. Its score is an original cool-jazz trio played by recorded instruments (credits in `tools/score/SAMPLE-LICENSES.md`; `tools/score/README.md` has the alternates and how to rebuild). `title-square.mp4` is the square cut and `title-silent.mp4` has no audio, for rooms without sound.
+- **`video/title-sequence.mp4`**: a 46-second title film: three ideas run the four gates, two get NO, the boring one passes. Its score is an original cool-jazz trio played by recorded instruments (credits in `tools/score/SAMPLE-LICENSES.md`; `tools/score/README.md` has the alternates and how to rebuild). `title-square.mp4` is the square cut and `title-silent.mp4` has no audio, for rooms without sound. To show it, open `video/play.html`: it plays the film with no player controls on screen and holds the title card at the end.
 - **`handouts/worksheet.pdf`**: the two-sided attendee worksheet.
 
 ## For anyone changing the deck
@@ -97,4 +104,4 @@ node tools/shoot.js --contact # a screenshot of every slide
 
 ## License
 
-GPL-3.0. See `LICENSE`. Fonts are Archivo and Fraunces, both under the SIL Open Font License.
+GPL-3.0. See `LICENSE`. Fonts are Archivo and Fraunces, both under the SIL Open Font License; their copyright lines and the licence text are in `deck/theme/FONT-LICENSES.txt`.

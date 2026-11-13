@@ -2,6 +2,8 @@
 
 Nobody on this team can hear. Everything below is measured or seen in a picture; nothing here says how it sounds.
 
+("The draft" below is this score's unfinished first version; it is not in the repository.)
+
 
 ## The idea, in five lines
 
@@ -83,7 +85,7 @@ Bass: 19 written bars, 19 different; range A1 to F3 (MIDI 33 to 53). All notes a
 
 ## The measurements (on `final.wav` as written)
 
-Three independent measurements agree: the build's own self-checks (`analysis/self-checks.md`, 52 of 52 pass), `analyze.py` in numpy (`analysis/numbers.md`), and the shared kit's `lib/checks.js` (14 of 14 pass). ffmpeg ebur128 reads -16.0 LUFS, LRA 8.0 LU, peak -2.0 dBFS. The kit's `analyze.js` output, run by the lead afterwards, is in `analysis-kit/` (23 of 24 targets pass; the fail is the spectrum slope read as spectral density).
+Three independent measurements agree: the build's own self-checks (`analysis/self-checks.md`, 52 of 52 pass), `analyze.py` in numpy (`analysis/numbers.md`), and the shared kit's `lib/checks.js` (14 of 14 pass). ffmpeg ebur128 reads -16.0 LUFS, LRA 8.0 LU, peak -2.0 dBFS. The shared kit's `lib/analyze.js`, run on the same files afterwards, gives 23 of 24 targets; the fail is the spectrum slope read as spectral density.
 
 | Target (BRIEF 4.3) | Measured |
 |---|---|
@@ -138,5 +140,5 @@ Rendered but not opened: the other pictures in `analysis/` (0-12, 20-32, 30-46 s
 
 - `build.js`: rebuilds everything, 13 s, exits 0 only if all 52 self-checks pass. `score.js`: its timeline and music block.
 - `final.wav`, `stems/{bass,keys,drums,fx}.wav`, `arrangement.json`.
-- `analysis/`: `self-checks.md` (the build), `numbers.md` and `numbers.json` (`analyze.py`, with the old soundtrack side by side), spectrograms and waveforms, `instruments/` (each instrument alone, from `lab.js`).
+- `analysis/`: `self-checks.md` (the build), `numbers.md` and `numbers.json` (`analyze.py`, run by hand; the first soundtrack that stood beside it is not in the repository), spectrograms and waveforms, `instruments/` (each instrument alone, from `lab.js`).
 - `analyze.py`, `lab.js`, `lab.py`: the measuring tools.

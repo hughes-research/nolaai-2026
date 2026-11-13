@@ -1,7 +1,9 @@
 # Scratch output from the tools (screenshots, review captures)
 out/
-# A film being written beside the one it will replace (tools/score/lib/mux.js removes it itself)
+# A film being written beside the one it will replace, and the mark of a running install
+# (tools/score/lib/mux.js removes both; after a run that was killed, the next install does)
 video/*.new.mp4
+video/.install.lock
 # Dependencies are never installed into this repo
 node_modules/
 # OS and editor noise

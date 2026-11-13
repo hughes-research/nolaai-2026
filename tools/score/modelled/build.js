@@ -45,7 +45,7 @@
  *                  very quiet room tone under everything, the held breath included.
  *
  * THE SOUND IS CUT FROM THE PICTURE'S TIMELINE. score.js beside this file is the candidate's copy of
- * video/score.js plus a music block; the build refuses to run if the picture times differ.
+ * video/score.js plus a music block; the build fails its self-checks (exit 1) if the picture times differ.
  *
  * Deterministic: every random number comes from a seeded generator, so every build is the same file.
  * `require('./build.js')` runs nothing and exports the instruments (lab.js renders them alone).

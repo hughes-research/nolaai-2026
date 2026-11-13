@@ -385,5 +385,5 @@ Final state, final.wav, MD5 1b843a2689d046b29ccff6e863adcaee (three consecutive 
 - The ring-out from 41 s is 8 to 10 dB quieter than in the first mix.
 - Room tone: darker as decided, but L/R correlation rose from 0.61 to 0.72.
 - Master limiter below unity on 9.5 % of samples (was 4.3 %); deepest reduction 4.10 dB (was 3.99).
-- Bass repeats unchanged (one recording per pitch); the optional round robin was not attempted.
+- Bass repeats unchanged (one recording per pitch); the round robin was not attempted.
 - judge-music-picture/extra.py reads drums-stem swing as 0.52 to 0.67 now (its onset detector cannot isolate strokes over the bed); pitch.py reads the 125 ms D2 at 16.50 s as -40.5 cents on a 75 ms window (-27.6 before). Both are method effects.

@@ -175,25 +175,72 @@ Events a second, section by section (bass notes + piano notes + drum strokes):
 | tail 45.9 s to the end | -86.6 dBFS RMS | below -60 | pass |
 | loop seam | first and last samples within 1.2e-7 | under 0.003 | pass |
 
-### The brief's targets, by the kit's analysis tool (analysis/numbers.md)
+### The brief's targets, by the kit's analysis tool
 
-(run the kit's analyze.js first)
+This score's build does not run the kit's analysis. These tables were printed after running it by hand, from the repository root: `node tools/score/lib/analyze.js tools/score/minimal/final.wav --stems tools/score/minimal/stems`.
+
+|  | target | wanted | measured |  |
+|---|---|---|---|---|
+| Loudness | Integrated loudness | -16.0 +/- 0.5 LUFS | -16.01 LUFS | PASS |
+| Loudness | True peak | at most -2.0 dBTP | -2.05 dBTP | PASS |
+| Loudness | Loudness range | 5 to 12 LU | 7.9 LU | PASS |
+| Warm tilt | Spectrum, 200 Hz to 8 kHz (spectral density) | falls 4.5 to 6.5 dB per octave | falls 6.27 dB per octave | PASS |
+| Warm tilt | the same line through third-octave band levels | information: 3 dB per octave shallower by construction | falls 3.26 dB per octave | - |
+| Warm tilt | Energy above 8 kHz | at least 30 dB below the total | -36.1 dB | PASS |
+| Warm tilt | The 2 to 5 kHz band | at least 14 dB below the total | -18.8 dB | PASS |
+| Balance | Keys relative to bass, 30 to 36 s | -10 to -3 dB | -13.3 dB | **FAIL** |
+| Balance | Drums relative to bass, 30 to 36 s | -16 to -8 dB | -12.0 dB | PASS |
+| Translation | Mono: the L+R sum loses | less than 1.5 dB | 0.04 dB | PASS |
+| Translation | Mono: nothing cancels (the band that loses most) | under 3 dB in every band | 0.30 dB (presence, 2 to 5 kHz) | PASS |
+| Translation | Low end centred (L/R correlation, 20 to 150 Hz) | at least 0.90 | 0.998 | PASS |
+| Translation | Small speakers: the bass stem's energy above 150 Hz | at least 25 percent | 42 percent | PASS |
+| Translation | Nothing vital below 50 Hz (the energy there) | at least 10 dB below the total | -13.4 dB | PASS |
+| Clean | Clicks (isolated discontinuities) | 0 | 0 | PASS |
+| Clean | DC offset | within 0.0001 | L -5.1e-6, R -5.3e-6 | PASS |
+| Clean | Clipping | 0 samples | 0 samples (sample peak -2.05 dBFS) | PASS |
+| Room tone | The held breath, 20.3 to 22.0 s | below -60 dBFS RMS | -68.1 dBFS | PASS |
+| Room tone | Never digital silence (the quietest 100 ms) | above -80 dBFS RMS | -69.1 dBFS at 19.3 s | PASS |
+| Room and stage | Room: 0.6 to 0.9 s decay, dark | set in the build | not measurable from a mix: see mix.room({ decay }) in build.js | - |
+| Room and stage | Stage: bass centre | left and right within 0.5 dB | left minus right +0.11 dB | PASS |
+| Room and stage | Stage: keys slightly left | left louder, by under 6 dB | left minus right +3.74 dB | PASS |
+| Room and stage | Stage: drums slightly right | right louder, by under 6 dB | left minus right -2.61 dB | PASS |
+| The NO thuds | Thud at 8 s (NO 1), on fx.wav | 45 to 60 Hz, starts 1.15x higher or more, 100-200 Hz at least -15 dB, above 3 kHz at most -40 dB | 51.9 Hz, starts 1.44x higher, 100-200 Hz -4.3 dB, above 3 kHz -74.9 dB | PASS |
+| The NO thuds | Thud at 17 s (NO 2), on fx.wav | 45 to 60 Hz, starts 1.15x higher or more, 100-200 Hz at least -15 dB, above 3 kHz at most -40 dB | 46.3 Hz, starts 1.36x higher, 100-200 Hz -7.6 dB, above 3 kHz -75.7 dB | PASS |
+| The NO thuds | Thud at 37 s (the slab), on fx.wav | 45 to 60 Hz, starts 1.15x higher or more, 100-200 Hz at least -15 dB, above 3 kHz at most -40 dB | 49.0 Hz, starts 1.40x higher, 100-200 Hz -6.2 dB, above 3 kHz -73.0 dB | PASS |
+
+Nobody has heard this file. PASS means the number is inside the brief's range, nothing more. The tilt has two readings and the brief does not say which it means: the kit judges the spectral density (the usual analyser view: pink noise falls 3 dB per octave, brown noise 6) and prints the third-octave band-level reading under it, which is 3 dB per octave shallower for the same sound. Where the brief gives no number the kit chose one and the row says what it is: "nothing cancels" is read as no band losing 3 dB or more in mono (3 dB is left and right unrelated; more is cancelling), "low end centred" as a left/right correlation of 0.90 or more under 150 Hz, "nothing vital below 50 Hz" as less than a tenth of the energy there, the stage as which side of a stem is louder, and the thud as the four numbers in its row.
 
 ### Stems
 
+Each stem as it sits in the mix before the master bus. "re bass" is the stem's RMS minus the bass stem's.
 
+| stem | RMS dBFS | re bass | RMS 30-36 s | re bass 30-36 s | peak dBFS | left minus right dB | L/R correlation | centroid Hz | energy above 150 Hz |
+|---|---|---|---|---|---|---|---|---|---|
+| bass | -34.0 | +0.0 | -30.8 | +0.0 | -17.4 | +0.11 | 1.00 | 154 | 42 % |
+| keys | -45.2 | -11.2 | -44.1 | -13.3 | -16.5 | +3.74 | 0.99 | 502 | 100 % |
+| drums | -45.3 | -11.3 | -42.8 | -12.0 | -17.6 | -2.61 | 0.88 | 1546 | 88 % |
+| fx | -48.2 | -14.1 | -84.7 | -53.9 | -19.2 | +0.00 | 1.00 | 82 | 10 % |
+
+Band energies of each stem, dB relative to that stem's own total:
+
+| stem | sub, under 60 Hz | bass, 60 to 250 Hz | low-mid, 250 to 500 Hz | mid, 500 Hz to 2 kHz | presence, 2 to 5 kHz | brilliance, 5 to 8 kHz | air, over 8 kHz |
+|---|---|---|---|---|---|---|---|
+| bass | -10.1 | -0.8 | -13.4 | -17.7 | -38.6 | -60.8 | -86.4 |
+| keys | -68.3 | -12.8 | -2.1 | -4.9 | -28.9 | -45.6 | -73.9 |
+| drums | -13.1 | -9.6 | -10.3 | -3.0 | -7.3 | -12.5 | -22.7 |
+| fx | -2.8 | -3.3 | -21.4 | -34.5 | -51.4 | -72.0 | -93.4 |
 
 ## 8. What was looked at
 
 - **This candidate's own pictures** (spectro.py, analysis/own-*.png: a plain short-time Fourier transform on a labelled log axis). own-final-00-12s: nothing but the noise floor before 0.5 s; four rising steps at 0.5, 1.0, 1.5, 2.0 s (98, 117, 131, 147 Hz); brush columns from 2.5 s; idea 1 as fast steps up to 196 Hz at 5.0 s, the drop to 73 Hz at 6.5 s, the slide down to 55 Hz; a dark sliver just before 8.0 s; at 8.0 s a low blob at 52 Hz dying by about 9.5 s with nothing above it after 8.4 s; brush columns alone from 10 s and one bass note (92 Hz) at 11 s. own-final-20-32s: only the floor from 20 to 22 s; from 22.0 s a stair of harmonic stacks, one a beat, the fundamental going from 49 Hz to 196 Hz at 30 s; four short bright dashes at 392, 466, 523, 587 Hz at 22.5, 24.5, 26.5, 28.5 s; no brush column at 22.0 s, the first at 22.5 s. own-drums-20-38s: columns once a beat from 22.5 s, taller on 2 and 4 from 24.5 s, brighter tops on 2 and 4 from 26.5 s, paired columns at the swung off-beats from 28.5 s, horizontal cymbal lines from 30.0 s to about 36.3 s, low blobs once a beat from 32 s. own-final-30-46s: the stair coming down; a dark sliver before 37.0 s; at 37.0 s the 49 Hz blob and four held lines (233, 294, 349, 440 Hz); three steps at 38, 38.5, 39 s; a dark sliver before 40 s; one long line at 98 Hz and four chord lines fading smoothly to the floor by about 45.3 s. No thin full-height vertical line (a click) anywhere; the floor is an even speckle with no bright shelf.
-- **The kit's pictures** (analysis/spectrogram*.png): used for time structure only (the same gaps and entries), because their frequency axis is mirrored (see section 9). analysis/waveform.png: sparse first two bars, a dense block from 4 to 8 s, a spike and a decay at 8 s, a flat line from 18 to 22 s, a steady build from 22 to 30 s, the slab no taller than the loudest bass notes, a long smooth decay after 40 s; no flat tops.
+- **The kit's pictures** (analysis/spectrogram*.png): used for time structure only (the same gaps and entries), because their frequency axis was mirrored at the time (see section 9). analysis/waveform.png: sparse first two bars, a dense block from 4 to 8 s, a spike and a decay at 8 s, a flat line from 18 to 22 s, a steady build from 22 to 30 s, the slab no taller than the loudest bass notes, a long smooth decay after 40 s; no flat tops.
 - **The audition's pictures** of the chosen presets: bass-musescore.png (sharp starts, a smooth four-second decay on the held note, a clean stop, nothing between the notes), piano-mellow-musescore.png (three velocities: more upper partials with each, smooth decays, no hiss), brushes-fluidr3.png (the same three brush recordings: energy to above 10 kHz, which is why they are low-passed here).
 - **Where the master squeezes** (diag.js: stems times the master's plain gain against final.wav, 5 ms frames): idea 1 2.6 to 2.8 dB on average (most 3.7), bars 15 to 18 1.4 to 1.8 dB (most 3.0), the three hits most 4.1, 3.7 and 5.4 dB for an instant; idea 2 and bars 12 to 13 0.3 to 0.5 dB on average (most 1.4).
 
 ## 9. Notes on the kit
 
 1. **The kit's spectrogram pictures were mirrored (fixed since: the kit now draws them with `lib/spectro.py`).** When this score was composed, the kit's spectrograms (ffmpeg showspectrumpic, fscale=log, in analyze.js) showed a dark line at the "520 Hz" label with the picture reflected below it; a rising bass line drew one band going up above the line and one going down below it. The labels could not be used to read pitch. Worked around at the time with spectro.py (numpy and Pillow), which the kit then took over.
-2. **"Keys relative to bass, 30 to 36 s"** measures a window in which this candidate's piano does not play, by assignment. It read -54.0 dB when this was written and fails (after the revision it reads -13.3 dB, still a FAIL). Where the piano plays it is inside the target: see the row "keys against bass" in section 5.
+2. **"Keys relative to bass, 30 to 36 s"** measures a window in which this score's piano plays one soft chord and then stays out (in the version that was judged it did not play there at all, and the row read -54.0 dB). It reads -13.3 dB and fails. Where the piano plays it is inside the target: see the row "keys against bass" in section 5.
 3. sampler.onset() caches into lib/audition/onsets.json: this build's calls added its hard-hit keys to that file (the kit's own cache, written by the kit's own function).
 4. test-sampler.js: 12 of 12 passed. The kit's mix test (not shipped): 141 ok, 0 failed.
 
@@ -227,9 +274,9 @@ Events a second, section by section (bass notes + piano notes + drum strokes):
 
 ## Revision (after the judging)
 
-Three judges measured this score beside the other three. A reviser, who did not write it, then worked through their findings. This section is the reviser's report; the sections above describe the score as it was judged, and where the two differ this section is the current state.
+Three judges measured this score beside the other three. A reviser, who did not write it, then worked through their findings. This section is the reviser's report and is the current state. The sections above are a mixture: `report.js` printed them again after the revision, so their tables and figures (the chart bar by bar, the checks, the mix chain, the measurements) are the revised score's, while their sentences (the idea, the listening guide, the weaknesses) were written for the version that was judged and still say, for example, 13 piano notes and the gate notes G, Bb, C, D.
 
-Nobody has heard this version either. Everything here is a number or a picture. The sections above describe the first version; where they disagree with this section, this section is the file on disk (final.wav MD5 4fc251b18cea139182f5bfcac9aaeffe).
+Nobody has heard this version either. Everything here is a number or a picture. Where a sentence above disagrees with this section, this section is the file on disk (final.wav MD5 4fc251b18cea139182f5bfcac9aaeffe).
 
 ### What changed in the music
 
@@ -301,7 +348,7 @@ Nobody has heard this version either. Everything here is a number or a picture. 
 
 Build: 35 s, deterministic (four consecutive builds, one MD5). 14 kit checks and 51 chart checks pass.
 
-### What was looked at (lib/spectro.py, regenerated in analysis/)
+### What was looked at (pictures drawn by hand with lib/spectro.py; the build does not write them)
 
 - Whole piece: four steps at 0.5 to 2.0 s (98, 117, 147, 175 Hz); a dark gap before each of the three hits; the stair from 22 s with four dashes at 392, 466, 587, 698 Hz and four lines together at 30.0 s; the title line dipping to 87 Hz at 33 s, climbing to 156 Hz at 35 s and dropping to 52 and 46 Hz; three one-second notes at 38, 39, 40 s; a dark gap at 41.5 s; chord at 42 s; a low note from 44.0 to 45.4 s; nothing after.
 - Drums stem, 0 to 17 s and 20 to 38 s: a continuous haze from 150 Hz to about 10 kHz wherever the swirl plays, brighter once a beat, with no black between beats; nothing before 2.5 s, from 8.6 to 10 s or before 22.5 s; it ends 70 ms after 7.625, 16.625 and 36.625 s; at 8.0 s one column from 50 Hz to about 6 kHz dying in 0.6 s; no horizontal line from 30 s on.
@@ -401,7 +448,7 @@ Build: 35 s, deterministic (four consecutive builds, one MD5). 14 kit checks and
 
 ### Not changed, and why
 
-- **Kit analysis row 'Keys relative to bass, 30 to 36 s' (-10 to -3 dB)**: It failed before the revision (-54.0 dB, by design) and reads -13.3 dB now. Passing it needs the winner chord 2.7 dB under the bass (MIX.keys.chordUnderBass.winner 6 to 2.7), as loud as the slab chord; the lead asked for one soft chord and then out. Left at 6.1 dB under the bass in its own second, inside the -3 to -10 window there.
+- **Kit analysis row 'Keys relative to bass, 30 to 36 s' (-10 to -3 dB)**: It failed before the revision (-54.0 dB, by design) and reads -13.3 dB now. Passing it needs the winner chord 2.7 dB under the bass (MIX.keys.chordUnderBass.winner 6 to 2.7), as loud as the slab chord; the revision was to add one soft chord and then stay out. Left at 6.1 dB under the bass in its own second, inside the -3 to -10 window there.
 - **Neighbour-key round robin exactly as the realism judge describes it (alternate occurrences one key higher, re-read)**: Measured: inside one zone of this preset the neighbouring key re-read to pitch is the identical waveform (r 1.0000); only across a zone edge is it another recording (r 0.47 to 0.90). Done across zone edges instead, for pitches within two semitones of an edge (17 notes). Not done for Ab1 to Bb1, Eb2, C#3 to E3 (too far from an edge) and for F#1 and G1 (the recording below key 30 measured half as bright again, centroid 110 against 74 Hz, and 2 dB louder: too different for the lone G1 at 22 s). So G1 at 22 s and at 37 s are still one recording.
 - **MINOR (realism): jitter range too small (bass sd 1.7 ms)**: A spread of 3 to 5 ms would take the bass outside the 4 to 12 ms window and the swing outside 0.62 to 0.66 that check-chart.js holds, so two checks would have to be loosened; not done. Unchanged: bass sd 1.6 ms, lag-1 correlation +0.65.
 - **MINOR (music): NO 1 arrives late in the bass (half-rise +7.9 ms)**: Starting Ab1 5 ms earlier would move the first trace of the hit to about -8 ms on the kit's HARD sync detector (it reads -3.2 ms now), leaving 2 ms of margin. The weight of the hit now comes from the slap and drag (50 percent point +1.5 ms). Bass 50 percent point still +8.0 ms.

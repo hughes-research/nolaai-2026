@@ -43,7 +43,7 @@ Every build is deterministic (two builds give the same bytes) and exits 0 only i
 
 The kit has its own tests. `node tools/score/lib/test-sampler.js` (12 checks: both libraries load, renders are deterministic, timing within 1 ms, pitch, the brush kit, reverb off) ships here. The mix half's test (141 checks: the loudness meter against ffmpeg, the limiter, the room, the click detector, the analysis and mux tools) ran where the scores were made and is not shipped, because it measures against the first soundtrack's file, which is not in the repository.
 
-`lib/analyze.js` measures a file against every target of the brief (tonal tilt, harsh-band energy, balance between the stems, mono fold-down, small-speaker translation, the thuds) and draws spectrograms. `lib/mux.js` copies the picture's video stream untouched, checks its MD5 before and after, and replaces the two films only when both new files pass.
+`lib/analyze.js` measures a file against every target of the brief (tonal tilt, harsh-band energy, balance between the stems, mono fold-down, small-speaker translation, the thuds) and draws spectrograms. `lib/mux.js` copies the picture's video stream untouched, checks its MD5 before and after, refuses a WAV that is not 48 kHz, stereo and 46.000 s long, and replaces the two films only when both new files pass.
 
 **Not checked: how any of it sounds.** PASS in these tables means a number is inside the brief's range, nothing more. The choice between the scores should be confirmed by ear.
 
@@ -74,7 +74,7 @@ The recorded-instrument scores are original compositions performed with samples 
 | `BRIEF.md` | The requirements: the film's timeline, what the music must do section by section, the sound targets, what every score delivers |
 | `<score>/build.js`, `chart.js` | A score: the composition as data, and the performance and mix that build it |
 | `<score>/check-chart.js` | The chart checked as data: chord tones, voice leading, no repeated bar, swing, the shape against the film |
-| `<score>/report.md` | The composer's report, as handed back |
+| `<score>/report.md` | The composer's report, tidied since (working notes removed); the two revised scores end with the reviser's section |
 | `lib/` | The shared kit: `sampler.js` (recorded instruments through fluidsynth), `midi.js`, `timeline.js`, `mix.js` (mixer, small room, loudness, true-peak limiter), `dsp.js`, `synth.js` (the thud, the room tone), `checks.js`, `analyze.js`, `spectro.py`, `mux.js`, `wav.js`; `README.md` there is the one-page guide |
 | `lib/audition/audition.md` | 394 sounds of the two libraries measured (pitch, attack, loudness by velocity, loop points, velocity layers) and the shortlist the composers chose from |
 | `ref/` | The picture's event table (`events.md`, `events.json`) and the libraries' preset lists |

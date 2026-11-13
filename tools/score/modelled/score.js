@@ -1,8 +1,10 @@
 /*
  * tools/score/modelled/score.js: this score's own copy of the film's timeline
- * (video/score.js), with the music this score plays added in a block of its
- * own. build.js beside it refuses to finish if the picture times here differ
- * from video/score.js, so a shutter and its slam cannot drift apart.
+ * (video/score.js, without its `silences` list), with this score's end fade
+ * (`fadeOut`) and a block for the music it plays (`SCORE.music`) added.
+ * build.js beside it fails its self-checks (exit 1) if the picture times here
+ * differ from video/score.js, and tools/build-audio.js then copies nothing,
+ * so a shutter and its slam cannot drift apart unnoticed.
  *
  *   In Node:  require('./score.js')
  *
@@ -167,8 +169,9 @@
     };
   }());
 
-  /* Every hard sound, with the picture event it belongs to. Built from the
-   * story above; the audio builder plays these and nothing it invents. */
+  /* Every picture event a sound can be cut to, in order. Built from the story
+   * above. build.js compares this list with video/score.js; it plays nothing
+   * from it. */
   SCORE.cues = function () {
     var out = [];
     out.push({ t: SCORE.intro.floor, type: 'floor' });
