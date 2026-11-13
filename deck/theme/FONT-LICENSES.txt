@@ -1,6 +1,7 @@
-The deck, the screener and the title film's page (video/title.html) embed two
-typefaces; the film itself and the PDFs are set in them. Their copyright lines,
-as the font files give them, and their licence follow.
+The deck, the screener and the stylesheet of the title film's page
+(video/fonts.css, which video/title.html loads) embed two typefaces; the film
+itself and the PDFs are set in them. Their copyright lines, as the font files
+give them, and their licence follow.
 
 Archivo:  Copyright 2020 The Archivo Project Authors (https://github.com/Omnibus-Type/Archivo)
 Fraunces: Copyright 2020 The Fraunces Project Authors (github.com/undercasetype/Fraunces)
